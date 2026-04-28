@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProjectResource\Pages;
 
 use App\Filament\Resources\ProjectResource;
+use App\Models\Lead;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateProject extends CreateRecord
@@ -17,11 +18,20 @@ class CreateProject extends CreateRecord
             $data['name'] = trim(sprintf('Matrimonio %s & %s', $partnerOne, $partnerTwo), ' &');
         }
 
+        if (blank($data['budget_amount'] ?? null) && filled($data['lead_id'] ?? null)) {
+            $data['budget_amount'] = Lead::query()->whereKey($data['lead_id'])->value('budget_amount');
+        }
+
         return $data;
     }
 
     protected function getRedirectUrl(): string
     {
         return static::getResource()::getUrl('index');
+    }
+
+    protected function afterCreate(): void
+    {
+        $this->getRecord()->loadMissing('lead')->initBudget();
     }
 }

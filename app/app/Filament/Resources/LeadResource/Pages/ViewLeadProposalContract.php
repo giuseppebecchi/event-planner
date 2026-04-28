@@ -185,7 +185,7 @@ class ViewLeadProposalContract extends Page
                     $projectCreated = false;
 
                     if (($data['create_project'] ?? false) && ! $lead->project()->exists()) {
-                        Project::query()->create([
+                        $project = Project::query()->create([
                             'lead_id' => $lead->id,
                             'name' => $lead->couple_name ? ('Wedding - ' . $lead->couple_name) : 'Wedding project',
                             'partner_one_name' => $lead->first_name,
@@ -195,9 +195,12 @@ class ViewLeadProposalContract extends Page
                             'nationality' => $lead->nationality,
                             'region' => $lead->desired_region,
                             'estimated_guest_count' => $lead->estimated_guest_count,
+                            'budget_amount' => $lead->budget_amount,
                             'status' => 'confirmed',
                             'private_notes' => $lead->internal_notes,
                         ]);
+
+                        $project->loadMissing('lead')->initBudget();
 
                         $projectCreated = true;
                     }

@@ -6,7 +6,6 @@ use App\Filament\Resources\ProjectResource\Pages;
 use App\Models\Lead;
 use App\Models\Project;
 use BackedEnum;
-use Filament\Navigation\NavigationItem;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -14,7 +13,6 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components;
 use Filament\Resources\Resource;
-use Filament\Resources\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -113,15 +111,12 @@ class ProjectResource extends Resource
                         ->label('Final guest count')
                         ->numeric()
                         ->minValue(0),
-                    Components\FileUpload::make('documents')
-                        ->label('Documents')
-                        ->multiple()
-                        ->disk('public')
-                        ->directory('projects/documents')
-                        ->downloadable()
-                        ->openable()
-                        ->reorderable()
-                        ->columnSpanFull(),
+                    Components\TextInput::make('budget_amount')
+                        ->label('Couple budget')
+                        ->numeric()
+                        ->prefix('EUR')
+                        ->step('0.01')
+                        ->minValue(0),
                     Components\Textarea::make('logistics_notes')
                         ->label('Logistics notes')
                         ->rows(6)
@@ -188,21 +183,10 @@ class ProjectResource extends Resource
             'index' => Pages\ListProjects::route('/'),
             'create' => Pages\CreateProject::route('/create'),
             'view' => Pages\ViewProject::route('/{record}'),
+            'budget' => Pages\ViewProjectBudget::route('/{record}/budget'),
+            'budget-scouting' => Pages\ManageProjectBudgetCategory::route('/{record}/budget/{categoryBudget}'),
+            'budget-manage' => Pages\ManageProjectConfirmedSupplier::route('/{record}/budget/{categoryBudget}/manage'),
             'edit' => Pages\EditProject::route('/{record}/edit'),
-        ];
-    }
-
-    public static function getRecordSubNavigation(Page $page): array
-    {
-        return [
-            NavigationItem::make('Overview')
-                ->icon('heroicon-o-home-modern')
-                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName() . '.view'))
-                ->url(static::getUrl('view', ['record' => $page->getRecord()])),
-            NavigationItem::make('Details')
-                ->icon('heroicon-o-pencil-square')
-                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName() . '.edit'))
-                ->url(static::getUrl('edit', ['record' => $page->getRecord()])),
         ];
     }
 }
