@@ -6,6 +6,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class Project extends Model
 {
@@ -43,6 +45,23 @@ class Project extends Model
         'event_end_date' => 'date',
         'budget_amount' => 'decimal:2',
     ];
+
+    protected static function booted(): void
+    {
+        static::created(function (Project $project): void {
+            $project->syncChecklistOptionsFromTemplates();
+        });
+
+        static::saved(function (Project $project): void {
+            if ($project->projectChecklistOptions()->doesntExist()) {
+                $project->syncChecklistOptionsFromTemplates();
+            }
+
+            if ($project->wasChanged('event_start_date')) {
+                $project->refreshChecklistOptionDueDates();
+            }
+        });
+    }
 
     public function lead(): BelongsTo
     {
@@ -138,6 +157,8 @@ class Project extends Model
             }
         }
 
+        $this->syncChecklistOptionsFromTemplates();
+
         return $stats;
     }
 
@@ -151,14 +172,34 @@ class Project extends Model
         return $this->hasMany(CategoryBudgetSupplier::class);
     }
 
+    public function projectChecklistOptions(): HasMany
+    {
+        return $this->hasMany(ProjectChecklistOption::class);
+    }
+
     public function projectDocuments(): HasMany
     {
         return $this->hasMany(ProjectDocument::class);
     }
 
+    public function projectEvents(): HasMany
+    {
+        return $this->hasMany(ProjectEvent::class);
+    }
+
+    public function projectTimelineItems(): HasMany
+    {
+        return $this->hasMany(ProjectTimeline::class);
+    }
+
     public function projectImages(): HasMany
     {
         return $this->hasMany(ProjectImage::class);
+    }
+
+    public function projectMoodboards(): HasMany
+    {
+        return $this->hasMany(ProjectMoodboard::class);
     }
 
     public function payments(): HasMany
@@ -169,5 +210,100 @@ class Project extends Model
     public function supplierCommunications(): HasMany
     {
         return $this->hasMany(ProjectSupplierCommunication::class);
+    }
+
+    public function syncChecklistOptionsFromTemplates(): void
+    {
+        if (! $this->exists) {
+            return;
+        }
+
+        $this->loadMissing('categoryBudgets.supplierProposals');
+
+        $categoryBudgets = $this->categoryBudgets->keyBy('category_id');
+        $eventDate = $this->event_start_date;
+
+        foreach (Checklist::query()->with('category')->orderBy('title')->get() as $checklist) {
+            foreach (array_values($checklist->options ?? []) as $index => $option) {
+                $order = max(1, (int) ($option['order'] ?? ($index + 1)));
+                $isDefault = (bool) ($option['default'] ?? false);
+
+                //if not default continue
+                if(! $isDefault) {
+                    continue;
+                }
+
+
+                $categoryBudget = $checklist->category_id ? $categoryBudgets->get($checklist->category_id) : null;
+
+                $item = $this->projectChecklistOptions()->firstOrNew([
+                    'checkbox_id' => $checklist->id,
+                    'order' => $order,
+                ]);
+
+                $item->fill([
+                    'supplier_id' => $categoryBudget?->confirmedProposal()?->supplier_id,
+                    'category_budget_id' => $categoryBudget?->id,
+                    'title' => trim((string) ($option['title'] ?? '')),
+                    'details' => null,
+                    'default' => $isDefault,
+                    'anticipation' => filled($option['anticipation'] ?? null) ? trim((string) $option['anticipation']) : null,
+                    'assigned_to' => ProjectChecklistOption::normalizeAssignedTo($option['assigned_to'] ?? null),
+                    'due_date' => static::calculateChecklistDueDate($eventDate, $option['anticipation'] ?? null),
+                ]);
+
+                if (! $item->exists) {
+                    $item->enabled = $isDefault;
+                    $item->completed = false;
+                    $item->completed_at = null;
+                }
+
+                if ($item->isDirty()) {
+                    $item->save();
+                }
+            }
+        }
+    }
+
+    public function refreshChecklistOptionDueDates(): void
+    {
+        if (! $this->exists) {
+            return;
+        }
+
+        $eventDate = $this->event_start_date;
+
+        $this->projectChecklistOptions()->get()->each(function (ProjectChecklistOption $item) use ($eventDate): void {
+            $dueDate = static::calculateChecklistDueDate($eventDate, $item->anticipation);
+
+            if (($item->due_date?->format('Y-m-d')) !== ($dueDate?->format('Y-m-d'))) {
+                $item->forceFill([
+                    'due_date' => $dueDate,
+                ])->saveQuietly();
+            }
+        });
+    }
+
+    public static function calculateChecklistDueDate(?Carbon $eventDate, mixed $anticipation): ?Carbon
+    {
+        if (! $eventDate || blank($anticipation)) {
+            return null;
+        }
+
+        $parts = preg_split('/\s+/', trim((string) $anticipation), 2);
+
+        if (! is_array($parts) || count($parts) < 2 || ! is_numeric($parts[0])) {
+            return null;
+        }
+
+        $amount = (int) $parts[0];
+        $unit = Str::singular(Str::lower(trim((string) $parts[1])));
+
+        return match ($unit) {
+            'day' => $eventDate->copy()->subDays($amount),
+            'week' => $eventDate->copy()->subWeeks($amount),
+            'month' => $eventDate->copy()->subMonths($amount),
+            default => null,
+        };
     }
 }

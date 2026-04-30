@@ -622,9 +622,6 @@
                                     <span class="wm-scout-badge {{ $availabilityBadgeClass }}">
                                         {{ \App\Models\CategoryBudgetSupplier::AVAILABILITY_STATUS_OPTIONS[$proposal->availability_status] ?? $proposal->availability_status }}
                                     </span>
-                                    <span class="wm-scout-badge {{ $isConfirmed ? 'is-success' : 'is-warning' }}">
-                                        {{ \App\Models\CategoryBudgetSupplier::PROPOSAL_STATUS_OPTIONS[$proposal->proposal_status] ?? $proposal->proposal_status }}
-                                    </span>
                                     <span class="wm-scout-badge">
                                         {{ \App\Models\CategoryBudgetSupplier::SCOUTING_STATUS_OPTIONS[$proposal->scouting_status] ?? $proposal->scouting_status }}
                                     </span>
@@ -766,18 +763,7 @@
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label class="wm-scout-label" for="proposal-status-{{ $proposal->id }}">Proposal status</label>
-                                        <select
-                                            id="proposal-status-{{ $proposal->id }}"
-                                            class="wm-scout-select"
-                                            wire:model="responseForm.proposal_status"
-                                        >
-                                            @foreach (collect(\App\Models\CategoryBudgetSupplier::PROPOSAL_STATUS_OPTIONS)->except([\App\Models\CategoryBudgetSupplier::STATUS_CONFIRMED]) as $value => $label)
-                                                <option value="{{ $value }}">{{ $label }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
+                                    <input type="hidden" wire:model="responseForm.proposal_status">
 
                                     <div>
                                         <label class="wm-scout-label" for="proposal-summary-{{ $proposal->id }}">Proposal summary</label>

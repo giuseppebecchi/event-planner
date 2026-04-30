@@ -58,13 +58,22 @@ class ManageProjectConfirmedSupplier extends Page
         'reason' => '',
         'amount' => '',
         'due_date' => '',
-        'payment_status' => Payment::STATUS_UNPAID,
         'paid_at' => '',
         'invoice_reference' => '',
         'notes' => '',
     ];
 
+    public string $paymentEntryMode = 'register';
+
     public $paymentReceiptUpload = null;
+
+    public array $paymentCompletionForms = [];
+
+    public array $openPaymentRegistrations = [];
+
+    public array $paymentCompletionReceiptUploads = [];
+
+    public string $activeWorkspaceTab = 'communications';
 
     public array $imageForm = [
         'description' => '',
@@ -110,18 +119,31 @@ class ManageProjectConfirmedSupplier extends Page
     public function getSummary(): array
     {
         $proposal = $this->proposalRecord->loadMissing('supplier', 'category', 'payments.paymentReceiptDocument', 'projectDocuments');
+        $estimatedAmount = $this->categoryBudgetRecord->initial_estimated_amount !== null
+            ? (float) $this->categoryBudgetRecord->initial_estimated_amount
+            : null;
+        $confirmedAmount = $proposal->proposed_amount !== null ? (float) $proposal->proposed_amount : null;
+        $paidTotal = (float) $proposal->payments
+            ->where('payment_status', Payment::STATUS_PAID)
+            ->sum(fn (Payment $payment): float => (float) $payment->amount);
+        $amountDelta = ($estimatedAmount !== null && $confirmedAmount !== null)
+            ? $confirmedAmount - $estimatedAmount
+            : null;
 
         return [
             'category' => $proposal->category?->label_it ?? 'Category',
             'supplier' => $proposal->supplier?->name ?? 'Supplier',
-            'confirmed_amount' => $proposal->proposed_amount !== null ? (float) $proposal->proposed_amount : null,
+            'estimated_amount' => $estimatedAmount,
+            'confirmed_amount' => $confirmedAmount,
+            'amount_delta' => $amountDelta,
             'requested_at' => $proposal->requested_at,
             'responded_at' => $proposal->responded_at,
             'communications_total' => $proposal->communications->count(),
             'payments_total' => (float) $proposal->payments->sum(fn (Payment $payment): float => (float) $payment->amount),
-            'payments_paid_total' => (float) $proposal->payments
-                ->where('payment_status', Payment::STATUS_PAID)
-                ->sum(fn (Payment $payment): float => (float) $payment->amount),
+            'payments_paid_total' => $paidTotal,
+            'payments_paid_percentage' => $confirmedAmount && $confirmedAmount > 0
+                ? ($paidTotal / $confirmedAmount) * 100
+                : null,
             'documents_total' => $proposal->projectDocuments->count(),
             'images_total' => $this->getImages()->count(),
             'checklist_total' => count($this->getChecklistItems()),
@@ -210,24 +232,45 @@ class ManageProjectConfirmedSupplier extends Page
 
         return [
             [
+                'key' => 'communications',
+                'label' => 'Communications',
+                'value' => $this->proposalRecord->communications->count(),
+                'meta' => 'Timeline, follow-ups and supplier updates',
+            ],
+            [
+                'key' => 'documents',
                 'label' => 'Documents',
                 'value' => $this->proposalRecord->projectDocuments->count(),
                 'meta' => $quoteCount . ' quote files · ' . $this->getDocumentsByType(ProjectDocument::TYPE_CONTRACT)->count() . ' contracts',
-                'anchor' => '#documents',
             ],
             [
+                'key' => 'photogallery',
+                'label' => 'Photogallery',
+                'value' => $this->getImages()->count(),
+                'meta' => 'Visual references and client-facing materials',
+            ],
+            [
+                'key' => 'payments',
                 'label' => 'Payments',
                 'value' => 'EUR ' . number_format((float) $this->proposalRecord->payments->sum('amount'), 2, ',', '.'),
                 'meta' => $unpaidPayments . ' unpaid' . ($nextPayment?->due_date ? ' · next ' . $nextPayment->due_date->format('d/m/Y') : ''),
-                'anchor' => '#payments',
             ],
             [
+                'key' => 'checklist',
                 'label' => 'Checklist',
                 'value' => count($this->getChecklistItems()),
                 'meta' => 'Operational milestones and reminders',
-                'anchor' => '#checklist',
             ],
         ];
+    }
+
+    public function setActiveWorkspaceTab(string $tab): void
+    {
+        if (! in_array($tab, ['communications', 'documents', 'photogallery', 'payments', 'checklist'], true)) {
+            return;
+        }
+
+        $this->activeWorkspaceTab = $tab;
     }
 
     public function saveCommunication(): void
@@ -341,7 +384,6 @@ class ManageProjectConfirmedSupplier extends Page
                 'form.reason' => ['required', 'string', 'max:255'],
                 'form.amount' => ['required', 'numeric'],
                 'form.due_date' => ['nullable', 'date'],
-                'form.payment_status' => ['required', 'string'],
                 'form.paid_at' => ['nullable', 'date'],
                 'form.invoice_reference' => ['nullable', 'string', 'max:255'],
                 'form.notes' => ['nullable', 'string'],
@@ -349,9 +391,13 @@ class ManageProjectConfirmedSupplier extends Page
             ]
         )->validate();
 
+        $paymentStatus = $this->paymentEntryMode === 'register'
+            ? Payment::STATUS_PAID
+            : Payment::STATUS_UNPAID;
+
         $receiptDocumentId = null;
 
-        if ($this->paymentReceiptUpload) {
+        if ($this->paymentEntryMode === 'register' && $this->paymentReceiptUpload) {
             $storedPath = $this->paymentReceiptUpload->store('projects/payment-receipts', 'public');
 
             $receiptDocument = $this->proposalRecord->projectDocuments()->create([
@@ -373,30 +419,101 @@ class ManageProjectConfirmedSupplier extends Page
             'reason' => $data['form']['reason'],
             'amount' => $data['form']['amount'],
             'due_date' => $data['form']['due_date'] ?: null,
-            'payment_status' => $data['form']['payment_status'],
-            'paid_at' => $data['form']['payment_status'] === Payment::STATUS_PAID ? ($data['form']['paid_at'] ?: now()->toDateString()) : null,
+            'payment_status' => $paymentStatus,
+            'paid_at' => $paymentStatus === Payment::STATUS_PAID ? ($data['form']['paid_at'] ?: now()->toDateString()) : null,
             'invoice_reference' => $data['form']['invoice_reference'] ?: null,
             'payment_receipt_document_id' => $receiptDocumentId,
             'notes' => $data['form']['notes'] ?: null,
         ]);
 
-        $this->paymentForm = [
-            'reason' => '',
-            'amount' => '',
-            'due_date' => '',
-            'payment_status' => Payment::STATUS_UNPAID,
-            'paid_at' => '',
-            'invoice_reference' => '',
-            'notes' => '',
-        ];
-        $this->paymentReceiptUpload = null;
+        $this->resetPaymentEntryForm();
 
         $this->refreshContext();
 
         Notification::make()
-            ->title('Payment saved')
+            ->title($paymentStatus === Payment::STATUS_PAID ? 'Payment registered' : 'Payment scheduled')
             ->success()
             ->send();
+    }
+
+    public function startPaymentRegistration(int $paymentId): void
+    {
+        $payment = $this->proposalRecord->payments()->whereKey($paymentId)->firstOrFail();
+
+        $this->paymentCompletionForms[$paymentId] = [
+            'paid_at' => $payment->paid_at?->toDateString() ?? now()->toDateString(),
+        ];
+        $this->openPaymentRegistrations[$paymentId] = true;
+    }
+
+    public function cancelPaymentRegistration(int $paymentId): void
+    {
+        unset(
+            $this->paymentCompletionForms[$paymentId],
+            $this->openPaymentRegistrations[$paymentId],
+            $this->paymentCompletionReceiptUploads[$paymentId],
+        );
+    }
+
+    public function registerScheduledPayment(int $paymentId): void
+    {
+        $payment = $this->proposalRecord->payments()->with('paymentReceiptDocument')->whereKey($paymentId)->firstOrFail();
+
+        $data = validator(
+            [
+                'form' => $this->paymentCompletionForms[$paymentId] ?? [],
+                'receipt' => $this->paymentCompletionReceiptUploads[$paymentId] ?? null,
+            ],
+            [
+                'form.paid_at' => ['required', 'date'],
+                'receipt' => ['nullable', 'file', 'max:20480'],
+            ]
+        )->validate();
+
+        $receiptDocumentId = $payment->payment_receipt_document_id;
+
+        if (array_key_exists($paymentId, $this->paymentCompletionReceiptUploads) && $this->paymentCompletionReceiptUploads[$paymentId]) {
+            if ($payment->paymentReceiptDocument) {
+                Storage::disk('public')->delete($payment->paymentReceiptDocument->file_path);
+                $payment->paymentReceiptDocument->delete();
+            }
+
+            $storedPath = $this->paymentCompletionReceiptUploads[$paymentId]->store('projects/payment-receipts', 'public');
+
+            $receiptDocument = $this->proposalRecord->projectDocuments()->create([
+                'project_id' => $this->getRecord()->getKey(),
+                'supplier_id' => $this->proposalRecord->supplier_id,
+                'title' => 'Payment receipt - ' . $payment->reason,
+                'document_type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
+                'type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
+                'file_path' => $storedPath,
+                'description' => $payment->notes,
+            ]);
+
+            $receiptDocumentId = $receiptDocument->id;
+        }
+
+        $payment->update([
+            'payment_status' => Payment::STATUS_PAID,
+            'paid_at' => $data['form']['paid_at'],
+            'payment_receipt_document_id' => $receiptDocumentId,
+        ]);
+
+        $this->cancelPaymentRegistration($paymentId);
+        $this->refreshContext();
+
+        Notification::make()
+            ->title('Payment registered')
+            ->success()
+            ->send();
+    }
+
+    public function updatedPaymentEntryMode(string $value): void
+    {
+        if ($value === 'schedule') {
+            $this->paymentForm['paid_at'] = '';
+            $this->paymentReceiptUpload = null;
+        }
     }
 
     public function deletePayment(int $paymentId): void
@@ -505,5 +622,19 @@ class ManageProjectConfirmedSupplier extends Page
         $this->categoryBudgetRecord = $this->resolveCategoryBudget($this->categoryBudgetRecord->getKey());
         $this->record = $this->resolveRecord($this->getRecord()->getKey());
         $this->proposalRecord = $this->resolveConfirmedProposal();
+    }
+
+    protected function resetPaymentEntryForm(): void
+    {
+        $this->paymentForm = [
+            'reason' => '',
+            'amount' => '',
+            'due_date' => '',
+            'paid_at' => '',
+            'invoice_reference' => '',
+            'notes' => '',
+        ];
+        $this->paymentReceiptUpload = null;
+        $this->paymentEntryMode = 'register';
     }
 }

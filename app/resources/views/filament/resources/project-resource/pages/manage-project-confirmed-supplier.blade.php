@@ -298,105 +298,92 @@
             line-height: 1.65;
         }
 
-        .wm-status {
-            display: inline-flex;
-            min-height: 2.1rem;
-            align-items: center;
-            padding: 0 0.9rem;
-            border-radius: 999px;
-            background: rgba(83, 168, 106, 0.14);
-            color: #2d7a39;
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-        }
-
-        .wm-top-kpis {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 0.85rem;
-            margin-top: 1rem;
-        }
-
-        .wm-kpi {
+        .wm-quote-badge {
+            min-width: 15rem;
             padding: 0.95rem 1rem;
             border-radius: 1rem;
-            background: #fbf8f4;
-            border: 1px solid #ece5dd;
+            background: linear-gradient(180deg, rgba(240, 248, 242, 0.98), rgba(250, 252, 250, 0.98));
+            border: 1px solid rgba(83, 168, 106, 0.18);
         }
 
-        .wm-kpi-label {
+        .wm-quote-badge-label {
             margin: 0;
-            color: #8b847d;
+            color: #6d8a73;
             font-size: 0.72rem;
             font-weight: 700;
             letter-spacing: 0.14em;
             text-transform: uppercase;
         }
 
-        .wm-kpi-value {
+        .wm-quote-badge-value {
             margin: 0.45rem 0 0;
             color: #2d2a26;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             font-weight: 700;
         }
 
-        .wm-subnav {
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-            overflow-x: auto;
-            padding: 0.28rem;
-            border-radius: 1.2rem;
-            background: rgba(247, 243, 237, 0.96);
-            border: 1px solid #ece5dd;
-            scrollbar-width: none;
-        }
-
-        .wm-subnav::-webkit-scrollbar {
-            display: none;
-        }
-
-        .wm-subnav a {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 2.45rem;
-            padding: 0 0.88rem;
-            border-radius: 999px;
+        .wm-quote-badge-meta {
+            margin: 0.45rem 0 0;
             color: #746d66;
-            font-size: 0.69rem;
-            font-weight: 700;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            text-decoration: none;
-            white-space: nowrap;
+            font-size: 0.82rem;
+            line-height: 1.45;
         }
 
-        .wm-subnav a:hover {
-            background: rgba(122, 143, 123, 0.10);
-            color: #617563;
+        .wm-quote-badge-meta.is-positive {
+            color: #2d7a39;
+            font-weight: 700;
+        }
+
+        .wm-quote-badge-meta.is-negative {
+            color: #b54c3d;
+            font-weight: 700;
         }
 
         .wm-dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 1rem;
         }
 
         .wm-dashboard-card {
+            position: relative;
             display: grid;
             gap: 0.55rem;
+            width: 100%;
             padding: 1.05rem 1.1rem;
             border-radius: 1rem;
             background: linear-gradient(180deg, rgba(251, 248, 244, 0.95), rgba(255, 255, 255, 0.98));
             border: 1px solid #ece5dd;
-            text-decoration: none;
+            text-align: left;
+            cursor: pointer;
         }
 
-        .wm-dashboard-card:hover {
+        .wm-dashboard-card:hover,
+        .wm-dashboard-card.is-active {
             border-color: rgba(201, 169, 106, 0.42);
+            background: linear-gradient(180deg, rgba(247, 243, 237, 0.98), rgba(255, 255, 255, 0.98));
+        }
+
+        .wm-dashboard-card.is-active {
+            border-color: rgba(83, 168, 106, 0.36);
+            box-shadow: 0 18px 34px rgba(83, 168, 106, 0.14);
+        }
+
+        .wm-dashboard-card.is-active::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 0.32rem;
+            border-radius: 1rem 0 0 1rem;
+            background: linear-gradient(180deg, #53a86a 0%, #2d7a39 100%);
+        }
+
+        .wm-dashboard-card.is-active .wm-dashboard-label {
+            color: #4f7a57;
+        }
+
+        .wm-dashboard-card.is-active .wm-dashboard-value {
+            color: #2d7a39;
         }
 
         .wm-dashboard-label {
@@ -551,6 +538,34 @@
             margin-top: 0.85rem;
         }
 
+        .wm-radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.7rem;
+        }
+
+        .wm-radio-option {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.85rem 1rem;
+            border-radius: 1rem;
+            border: 1px solid #ece5dd;
+            background: #fbf8f4;
+            color: #4d473f;
+            font-weight: 600;
+        }
+
+        .wm-radio-option input {
+            margin: 0;
+        }
+
+        .wm-inline-form {
+            margin-top: 0.9rem;
+            padding-top: 0.9rem;
+            border-top: 1px dashed #ddd2c5;
+        }
+
         .wm-empty {
             padding: 1rem;
             border-radius: 1rem;
@@ -639,47 +654,36 @@
                     <h2 class="wm-title" style="margin-top:.45rem;">{{ $summary['supplier'] }}</h2>
                     <p class="wm-copy">{{ $summary['category'] }} · confirmed supplier workspace for this project.</p>
                 </div>
-                <span class="wm-status">Confirmed</span>
-            </div>
-
-            <div class="wm-top-kpis">
-                <div class="wm-kpi">
-                    <p class="wm-kpi-label">Confirmed quote</p>
-                    <p class="wm-kpi-value">{{ $summary['confirmed_amount'] !== null ? 'EUR ' . number_format($summary['confirmed_amount'], 2, ',', '.') : '—' }}</p>
-                </div>
-                <div class="wm-kpi">
-                    <p class="wm-kpi-label">Communications</p>
-                    <p class="wm-kpi-value">{{ $summary['communications_total'] }}</p>
-                </div>
-                <div class="wm-kpi">
-                    <p class="wm-kpi-label">Documents</p>
-                    <p class="wm-kpi-value">{{ $summary['documents_total'] }}</p>
-                </div>
-                <div class="wm-kpi">
-                    <p class="wm-kpi-label">Images</p>
-                    <p class="wm-kpi-value">{{ $summary['images_total'] }}</p>
+                <div class="wm-quote-badge">
+                    <p class="wm-quote-badge-label">Confirmed quote</p>
+                    <p class="wm-quote-badge-value">{{ $summary['confirmed_amount'] !== null ? 'EUR ' . number_format($summary['confirmed_amount'], 2, ',', '.') : '—' }}</p>
+                    @if ($summary['amount_delta'] !== null && $summary['amount_delta'] !== 0.0)
+                        <p class="wm-quote-badge-meta {{ $summary['amount_delta'] < 0 ? 'is-positive' : 'is-negative' }}">
+                            {{ $summary['amount_delta'] < 0 ? 'Savings' : 'Over budget' }}
+                            {{ 'EUR ' . number_format(abs($summary['amount_delta']), 2, ',', '.') }}
+                        </p>
+                    @elseif ($summary['amount_delta'] !== null)
+                        <p class="wm-quote-badge-meta">Aligned with the initial estimate</p>
+                    @endif
                 </div>
             </div>
         </section>
-
-        <nav class="wm-subnav">
-            <a href="#communications">Communications</a>
-            <a href="#documents">Documents</a>
-            <a href="#photogallery">Photogallery</a>
-            <a href="#payments">Payments</a>
-            <a href="#checklist">Checklist</a>
-        </nav>
 
         <section class="wm-dashboard-grid">
             @foreach ($dashboardCards as $card)
-                <a href="{{ $card['anchor'] }}" class="wm-dashboard-card wm-card">
+                <button
+                    type="button"
+                    wire:click="setActiveWorkspaceTab('{{ $card['key'] }}')"
+                    class="wm-dashboard-card wm-card {{ $this->activeWorkspaceTab === $card['key'] ? 'is-active' : '' }}"
+                >
                     <p class="wm-dashboard-label">{{ $card['label'] }}</p>
                     <p class="wm-dashboard-value">{{ $card['value'] }}</p>
                     <p class="wm-dashboard-meta">{{ $card['meta'] }}</p>
-                </a>
+                </button>
             @endforeach
         </section>
 
+        @if ($this->activeWorkspaceTab === 'communications')
         <section id="communications" class="wm-section wm-two-col">
             <div class="wm-card wm-panel">
                 <div class="wm-section-head">
@@ -771,7 +775,9 @@
                 </div>
             </div>
         </section>
+        @endif
 
+        @if ($this->activeWorkspaceTab === 'documents')
         <section id="documents" class="wm-section wm-two-col">
             <div class="wm-card wm-panel">
                 <div class="wm-section-head">
@@ -865,7 +871,9 @@
                 </div>
             </div>
         </section>
+        @endif
 
+        @if ($this->activeWorkspaceTab === 'photogallery')
         <section id="photogallery" class="wm-section wm-two-col">
             <div class="wm-card wm-panel">
                 <div class="wm-section-head">
@@ -940,7 +948,9 @@
                 </div>
             </div>
         </section>
+        @endif
 
+        @if ($this->activeWorkspaceTab === 'payments')
         <section id="payments" class="wm-section wm-two-col">
             <div class="wm-card wm-panel">
                 <div class="wm-section-head">
@@ -960,6 +970,9 @@
                                         EUR {{ number_format((float) $payment->amount, 2, ',', '.') }}
                                         · due {{ $payment->due_date?->format('d/m/Y') ?? '—' }}
                                         · {{ \App\Models\Payment::STATUS_OPTIONS[$payment->payment_status] ?? $payment->payment_status }}
+                                        @if ($payment->paid_at)
+                                            · paid {{ $payment->paid_at->format('d/m/Y') }}
+                                        @endif
                                         @if ($payment->invoice_reference)
                                             · invoice {{ $payment->invoice_reference }}
                                         @endif
@@ -974,8 +987,31 @@
                                 @if ($payment->paymentReceiptDocument)
                                     <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($payment->paymentReceiptDocument->file_path) }}" target="_blank" class="wm-link">Open receipt</a>
                                 @endif
+                                @if ($payment->payment_status === \App\Models\Payment::STATUS_UNPAID)
+                                    <button type="button" class="wm-link" wire:click="startPaymentRegistration({{ $payment->id }})">Register payment</button>
+                                @endif
                                 <button type="button" class="wm-link" wire:click="deletePayment({{ $payment->id }})">Delete</button>
                             </div>
+
+                            @if (($this->openPaymentRegistrations[$payment->id] ?? false) && $payment->payment_status === \App\Models\Payment::STATUS_UNPAID)
+                                <div class="wm-inline-form">
+                                    <div class="wm-inline-grid">
+                                        <div>
+                                            <label class="wm-label" for="register-payment-paid-at-{{ $payment->id }}">Payment date</label>
+                                            <input id="register-payment-paid-at-{{ $payment->id }}" type="date" class="wm-field" wire:model="paymentCompletionForms.{{ $payment->id }}.paid_at">
+                                        </div>
+                                        <div>
+                                            <label class="wm-label" for="register-payment-receipt-{{ $payment->id }}">Payment receipt</label>
+                                            <input id="register-payment-receipt-{{ $payment->id }}" type="file" class="wm-field" wire:model="paymentCompletionReceiptUploads.{{ $payment->id }}">
+                                        </div>
+                                    </div>
+
+                                    <div class="wm-actions">
+                                        <x-filament::button color="primary" wire:click="registerScheduledPayment({{ $payment->id }})">Confirm payment</x-filament::button>
+                                        <button type="button" class="wm-link" wire:click="cancelPaymentRegistration({{ $payment->id }})">Cancel</button>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     @empty
                         <div class="wm-empty">No payments recorded yet.</div>
@@ -987,11 +1023,25 @@
                 <div class="wm-section-head">
                     <div>
                         <h3 class="wm-section-title">Add payment</h3>
-                        <p class="wm-section-subtitle">Register due dates, paid amounts and upload payment receipts when available.</p>
+                        <p class="wm-section-subtitle">Register a completed payment or schedule an upcoming one for this supplier.</p>
                     </div>
                 </div>
 
                 <div class="wm-form">
+                    <div>
+                        <label class="wm-label">Payment mode</label>
+                        <div class="wm-radio-group">
+                            <label class="wm-radio-option">
+                                <input type="radio" wire:model.live="paymentEntryMode" value="register">
+                                <span>Register payment</span>
+                            </label>
+                            <label class="wm-radio-option">
+                                <input type="radio" wire:model.live="paymentEntryMode" value="schedule">
+                                <span>Schedule payment</span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="wm-inline-grid">
                         <div>
                             <label class="wm-label" for="payment-reason">Reason</label>
@@ -1009,30 +1059,24 @@
                             <input id="payment-due-date" type="date" class="wm-field" wire:model="paymentForm.due_date">
                         </div>
                         <div>
-                            <label class="wm-label" for="payment-status">Payment status</label>
-                            <select id="payment-status" class="wm-select" wire:model="paymentForm.payment_status">
-                                @foreach (\App\Models\Payment::STATUS_OPTIONS as $value => $label)
-                                    <option value="{{ $value }}">{{ $label }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="wm-inline-grid">
-                        <div>
-                            <label class="wm-label" for="payment-paid-at">Payment date</label>
-                            <input id="payment-paid-at" type="date" class="wm-field" wire:model="paymentForm.paid_at">
-                        </div>
-                        <div>
                             <label class="wm-label" for="payment-invoice-reference">Invoice reference</label>
                             <input id="payment-invoice-reference" type="text" class="wm-field" wire:model="paymentForm.invoice_reference">
                         </div>
                     </div>
 
-                    <div>
-                        <label class="wm-label" for="payment-receipt">Payment receipt</label>
-                        <input id="payment-receipt" type="file" class="wm-field" wire:model="paymentReceiptUpload">
-                    </div>
+                    @if ($this->paymentEntryMode === 'register')
+                        <div class="wm-inline-grid">
+                            <div>
+                                <label class="wm-label" for="payment-paid-at">Payment date</label>
+                                <input id="payment-paid-at" type="date" class="wm-field" wire:model="paymentForm.paid_at">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="wm-label" for="payment-receipt">Payment receipt</label>
+                            <input id="payment-receipt" type="file" class="wm-field" wire:model="paymentReceiptUpload">
+                        </div>
+                    @endif
 
                     <div>
                         <label class="wm-label" for="payment-notes">Notes</label>
@@ -1040,12 +1084,14 @@
                     </div>
 
                     <div class="wm-actions">
-                        <x-filament::button color="primary" wire:click="savePayment">Save payment</x-filament::button>
+                        <x-filament::button color="primary" wire:click="savePayment">{{ $this->paymentEntryMode === 'register' ? 'Register payment' : 'Schedule payment' }}</x-filament::button>
                     </div>
                 </div>
             </div>
         </section>
+        @endif
 
+        @if ($this->activeWorkspaceTab === 'checklist')
         <section id="checklist" class="wm-section wm-card wm-panel">
             <div class="wm-section-head">
                 <div>
@@ -1063,5 +1109,6 @@
                 @endforeach
             </div>
         </section>
+        @endif
     </div>
 </x-filament-panels::page>

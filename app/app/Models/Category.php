@@ -34,4 +34,9 @@ class Category extends Model
     {
         return $this->hasMany(CategoryBudgetSupplier::class);
     }
+
+    public function checklists(): HasMany
+    {
+        return $this->hasMany(Checklist::class);
+    }
 }

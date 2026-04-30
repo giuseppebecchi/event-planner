@@ -157,8 +157,8 @@ class LeadResource extends Resource
                         ->where('status', 'pending')
                         ->whereNotNull('due_at'),
                 ], 'due_at'))
-            ->recordAction(EditAction::class)
-            ->recordUrl(null)
+            ->recordAction(null)
+            ->recordUrl(fn (Lead $record): string => static::getUrl('edit', ['record' => $record]))
             ->columns([
                 TextColumn::make('requested_at')
                     ->label('Date')
@@ -369,7 +369,8 @@ class LeadResource extends Resource
             'edit' => Pages\EditLead::route('/{record}/edit'),
             'documents' => Pages\ManageLeadDocuments::route('/{record}/documents'),
             'follow-ups' => Pages\ManageLeadFollowUps::route('/{record}/follow-ups'),
-            'proposal-contract' => Pages\ViewLeadProposalContract::route('/{record}/proposal-contract'),
+            'proposal' => Pages\ViewLeadProposal::route('/{record}/proposal'),
+            'contract' => Pages\ViewLeadContract::route('/{record}/contract'),
             'form-data' => Pages\ViewLeadFormData::route('/{record}/form-data'),
             'budget-composition' => Pages\ViewLeadBudgetComposition::route('/{record}/budget-composition'),
         ];
@@ -398,10 +399,14 @@ class LeadResource extends Resource
                 ->icon('heroicon-o-banknotes')
                 ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName() . '.budget-composition'))
                 ->url(static::getUrl('budget-composition', ['record' => $page->getRecord()])),
-            NavigationItem::make('Proposal / Contract')
+            NavigationItem::make('Proposal')
                 ->icon('heroicon-o-document-check')
-                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName() . '.proposal-contract'))
-                ->url(static::getUrl('proposal-contract', ['record' => $page->getRecord()])),
+                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName() . '.proposal'))
+                ->url(static::getUrl('proposal', ['record' => $page->getRecord()])),
+            NavigationItem::make('Contract')
+                ->icon('heroicon-o-document-text')
+                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName() . '.contract'))
+                ->url(static::getUrl('contract', ['record' => $page->getRecord()])),
         ];
     }
 }

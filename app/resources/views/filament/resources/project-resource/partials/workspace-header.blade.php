@@ -9,6 +9,10 @@
     $locationLabel = collect([$record->locality, $record->region])->filter()->implode(', ') ?: 'Location to be defined';
     $partnerLabel = collect([$record->partner_one_name, $record->partner_two_name])->filter()->implode(' & ') ?: 'Partners not set';
     $overviewUrl = ProjectResource::getUrl('view', ['record' => $record]);
+    $checklistUrl = ProjectResource::getUrl('checklist', ['record' => $record]);
+    $calendarUrl = ProjectResource::getUrl('calendar', ['record' => $record]);
+    $timelineUrl = ProjectResource::getUrl('timeline', ['record' => $record]);
+    $moodboardUrl = ProjectResource::getUrl('moodboard', ['record' => $record]);
     $budgetUrl = ProjectResource::getUrl('budget', ['record' => $record]);
     $infoUrl = ProjectResource::getUrl('edit', ['record' => $record]);
 @endphp
@@ -110,15 +114,14 @@
     </div>
 
     <nav class="wm-event-workspace" aria-label="Event workspace navigation">
-        <a href="{{ $infoUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'info' ? 'is-active' : '' }}">Info</a>
+        <a href="{{ $overviewUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'dashboard' ? 'is-active' : '' }}">Dashboard</a>
+        <a href="{{ $infoUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'info' ? 'is-active' : '' }}">Edit info</a>
         <a href="{{ $budgetUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'budget' ? 'is-active' : '' }}">Budget</a>
-        <a href="{{ $overviewUrl }}#checklist" class="wm-event-workspace-link">Checklist</a>
-        <a href="{{ $overviewUrl }}#calendar" class="wm-event-workspace-link">Calendar</a>
-        <a href="{{ $overviewUrl }}#timeline" class="wm-event-workspace-link">Timeline</a>
-        <a href="{{ $overviewUrl }}#design-studio" class="wm-event-workspace-link">Design Studio</a>
-        <a href="{{ $overviewUrl }}#guests" class="wm-event-workspace-link">Guests</a>
-        <a href="{{ $overviewUrl }}#layout-seating" class="wm-event-workspace-link">Layout &amp; Seating</a>
-        <a href="{{ $overviewUrl }}#contacts" class="wm-event-workspace-link">Contacts</a>
-        <a href="{{ $overviewUrl }}#notes" class="wm-event-workspace-link">Notes</a>
+        <a href="{{ $checklistUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'checklist' ? 'is-active' : '' }}">Checklist</a>
+        <a href="{{ $calendarUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'calendar' ? 'is-active' : '' }}">Calendar</a>
+        <a href="{{ $timelineUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'timeline' ? 'is-active' : '' }}">Timeline</a>
+        <a href="{{ $moodboardUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'moodboard' ? 'is-active' : '' }}">Moodboard</a>
+        <span class="wm-event-workspace-link is-disabled" aria-disabled="true">Guests</span>
+        <span class="wm-event-workspace-link is-disabled" aria-disabled="true">Layout &amp; Seating</span>
     </nav>
 </section>

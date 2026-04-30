@@ -20,6 +20,7 @@ class ProjectImage extends Model
 
     protected $fillable = [
         'project_id',
+        'project_moodboard_id',
         'supplier_id',
         'image_path',
         'description',
@@ -34,6 +35,11 @@ class ProjectImage extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function moodboard(): BelongsTo
+    {
+        return $this->belongsTo(ProjectMoodboard::class, 'project_moodboard_id');
     }
 
     public function supplier(): BelongsTo

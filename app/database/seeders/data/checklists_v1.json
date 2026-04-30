@@ -1,0 +1,497 @@
+[
+  {
+    "title": "Guest List",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Compile the guest list using the Guest manager.", "default": true, "anticipation": "9 months", "assigned_to": "client" },
+      { "order": 2, "title": "Collect guest list addresses.", "default": true, "anticipation": "7 months", "assigned_to": "client" },
+      { "order": 3, "title": "Research accommodations for out of town guests as needed.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 4, "title": "Make arrangements for out of town guests as needed: Hotel room blocks/wedding rates, etc.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 5, "title": "Send travel, hotel and destination information to out of town guests or create a wedding website that includes this information.", "default": true, "anticipation": "6 months", "assigned_to": "client" },
+      { "order": 6, "title": "Confirm hotel reservations for out of town guests and add additional rooms to your room block if needed.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 7, "title": "Arrange for welcome baskets or gifts for out of town guests.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 8, "title": "Track RSVPs as they arrive.", "default": true, "anticipation": "6 months", "assigned_to": "client" },
+      { "order": 9, "title": "Purchase guest book or alternative & guest book pens.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 10, "title": "Purchase something to hold gift cards, such as a card box, basket or other.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 11, "title": "Designate greeters to welcome guests at the receiving / welcome table and assist guests as needed.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 12, "title": "Follow up with guests who have not responded past the RSVP deadline.", "default": true, "anticipation": "11 weeks", "assigned_to": "client" },
+      { "order": 13, "title": "Begin seating plan for the reception.", "default": true, "anticipation": "6 weeks", "assigned_to": "admin" },
+      { "order": 14, "title": "Finalize seating plan for the reception.", "default": true, "anticipation": "3 weeks", "assigned_to": "admin" },
+      { "order": 15, "title": "Arrange for someone to drop off / set up the guest book and pens at the reception, or box and give them to your wedding planner.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 16, "title": "Deliver or arrange delivery of welcome baskets or welcome gifts for out of town guests.", "default": false, "anticipation": null, "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Budget & Financial",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Determine who will be contributing to the wedding budget.", "default": true, "anticipation": "10 months", "assigned_to": "client" },
+      { "order": 2, "title": "Discuss and set a budget, update the total budget on your Budget tool as needed.", "default": true, "anticipation": "10 months", "assigned_to": "client" },
+      { "order": 3, "title": "Decide whether or not you want to purchase wedding insurance.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 4, "title": "Make necessary adjustments for insurance policies, including your health, automobile, homeowner's and life insurance policies and name your fiance as a beneficiary to your insurance policy and will.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 5, "title": "Confirm all final payment amounts with vendors.", "default": true, "anticipation": "4 weeks", "assigned_to": "admin" },
+      { "order": 6, "title": "Prepare unpaid vendor balance payments due on the wedding day and any cash gratuities in marked envelopes for the wedding day, and give to your wedding planner or designated family member or the best man to distribute on the wedding day.", "default": true, "anticipation": "1 week", "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Wedding Planner",
+    "category": "Wedding planner",
+    "options": [
+      { "order": 1, "title": "Add wedding planner's contact information, invoice and payment details in your Contacts manager.", "default": true, "anticipation": "9 months", "assigned_to": "admin" },
+      { "order": 2, "title": "Reconfirm and review wedding related duties with wedding day volunteers and helpers.", "default": true, "anticipation": "2 weeks", "assigned_to": "admin" },
+      { "order": 3, "title": "Print out vendor contact list and wedding weekend timeline.", "default": true, "anticipation": "1 week", "assigned_to": "admin" },
+      { "order": 4, "title": "For outdoor weddings, begin to watch the weather forecast.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 5, "title": "Prep and pack all wedding items and supplies, with delivery labels and any instructions and give to your wedding planner or designated individual.", "default": true, "anticipation": "3 days", "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Bride's Checklist",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Choose your bridesmaids, invite them to be in your bridal party.", "default": true, "anticipation": "9 months", "assigned_to": "client" },
+      { "order": 2, "title": "Choose your flowergirl and ringbearer.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 3, "title": "Consider Something Old, Something New, Something Borrowed, Something Blue.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 4, "title": "Select ringbearer's attire & shoes.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 5, "title": "Discuss any pre wedding gatherings, such as bridal shower or bachelorette party with your maid of honor.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 6, "title": "Plan a bridesmaids luncheon or cocktails to thank your attendants for their help and support.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 7, "title": "Give a bridal shower guest list to your bridesmaids.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 8, "title": "Share important wedding and rehearsal information with your bridesmaids, including timeline, directions, duties, etc.", "default": true, "anticipation": "4 weeks", "assigned_to": "client" },
+      { "order": 9, "title": "Assign any Wedding Duties / Responsibilities to Bridesmaids as needed.", "default": true, "anticipation": "3 weeks", "assigned_to": "client" },
+      { "order": 10, "title": "If you plan on changing your name, prepare name change documents to update all records.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 11, "title": "If you will be moving, send change of address information to post office.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 12, "title": "Pack a wedding day emergency kit for the unexpected.", "default": true, "anticipation": "1 week", "assigned_to": "client" },
+      { "order": 13, "title": "Pack an overnight bag for the honeymoon suite and determine how it will get to the hotel.", "default": true, "anticipation": "3 days", "assigned_to": "client" }
+    ]
+  },
+  {
+    "title": "Bride & Bridesmaids Fashion",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Begin shopping for a wedding dress.", "default": true, "anticipation": "10 months", "assigned_to": "client" },
+      { "order": 2, "title": "Order your wedding dress.", "default": true, "anticipation": "9 months", "assigned_to": "client" },
+      { "order": 3, "title": "Confirm the delivery date for your dress and schedule dress fitting appointments. Don’t forget to add these appointments to your Calendar.", "default": true, "anticipation": "6 months", "assigned_to": "client" },
+      { "order": 4, "title": "Choose bridesmaids dresses and let them know to schedule fittings and order their dresses.", "default": true, "anticipation": "8 months", "assigned_to": "client" },
+      { "order": 5, "title": "Confirm that all bridesmaids have ordered their dresses.", "default": true, "anticipation": "6 months", "assigned_to": "client" },
+      { "order": 6, "title": "Help Mother of the Bride and Mother of the Groom select their dresses.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 7, "title": "Purchase lingerie & undergarment essentials before your first fitting.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 8, "title": "Choose accessories, such as shoes and jewelry, for your bridesmaids and purchase them or share the information with your bridesmaids.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 9, "title": "Select flowergirl's dress & shoes.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 10, "title": "Confirm the delivery date for bridesmaids dresses, and add the date to your Calendar.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 11, "title": "Purchase a veil or headpiece, if desired, before your final fitting.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 12, "title": "Purchase shoes & foot comfort items, if needed, before your final fitting.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 13, "title": "Purchase any items you'll need to accessorize your look: necklace, earrings, bracelets, a clutch.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 14, "title": "Shop for your wedding shower outfit.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 15, "title": "Shop for your rehearsal dinner outfit.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 16, "title": "Shop for honeymoon outfits.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 17, "title": "Purchase your garter, if desired.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 18, "title": "Have your first dress fitting.", "default": true, "anticipation": "4 months", "assigned_to": "client" },
+      { "order": 19, "title": "Have your second gown fitting.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 20, "title": "Ask bridal salon or dress designer how to handle common spills and stains such as wine, food, lipstick/makeup, etc.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 21, "title": "Break in wedding shoes by wearing them around the house.", "default": true, "anticipation": "3 weeks", "assigned_to": "client" },
+      { "order": 22, "title": "Have your final gown fitting.", "default": true, "anticipation": "3 weeks", "assigned_to": "client" },
+      { "order": 23, "title": "Schedule dress cleaning and preservation for after the wedding, if desired.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 24, "title": "Confirm bridesmaids have dresses, shoes, and accessories.", "default": true, "anticipation": "4 weeks", "assigned_to": "client" },
+      { "order": 25, "title": "Pick up your wedding dress & learn how to bustle the train.", "default": true, "anticipation": "2 weeks", "assigned_to": "client" },
+      { "order": 26, "title": "Pick up your veil or headpiece, if you haven't already.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 27, "title": "Show bridesmaid or family/friend how to bustle the train.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 28, "title": "Have your dress pressed or steamed as needed.", "default": true, "anticipation": "2 days", "assigned_to": "client" },
+      { "order": 29, "title": "Gather all of the important things for the wedding day (wedding dress, veil, shoes, jewelry, lingerie, etc.).", "default": true, "anticipation": "1 day", "assigned_to": "client" },
+      { "order": 30, "title": "Have your wedding dress and veil professionally cleaned and preserved.", "default": false, "anticipation": null, "assigned_to": "client" }
+    ]
+  },
+  {
+    "title": "Groom's Checklist",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Choose your groomsmen, invite them to be in your bridal party.", "default": true, "anticipation": "9 months", "assigned_to": "client" },
+      { "order": 2, "title": "Discuss any pre wedding gatherings, such as a bachelor party, with your best man.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 3, "title": "Give bachelor party guest list to your groomsmen.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 4, "title": "Purchase a wedding gift and card for the Bride.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 5, "title": "Enjoy your bachelor party.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 6, "title": "Share important wedding and rehearsal information with your groomsmen, including timeline, directions, duties, etc.", "default": true, "anticipation": "4 weeks", "assigned_to": "client" },
+      { "order": 7, "title": "Assign any Wedding Duties / Responsibilities to Groomsmen as needed.", "default": true, "anticipation": "3 weeks", "assigned_to": "client" },
+      { "order": 8, "title": "Get a haircut, if needed.", "default": true, "anticipation": "1 week", "assigned_to": "client" }
+    ]
+  },
+  {
+    "title": "Groom & Groomsmen Attire",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Purchase/Rent your tuxedo, suit or other formal attire. Add vendor contact information, invoice and payment details into your Contacts manager.", "default": true, "anticipation": "7 months", "assigned_to": "client" },
+      { "order": 2, "title": "Purchase any tuxedo or suit accessories or other items you may need, such as a shirt, tie, cufflinks, pocket squares, etc.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 3, "title": "Select groomsmen attire and shoes, and share appropriate information such as providing measurements, fittings, etc. if necessary.", "default": true, "anticipation": "6 months", "assigned_to": "client" },
+      { "order": 4, "title": "Select ringbearer's attire & shoes.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 5, "title": "Purchase Shoes.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 6, "title": "Get measured and schedule necessary fittings.", "default": true, "anticipation": "4 months", "assigned_to": "client" },
+      { "order": 7, "title": "Break in wedding shoes by wearing them around the house.", "default": true, "anticipation": "3 weeks", "assigned_to": "client" },
+      { "order": 8, "title": "Pick up your suit or tuxedo and try it on to assure the perfect fit.", "default": true, "anticipation": "2 weeks", "assigned_to": "client" },
+      { "order": 9, "title": "Confirm groomsmen have picked up their formal wear and have everything they need (socks, shoes, etc.).", "default": true, "anticipation": "1 week", "assigned_to": "client" },
+      { "order": 10, "title": "Designate someone to return formal wear and rental items.", "default": false, "anticipation": null, "assigned_to": "client" }
+    ]
+  },
+  {
+    "title": "Beauty",
+    "category": "Make-up and hair",
+    "options": [
+      { "order": 1, "title": "Determine who will need wedding day styling services.", "default": true, "anticipation": "7 months", "assigned_to": "client" },
+      { "order": 2, "title": "Research and review options for hair stylist and makeup artists in your area.", "default": true, "anticipation": "7 months", "assigned_to": "client" },
+      { "order": 3, "title": "Book hair stylist and makeup artist. Add vendors, contact information, invoice and payment details into your Vendor manager.", "default": true, "anticipation": "6 months", "assigned_to": "admin" },
+      { "order": 4, "title": "Decide where you will be getting ready for the wedding.", "default": true, "anticipation": "4 months", "assigned_to": "client" },
+      { "order": 5, "title": "Set the wedding day styling schedule with your stylist. Add the times and details to your wedding day Timeline.", "default": true, "anticipation": "6 weeks", "assigned_to": "admin" },
+      { "order": 6, "title": "Research hair and makeup styles you love and create a Style Guide to share with your stylist.", "default": true, "anticipation": "4 months", "assigned_to": "client" },
+      { "order": 7, "title": "Schedule stylist trial session. Add this appointment to your Calendar.", "default": true, "anticipation": "4 months", "assigned_to": "client" },
+      { "order": 8, "title": "Get your teeth whitened.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 9, "title": "Get your hair cut, if desired.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 10, "title": "Have a trial session with your hairstylist and makeup artist.", "default": true, "anticipation": "3 months", "assigned_to": "client" },
+      { "order": 11, "title": "Schedule additional beauty appointments (manicure/pedicure, massage etc.) as needed and add them to your calendar and/or wedding day Timeline.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 12, "title": "Reconfirm wedding day beauty appointments and make any final adjustments as needed.", "default": true, "anticipation": "2 weeks", "assigned_to": "admin" },
+      { "order": 13, "title": "Relax and enjoy the wedding day with some pampering (manicure/pedicure, massage, etc.).", "default": false, "anticipation": null, "assigned_to": "client" }
+    ]
+  },
+  {
+    "title": "Rings",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Select & order/engrave Bride's wedding band.", "default": true, "anticipation": "6 months", "assigned_to": "client" },
+      { "order": 2, "title": "Select & order/engrave Groom's wedding band.", "default": true, "anticipation": "6 months", "assigned_to": "client" },
+      { "order": 3, "title": "Pick up your wedding bands and confirm fit.", "default": true, "anticipation": "6 weeks", "assigned_to": "client" },
+      { "order": 4, "title": "Confirm that your insurance policy covers engagement rings, wedding bands & gifts.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 5, "title": "Drop off your wedding bands for engraving.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 6, "title": "Pick up Bride's wedding band, confirm fit & check inscriptions.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 7, "title": "Pickup Groom's wedding band, confirm fit & check inscriptions.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 8, "title": "Purchase ring pillow or alternative.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 9, "title": "Determine who will bring wedding bands to the ceremony, keep in mind the photographer may want to take photos of them before the ceremony.", "default": true, "anticipation": "2 weeks", "assigned_to": "admin" },
+      { "order": 10, "title": "Clean your engagement ring, just before the wedding.", "default": true, "anticipation": "3 days", "assigned_to": "client" }
+    ]
+  },
+  {
+    "title": "Registry",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Start your wedding gift registry.", "default": true, "anticipation": "8 months", "assigned_to": "client" },
+      { "order": 2, "title": "Fill out and complete your wedding gift registry, ideally before your engagement party.", "default": true, "anticipation": "7 months", "assigned_to": "client" },
+      { "order": 3, "title": "Send thank you notes for any gifts received at your bridal shower.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 4, "title": "Record gifts & send thank you notes as wedding gifts arrive.", "default": true, "anticipation": "5 months", "assigned_to": "client" },
+      { "order": 5, "title": "Designate a trusted person to be responsible for gift cards & gifts at the end of the night.", "default": true, "anticipation": "1 week", "assigned_to": "admin" },
+      { "order": 6, "title": "Continue to work on and send thank you notes for any wedding gifts received.", "default": true, "anticipation": "2 weeks", "assigned_to": "client" }
+    ]
+  },
+  {
+    "title": "Stationery",
+    "category": "Printing / wedding stationery",
+    "options": [
+      { "order": 1, "title": "Review & note your stationery needs.", "default": true, "anticipation": "8 months", "assigned_to": "client" },
+      { "order": 2, "title": "Review and confirm the recommended stationery timeline & RSVP date.", "default": true, "anticipation": "8 months", "assigned_to": "admin" },
+      { "order": 3, "title": "Start looking at wedding invitations, or if you're planning for custom design, please let us know, we'll review custom design options together!", "default": true, "anticipation": "7 months", "assigned_to": "client" },
+      { "order": 4, "title": "Create wedding website, if desired.", "default": true, "anticipation": "7 months", "assigned_to": "client" },
+      { "order": 5, "title": "Order Save the Dates, including your wedding website information or travel and destination information.", "default": true, "anticipation": "7 months", "assigned_to": "client" },
+      { "order": 6, "title": "Work on invitation wording, details and design.", "default": true, "anticipation": "5 months", "assigned_to": "client" },
+      { "order": 7, "title": "Finalize your invitation wording.", "default": true, "anticipation": "4 months", "assigned_to": "client" },
+      { "order": 8, "title": "Update your wedding website with travel and destination information, if you haven't already.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 9, "title": "Order wedding invitations, wedding announcements & thank you cards. Add vendor, contact information, invoice and payment details into your Contacts manager.", "default": true, "anticipation": "4 months", "assigned_to": "admin" },
+      { "order": 10, "title": "Book your calligrapher, if desired.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 11, "title": "Address invitation envelopes or drop them off to your calligrapher.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 12, "title": "Take a complete, stuffed invitation to the post office and weigh for postage.", "default": true, "anticipation": "14 weeks", "assigned_to": "client" },
+      { "order": 13, "title": "Visit the post office to send out wedding invitations, request for them hand cancel wedding invitations if possible, if desired.", "default": true, "anticipation": "13 weeks", "assigned_to": "client" },
+      { "order": 14, "title": "Begin to work on reception stationery design (ceremony program, menus, table cards, escort cards, place cards, etc.).", "default": true, "anticipation": "6 weeks", "assigned_to": "admin" },
+      { "order": 15, "title": "Finalize, order or print reception stationery (ceremony program, menus, table cards, escort cards, place cards, etc.).", "default": true, "anticipation": "4 weeks", "assigned_to": "admin" },
+      { "order": 16, "title": "If you are moving, order change of address announcements.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 17, "title": "Send wedding announcements to local newspapers.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 18, "title": "Address and stamp wedding announcements.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 19, "title": "Give wedding annoucements to an attendant to mail on the wedding day.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 20, "title": "Pick up reception stationery and be sure that all escort cards are in alphabetical order and that place cards, table cards and personalized menus are arranged in order by table.", "default": false, "anticipation": null, "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Timeline & Program",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Create a list of cultural traditions or wedding customs that you want to incorporate into the wedding.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 2, "title": "Determine the time that the sun sets on your wedding date, add this to your Timeline if needed.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 3, "title": "Set general schedule outline (ceremony time, reception start time) in your Timeline.", "default": true, "anticipation": "8 months", "assigned_to": "admin" },
+      { "order": 4, "title": "Review & fill in the details of the wedding day schedule and program in your Timeline.", "default": true, "anticipation": "8 weeks", "assigned_to": "admin" },
+      { "order": 5, "title": "Make arrangements for an emcee & any speakers (toasts, etc.) at the reception.", "default": true, "anticipation": "6 weeks", "assigned_to": "admin" },
+      { "order": 6, "title": "If you are planning on having a receiving line, determine who will be involved and their standing order.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 7, "title": "Prepare your wedding toasts or thank you speeches.", "default": true, "anticipation": "4 weeks", "assigned_to": "client" },
+      { "order": 8, "title": "Share timeline & program with family and bridal party.", "default": true, "anticipation": "3 weeks", "assigned_to": "admin" },
+      { "order": 9, "title": "Share vendor specific timelines and details with all vendors.", "default": true, "anticipation": "2 weeks", "assigned_to": "admin" },
+      { "order": 10, "title": "Review timeline & program with emcee & anyone who may be giving a toast or speech.", "default": true, "anticipation": "1 week", "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Venue",
+    "category": "Venue",
+    "options": [
+      { "order": 1, "title": "Research & review venue options.", "default": true, "anticipation": "12 months", "assigned_to": "client" },
+      { "order": 2, "title": "Book venue and add the venue, contact information, invoice and payment details into your Vendor manager.", "default": true, "anticipation": "11 months", "assigned_to": "admin" },
+      { "order": 3, "title": "Purchase required site/liability insurance, additionally insured requirements or permits for venue, if required.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 4, "title": "Have a final site walk through with vendors as needed.", "default": true, "anticipation": "4 weeks", "assigned_to": "admin" },
+      { "order": 5, "title": "For outdoor ceremonies/receptions, determine a contingency plan for inclement weather.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 6, "title": "Provide timeline, final layout, head counts & vendor list to the venue, as needed.", "default": true, "anticipation": "3 weeks", "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Ceremony",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Discuss and decide on general ceremony preferences (civil, religious preference, etc.).", "default": true, "anticipation": "10 months", "assigned_to": "client" },
+      { "order": 2, "title": "Research religious requirements for pre-marital counseling and other, as needed.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 3, "title": "Begin premarital counseling as needed.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 4, "title": "Reconfirm availability of officiant options.", "default": true, "anticipation": "7 months", "assigned_to": "admin" },
+      { "order": 5, "title": "Research marriage license and blood test requirements, if applicable, for the location of your wedding.", "default": true, "anticipation": "4 months", "assigned_to": "client" },
+      { "order": 6, "title": "Select a wedding certificate, as desired.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 7, "title": "Confirm readers for the ceremony and share with them appropriate information.", "default": true, "anticipation": "6 weeks", "assigned_to": "admin" },
+      { "order": 8, "title": "Begin writing your own vows, if desired.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 9, "title": "Review and decide on processional & recessional order and details.", "default": true, "anticipation": "4 weeks", "assigned_to": "admin" },
+      { "order": 10, "title": "Determine the ceremony standing order for the bridal party.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 11, "title": "Review ceremony programs.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 12, "title": "Prepare marriage license application & any required paperwork.", "default": true, "anticipation": "4 weeks", "assigned_to": "client" },
+      { "order": 13, "title": "Finalize your ceremony programs.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 14, "title": "Finish writing your ceremony vows.", "default": true, "anticipation": "3 weeks", "assigned_to": "client" },
+      { "order": 15, "title": "Designate ushers for the ceremony.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 16, "title": "Confirm witnesses for the marriage license, if required.", "default": true, "anticipation": "2 weeks", "assigned_to": "admin" },
+      { "order": 17, "title": "Purchase a suitable pen for marriage license or certificate signing, if you desire.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 18, "title": "Obtain a marriage license.", "default": true, "anticipation": "2 weeks", "assigned_to": "client" },
+      { "order": 19, "title": "Review seating details with ushers and provide a list of guests as needed.", "default": false, "anticipation": null, "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Officiant",
+    "category": "Celebrant",
+    "options": [
+      { "order": 1, "title": "Review officiant options.", "default": true, "anticipation": "10 months", "assigned_to": "client" },
+      { "order": 2, "title": "Confirm the wedding officiant and any payment details into your Contacts manager.", "default": true, "anticipation": "9 months", "assigned_to": "admin" },
+      { "order": 3, "title": "Discuss ceremony personalization / preferences with your officiant and select any ceremony readings.", "default": true, "anticipation": "4 months", "assigned_to": "client" },
+      { "order": 4, "title": "Confirm ceremony rehearsal time & location with your ceremony venue and officiant. Add the ceremony rehearsal time to your Timeline.", "default": true, "anticipation": "4 weeks", "assigned_to": "admin" },
+      { "order": 5, "title": "Reconfirm and share all final details with your officiant, including your final ceremony outline, processional and recessional details, final reading selections and any personalized additions.", "default": true, "anticipation": "2 weeks", "assigned_to": "admin" },
+      { "order": 6, "title": "If you wrote your own vows, provide a copy to the officiant.", "default": false, "anticipation": null, "assigned_to": "client" }
+    ]
+  },
+  {
+    "title": "Photography",
+    "category": "Photography",
+    "options": [
+      { "order": 1, "title": "Review photographer & package options.", "default": true, "anticipation": "10 months", "assigned_to": "client" },
+      { "order": 2, "title": "Book your photographer and add their contact information, invoice and payment details into your Contacts manager.", "default": true, "anticipation": "9 months", "assigned_to": "admin" },
+      { "order": 3, "title": "Schedule engagement photo session if desired.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 4, "title": "Use Aisle Planner’s NOTES section to create a photo shot list for any group and family photos that can later be shared with your photographer.", "default": true, "anticipation": "6 weeks", "assigned_to": "client" },
+      { "order": 5, "title": "Reconfirm your photographer and provide them your timeline, location, shot list & additional detail information.", "default": true, "anticipation": "2 weeks", "assigned_to": "admin" },
+      { "order": 6, "title": "Provide change of address information to your photographer for photo or album shipment, if needed.", "default": false, "anticipation": null, "assigned_to": "client" }
+    ]
+  },
+  {
+    "title": "Catering",
+    "category": "Catering",
+    "options": [
+      { "order": 1, "title": "Discuss general catering, menu & service preferences, food allergies.", "default": true, "anticipation": "8 months", "assigned_to": "client" },
+      { "order": 2, "title": "Research catering options and schedule tastings. Add them to your calendar.", "default": true, "anticipation": "8 months", "assigned_to": "client" },
+      { "order": 3, "title": "Request preliminary menu proposals.", "default": true, "anticipation": "8 months", "assigned_to": "admin" },
+      { "order": 4, "title": "Book Caterer and add their contact information, invoice and payment details into your Contacts manager.", "default": true, "anticipation": "7 months", "assigned_to": "admin" },
+      { "order": 5, "title": "Finalize menu and all service details. If you’ll need to track meal selections for your guests, add menu options for the Reception by clicking on the Event Info & Options button in your Guest manager.", "default": true, "anticipation": "8 weeks", "assigned_to": "client" },
+      { "order": 6, "title": "Confirm & order catering equipment rental needs for all items not covered by caterer.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 7, "title": "Decide on place setting needs (charger, dishes, glassware, utensils, napkin fold, etc.).", "default": true, "anticipation": "8 weeks", "assigned_to": "admin" },
+      { "order": 8, "title": "Provide timeline and layout(s) to caterer and confirm catering arrival and set up schedule, add times and details to your wedding day Timeline.", "default": true, "anticipation": "4 weeks", "assigned_to": "admin" },
+      { "order": 9, "title": "Submit final guest/meal count and vendor count to caterer and reconfirm final menu, set up, seating details and timeline.", "default": true, "anticipation": "4 weeks", "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Cake",
+    "category": "Cakes",
+    "options": [
+      { "order": 1, "title": "Discuss general wedding cake preferences (style, icing options, flavors & design).", "default": true, "anticipation": "6 months", "assigned_to": "client" },
+      { "order": 2, "title": "Review bakery options and preliminary quotes.", "default": true, "anticipation": "6 months", "assigned_to": "client" },
+      { "order": 3, "title": "Cake Tasting x 2!", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 4, "title": "Determine whether you will serve or save the top tier.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 5, "title": "Book your wedding cake and add your baker’s contact information, invoice and payment details into your Contacts manager.", "default": true, "anticipation": "5 months", "assigned_to": "admin" },
+      { "order": 6, "title": "Order Groom's Cake if desired.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 7, "title": "Purchase a cake topper.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 8, "title": "Purchase or rent cake knife & server.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 9, "title": "Adjust your cake order for your head count and reconfirm delivery time and location with your baker.", "default": true, "anticipation": "4 weeks", "assigned_to": "admin" },
+      { "order": 10, "title": "Assign a designated person to retrieve your cake topper and take home any leftover cake.", "default": false, "anticipation": null, "assigned_to": "client" }
+    ]
+  },
+  {
+    "title": "Bar & Beverage",
+    "category": "Bar",
+    "options": [
+      { "order": 1, "title": "Draft the bar menu by creating a note in the Notes section of Aisle Planner, detailing what non-alcoholic beverages as well as alcohol options that will be served at the wedding. Discuss service details for the cocktail hour and reception.", "default": true, "anticipation": "4 months", "assigned_to": "client" },
+      { "order": 2, "title": "Review bar menu supplier options (Caterer, Bar Service or Self Provided).", "default": true, "anticipation": "4 months", "assigned_to": "admin" },
+      { "order": 3, "title": "Assign bar supplier or confirm bar menu and bar supplies with caterer.", "default": true, "anticipation": "3 months", "assigned_to": "admin" },
+      { "order": 4, "title": "Purchase champagne toasting flutes, if desired.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 5, "title": "Confirm beverage quantities and shopping list based on final guest count.", "default": true, "anticipation": "4 weeks", "assigned_to": "admin" },
+      { "order": 6, "title": "Purchase or order beverages and any necessary bar supplies your caterer is not providing (coolers, ice, cocktail napkins, garnishes, bar tools, etc.).", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 7, "title": "If you are providing your own beverages, designate someone to drop off all beverages to the catering company or reception site.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 8, "title": "Assign designated person to take home any leftover beverages.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 9, "title": "Assign designated person to bring plastic tubs or coolers to wedding for leftover beverages.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 10, "title": "Have beverage items delivered to the caterer or reception site.", "default": false, "anticipation": null, "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Entertainment",
+    "category": "Music / DJ",
+    "options": [
+      { "order": 1, "title": "Discuss ceremony & reception entertainment preferences.", "default": true, "anticipation": "9 months", "assigned_to": "client" },
+      { "order": 2, "title": "Research entertainment options.", "default": true, "anticipation": "9 months", "assigned_to": "client" },
+      { "order": 3, "title": "Start the playlist for the ceremony, cocktail hour and reception by creating a note in the Notes section of Aisle Planner.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 4, "title": "Discuss and decide on ceremony sound system preferences.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 5, "title": "Book ceremony entertainment & sound system and add the vendor(s), contact information, invoice and payment details into your Contacts manager.", "default": true, "anticipation": "8 months", "assigned_to": "admin" },
+      { "order": 6, "title": "Book reception entertainment and add their contact information, invoice and payment details into your Vendor manager.", "default": true, "anticipation": "8 months", "assigned_to": "admin" },
+      { "order": 7, "title": "If desired, begin taking dance lessons or start choreographing the first dance.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 8, "title": "Finalize the ceremony song list (prelude, processional, recessional & postlude) and share it with your Ceremony musician/band or DJ.", "default": true, "anticipation": "4 weeks", "assigned_to": "client" },
+      { "order": 9, "title": "Finalize the reception song list (cake cutting, first dance, father/daughter dance, bouquet toss, last dance, etc.) and share it with your reception DJ or band.", "default": true, "anticipation": "4 weeks", "assigned_to": "client" },
+      { "order": 10, "title": "Finalize your reception songlist (cake cutting, first dance, father/daughter dance, bouquet toss, last dance, etc.) and share it with your reception DJ or band.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 11, "title": "Reconfirm all details, including date, location, timeline, etc. with your ceremony, cocktail hour and reception entertainment.", "default": true, "anticipation": "2 weeks", "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Childcare",
+    "category": "Babysitters",
+    "options": [
+      { "order": 1, "title": "Make a plan to keep kids entertained at the reception, or determine child care needs, if needed, and research options.", "default": true, "anticipation": "4 months", "assigned_to": "client" },
+      { "order": 2, "title": "Book child care provider or arrange for kids activities and update your child care vendor worksheet.", "default": true, "anticipation": "3 months", "assigned_to": "admin" },
+      { "order": 3, "title": "Share child care information with any parents attending, especially if you are planning on remote child care services, such as at a hotel room or other location.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 4, "title": "Reconfirm all details, including date, location, timeline, total number of children, etc. with your child care provider.", "default": true, "anticipation": "2 weeks", "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Transportation",
+    "category": "Transport",
+    "options": [
+      { "order": 1, "title": "Discuss guest transportation preferences if needed, including pickup locations and schedule.", "default": true, "anticipation": "5 months", "assigned_to": "client" },
+      { "order": 2, "title": "Discuss bridal party transportation preferences as needed, including pickup locations and schedule.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 3, "title": "If separate transportation is required, discuss transportation for the bride to the ceremony.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 4, "title": "If separate transportation is required, discuss transportation for the groom to the ceremony.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 5, "title": "Research transportation options.", "default": true, "anticipation": "5 months", "assigned_to": "admin" },
+      { "order": 6, "title": "Book transportation and add their contact information, invoice and payment details to your Contacts manager.", "default": true, "anticipation": "4 months", "assigned_to": "admin" },
+      { "order": 7, "title": "Set the transportation schedule. Add the details to your wedding day Timeline.", "default": true, "anticipation": "6 weeks", "assigned_to": "admin" },
+      { "order": 8, "title": "Make parking arrangements or hire valet services, as needed for the ceremony and reception.", "default": false, "anticipation": null, "assigned_to": "admin" },
+      { "order": 9, "title": "Post guest transportation information & schedule to wedding website, or include on invitation for transportation RSVP.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 10, "title": "Book the getaway car.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 11, "title": "Confirm final guest count for guest transportation and reconfirm schedule and pick up location details with all transportation providers.", "default": true, "anticipation": "3 weeks", "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Rentals & Decor",
+    "category": "Rentals",
+    "options": [
+      { "order": 1, "title": "Discuss room layout, equipment needs and preferences.", "default": true, "anticipation": "6 months", "assigned_to": "client" },
+      { "order": 2, "title": "Research equipment rental options.", "default": true, "anticipation": "6 months", "assigned_to": "admin" },
+      { "order": 3, "title": "Design your preliminary layout.", "default": true, "anticipation": "5 months", "assigned_to": "admin" },
+      { "order": 4, "title": "Select tent style, if needed.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 5, "title": "Select table shape and size.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 6, "title": "Select linen.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 7, "title": "Select chair style.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 8, "title": "Select dance floor.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 9, "title": "Select lighting.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 10, "title": "Request preliminary equipment quote from your rental company.", "default": true, "anticipation": "5 months", "assigned_to": "admin" },
+      { "order": 11, "title": "Reserve equipment rentals for the wedding date and schedule equipment delivery, set up & breakdown based on the venue's parameters. Add the rental company's contact information, invoice and payment details to your Vendor manager and add the set up and breakdown schedule to your wedding day Timeline.", "default": true, "anticipation": "4 months", "assigned_to": "admin" },
+      { "order": 12, "title": "Update final layout based on your final guest count.", "default": true, "anticipation": "4 weeks", "assigned_to": "admin" },
+      { "order": 13, "title": "Update and finalize equipment order based on final guest count and reconfirm set up and breakdown schedule.", "default": true, "anticipation": "3 weeks", "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Florals",
+    "category": "Flowers",
+    "options": [
+      { "order": 1, "title": "Discuss general floral needs, floral & color palette preferences and begin to collect inspirational design photos.", "default": true, "anticipation": "8 months", "assigned_to": "client" },
+      { "order": 2, "title": "Review floral designer options.", "default": true, "anticipation": "8 months", "assigned_to": "client" },
+      { "order": 3, "title": "Meet with floral designers to discuss the options and your event, request preliminary floral quotes.", "default": true, "anticipation": "7 months", "assigned_to": "admin" },
+      { "order": 4, "title": "Book floral designer and add your floral designer’s contact information, invoice and payment details to your Contacts manager.", "default": true, "anticipation": "7 months", "assigned_to": "admin" },
+      { "order": 5, "title": "Work through the details with your floral designer and update the floral proposal as needed.", "default": true, "anticipation": "3 months", "assigned_to": "client" },
+      { "order": 6, "title": "Purchase flowergirl basket(s).", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 7, "title": "Adjust & finalize the floral order pending final guest count and confirm delivery, set up times and locations. Add floral delivery and set up details to your wedding day Timeline.", "default": true, "anticipation": "4 weeks", "assigned_to": "admin" },
+      { "order": 8, "title": "If you plan to preserve your bouquet and other notables, make the necessary arrangements.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 9, "title": "Decide what to do with centerpieces at the end of the reception. If you’re renting vases or other items from your floral designer, make a plan for the collection and return of any rental items.", "default": false, "anticipation": null, "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Favors & Gifts",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Select favors & determine favor packaging/presentation & placement at the reception.", "default": true, "anticipation": "2 months", "assigned_to": "client" },
+      { "order": 2, "title": "Purchase gifts and cards for your Maid of Honor and bridesmaids.", "default": true, "anticipation": "1 month", "assigned_to": "client" },
+      { "order": 3, "title": "Purchase gifts and cards for your Best Man and groomsmen.", "default": true, "anticipation": "1 month", "assigned_to": "client" },
+      { "order": 4, "title": "Purchase flowergirl & ringbearer gifts.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 5, "title": "Purchase gifts for parents to thank them for their support, if desired.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 6, "title": "Purchase favors and packaging.", "default": true, "anticipation": "1 month", "assigned_to": "client" },
+      { "order": 7, "title": "Wrap all gifts for the bridal party and parents and include a heartfelt note.", "default": true, "anticipation": "2 weeks", "assigned_to": "client" },
+      { "order": 8, "title": "Assemble favors.", "default": true, "anticipation": "2 weeks", "assigned_to": "client" },
+      { "order": 9, "title": "Arrange for someone to drop off the favors at the reception, or box and give them to your wedding planner.", "default": true, "anticipation": "2 days", "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Rehearsal Dinner",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Discuss general rehearsal dinner preferences & research options.", "default": true, "anticipation": "4 months", "assigned_to": "client" },
+      { "order": 2, "title": "Establish the rehearsal dinner guest list & estimated guest count using our Guest Manager.", "default": true, "anticipation": "3 months", "assigned_to": "client" },
+      { "order": 3, "title": "Confirm your rehearsal dinner location. Add related vendor, contact and payment details to your Contacts manager. Add the rehearsal and rehearsal dinner times to your wedding Timeline.", "default": true, "anticipation": "3 months", "assigned_to": "admin" },
+      { "order": 4, "title": "Order rehearsal dinner invitations as needed.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 5, "title": "Finalize the dinner and drink menu. If you need to track meal selections for guests, add menu options for the Rehearsal Dinner by clicking on the Event Info & Options button in your Guest manager.", "default": true, "anticipation": "6 weeks", "assigned_to": "client" },
+      { "order": 6, "title": "Send out rehearsal dinner invitations.", "default": true, "anticipation": "6 weeks", "assigned_to": "client" },
+      { "order": 7, "title": "Share or email important rehearsal information (date, time, location, directions, etc.) with your immediate family and bridal party.", "default": true, "anticipation": "3 weeks", "assigned_to": "admin" },
+      { "order": 8, "title": "Confirm final guest count and reconfirm final details with restaurant.", "default": true, "anticipation": "2 weeks", "assigned_to": "admin" },
+      { "order": 9, "title": "Compose toasts for the rehearsal dinner.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 10, "title": "Rehearse the ceremony and review any important wedding day information with family & bridal party.", "default": true, "anticipation": "1 day", "assigned_to": "admin" },
+      { "order": 11, "title": "Enjoy your rehearsal dinner.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 12, "title": "Give bridal party and parents their gifts to thank them for their love and support.", "default": false, "anticipation": null, "assigned_to": "client" }
+    ]
+  },
+  {
+    "title": "Brunch",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Decide who will be inviting to the brunch and create the guest list using the Guest manager.", "default": true, "anticipation": "6 weeks", "assigned_to": "client" },
+      { "order": 2, "title": "Reserve Brunch Location. Add related vendor, contact and payment details to your Contacts Manager. Add the Brunch schedule into your wedding Timeline.", "default": true, "anticipation": "6 weeks", "assigned_to": "admin" },
+      { "order": 3, "title": "Choose Brunch Menu.", "default": true, "anticipation": "4 weeks", "assigned_to": "client" },
+      { "order": 4, "title": "Order Brunch Invitations.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 5, "title": "Send out Brunch Invitations.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 6, "title": "Track guest responses and follow up with anyone who hasn't responded.", "default": true, "anticipation": "2 weeks", "assigned_to": "client" },
+      { "order": 7, "title": "Confirm final guest count and reconfirm final details with restaurant.", "default": true, "anticipation": "1 week", "assigned_to": "admin" }
+    ]
+  },
+  {
+    "title": "Travel & Accommodations",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Reserve wedding night accommodations, if desired.", "default": true, "anticipation": "4 months", "assigned_to": "client" },
+      { "order": 2, "title": "Reconfirm wedding night hotel room reservations.", "default": true, "anticipation": "2 weeks", "assigned_to": "client" }
+    ]
+  },
+  {
+    "title": "Honeymoon",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Decide on your ideal honeymoon vacation & begin researching options.", "default": true, "anticipation": "8 months", "assigned_to": "client" },
+      { "order": 2, "title": "Confirm travel itinerary & book airline tickets. Add details to your Calendar.", "default": true, "anticipation": "6 months", "assigned_to": "client" },
+      { "order": 3, "title": "Research passport and visa requirements for your honeymoon location.", "default": true, "anticipation": "6 months", "assigned_to": "client" },
+      { "order": 4, "title": "Reserve hotel rooms or vacation rental.", "default": true, "anticipation": "6 months", "assigned_to": "client" },
+      { "order": 5, "title": "Research recommended vaccinations for the areas you will travel to.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 6, "title": "Obtain necessary paperwork and passports, update vaccinations as needed.", "default": true, "anticipation": "5 months", "assigned_to": "client" },
+      { "order": 7, "title": "Reserve rental car.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 8, "title": "Research and book advance activities as needed.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 9, "title": "Reconfirm all honeymoon plans and reservations.", "default": true, "anticipation": "2 weeks", "assigned_to": "client" },
+      { "order": 10, "title": "Designate someone to look after your home and pets, as needed, while you are away.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 11, "title": "Pick up travelers checks for the honeymoon.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 12, "title": "Request a hold on mail and newspaper delivery while you are away.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 13, "title": "Call stores to have registry gifts held until your return.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 14, "title": "Provide your honeymoon travel itinerary to a family member and friend in case of an emergency.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 15, "title": "Pack for the wedding night and honeymoon.", "default": true, "anticipation": "3 days", "assigned_to": "client" },
+      { "order": 16, "title": "Confirm transportation to the airport.", "default": true, "anticipation": "3 days", "assigned_to": "client" },
+      { "order": 17, "title": "If you are departing immediately after the wedding, arrange for someone to pick up your wedding dress and other personal items from the hotel after your departure.", "default": false, "anticipation": null, "assigned_to": "client" }
+    ]
+  },
+  {
+    "title": "After the Wedding",
+    "category": null,
+    "options": [
+      { "order": 1, "title": "Freeze the top tier of your wedding cake to enjoy on your first anniversary.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 2, "title": "Have your bouquet preserved, if desired.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 3, "title": "Have your wedding dress and veil professionally cleaned and preserved.", "default": true, "anticipation": "1 week", "assigned_to": "client" },
+      { "order": 4, "title": "Continue to work on and send thank you notes for any wedding gifts received.", "default": true, "anticipation": "2 weeks", "assigned_to": "client" },
+      { "order": 5, "title": "Write & send thank you notes to vendors.", "default": true, "anticipation": "2 weeks", "assigned_to": "client" },
+      { "order": 6, "title": "If you are moving, submit change of address forms as needed.", "default": false, "anticipation": null, "assigned_to": "client" },
+      { "order": 7, "title": "Upon receipt of marriage certificate, continue with your name change process.", "default": true, "anticipation": "3 weeks", "assigned_to": "client" }
+    ]
+  }
+]

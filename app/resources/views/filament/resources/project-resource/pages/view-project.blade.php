@@ -3,6 +3,8 @@
         $record = $this->getRecord();
         $budgetSummary = $this->getBudgetSummary();
         $supplierSummary = $this->getSupplierSummary();
+        $supplierScoutingSummary = $this->getSupplierScoutingSummary();
+        $checklistSummary = $this->getChecklistSummary();
     @endphp
 
     <style>
@@ -337,6 +339,13 @@
             margin-bottom: 0.95rem;
         }
 
+        .wm-event-panel-link {
+            color: #2d7a39;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
         .wm-event-panel-title {
             margin: 0;
             font-family: 'Cinzel', serif;
@@ -409,11 +418,20 @@
             margin-top: 1rem;
         }
 
+        .wm-event-budget-grid.is-detailed {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
         .wm-event-mini {
             padding: 0.95rem 1rem;
             border-radius: 1rem;
             background: #fbf8f4;
             border: 1px solid #ece5dd;
+        }
+
+        .wm-event-mini.is-highlighted {
+            background: linear-gradient(180deg, #fffaf4 0%, #fbf8f4 100%);
+            border-color: #e1d5c8;
         }
 
         .wm-event-mini-label {
@@ -430,6 +448,61 @@
             color: #2d2a26;
             font-size: 1.2rem;
             font-weight: 700;
+        }
+
+        .wm-event-mini-caption {
+            margin: 0.5rem 0 0;
+            color: #746d66;
+            font-size: 0.84rem;
+            line-height: 1.5;
+        }
+
+        .wm-event-scout-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.7rem;
+            margin-top: 1rem;
+        }
+
+        .wm-event-scout-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.72rem 0.9rem;
+            border-radius: 999px;
+            border: 1px solid #ece5dd;
+            background: #fbf8f4;
+            color: #4f4943;
+            font-size: 0.84rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .wm-event-scout-badge::before {
+            content: "";
+            width: 0.7rem;
+            height: 0.7rem;
+            border-radius: 999px;
+            background: currentColor;
+            box-shadow: 0 0 0 0.18rem rgba(255, 255, 255, 0.9);
+        }
+
+        .wm-event-scout-badge.is-confirmed {
+            background: rgba(76, 150, 94, 0.10);
+            border-color: rgba(76, 150, 94, 0.24);
+            color: #2d7a39;
+        }
+
+        .wm-event-scout-badge.is-responded {
+            background: rgba(214, 166, 64, 0.12);
+            border-color: rgba(214, 166, 64, 0.26);
+            color: #a57512;
+        }
+
+        .wm-event-scout-badge.is-pending {
+            background: rgba(194, 91, 75, 0.10);
+            border-color: rgba(194, 91, 75, 0.24);
+            color: #b54c3d;
         }
 
         .wm-event-list {
@@ -537,6 +610,10 @@
                 grid-template-columns: 1fr;
             }
 
+            .wm-event-budget-grid.is-detailed {
+                grid-template-columns: 1fr;
+            }
+
             .wm-event-top-side {
                 display: flex;
                 flex-direction: column;
@@ -557,7 +634,7 @@
 
         @include('filament.resources.project-resource.partials.workspace-header', [
             'record' => $record,
-            'activeSection' => null,
+            'activeSection' => 'dashboard',
         ])
 
         <section class="wm-event-kpis" id="guests">
@@ -578,10 +655,77 @@
 
         <section class="wm-event-grid">
             <div class="wm-event-stack">
+                <article class="wm-event-card wm-event-panel" id="timeline">
+                    <div class="wm-event-panel-header">
+                        <h3 class="wm-event-panel-title">Supplier scouting</h3>
+                        <span class="wm-event-panel-note">{{ $supplierScoutingSummary['confirmed_count'] }} / {{ $supplierScoutingSummary['categories_count'] }} covered items</span>
+                    </div>
+
+                    <div class="wm-event-scout-grid">
+                        <div class="wm-event-mini">
+                            <p class="wm-event-mini-label">Confirmed items</p>
+                            <p class="wm-event-mini-value">{{ $supplierScoutingSummary['confirmed_count'] }}</p>
+                        </div>
+                        <div class="wm-event-mini">
+                            <p class="wm-event-mini-label">Items with responses</p>
+                            <p class="wm-event-mini-value">{{ $supplierScoutingSummary['responded_count'] }}</p>
+                        </div>
+                        <div class="wm-event-mini">
+                            <p class="wm-event-mini-label">Needs work</p>
+                            <p class="wm-event-mini-value">{{ $supplierScoutingSummary['pending_count'] }}</p>
+                        </div>
+                    </div>
+
+                    <div class="wm-event-scout-grid">
+                        <div class="wm-event-mini">
+                            <p class="wm-event-mini-label">Awaiting</p>
+                            <p class="wm-event-mini-value">{{ $supplierSummary['awaiting'] }}</p>
+                        </div>
+                        <div class="wm-event-mini">
+                            <p class="wm-event-mini-label">Responses received</p>
+                            <p class="wm-event-mini-value">{{ $supplierSummary['received'] }}</p>
+                        </div>
+                        <div class="wm-event-mini">
+                            <p class="wm-event-mini-label">Confirmed proposals</p>
+                            <p class="wm-event-mini-value">{{ $supplierSummary['confirmed'] }}</p>
+                        </div>
+                    </div>
+
+                    <div class="wm-event-scout-badges">
+                        @foreach ($supplierScoutingSummary['items'] as $item)
+                            <span class="wm-event-scout-badge {{ match($item['status']) {
+                                'confirmed' => 'is-confirmed',
+                                'responded' => 'is-responded',
+                                default => 'is-pending',
+                            } }}">
+                                {{ $item['label'] }}
+                            </span>
+                        @endforeach
+                    </div>
+                </article>
+
                 <article class="wm-event-card wm-event-panel" id="checklist">
                     <div class="wm-event-panel-header">
-                        <h3 class="wm-event-panel-title">Preparation</h3>
-                        <span class="wm-event-panel-note">Current setup</span>
+                        <h3 class="wm-event-panel-title">Checklist overview</h3>
+                        <a href="{{ \App\Filament\Resources\ProjectResource::getUrl('checklist', ['record' => $record]) }}" class="wm-event-panel-link">Open checklist</a>
+                    </div>
+
+                    <div class="wm-event-budget-grid">
+                        <div class="wm-event-mini">
+                            <p class="wm-event-mini-label">Checklist groups</p>
+                            <p class="wm-event-mini-value">{{ $checklistSummary['groups'] }}</p>
+                            <p class="wm-event-mini-caption">{{ $checklistSummary['total'] }} total items</p>
+                        </div>
+                        <div class="wm-event-mini">
+                            <p class="wm-event-mini-label">Enabled by default</p>
+                            <p class="wm-event-mini-value">{{ $checklistSummary['enabled'] }}</p>
+                            <p class="wm-event-mini-caption">{{ $checklistSummary['optional'] }} optional items</p>
+                        </div>
+                        <div class="wm-event-mini">
+                            <p class="wm-event-mini-label">Scheduled items</p>
+                            <p class="wm-event-mini-value">{{ $checklistSummary['dated'] }}</p>
+                            <p class="wm-event-mini-caption">{{ $checklistSummary['due_soon'] }} due in the next 30 days</p>
+                        </div>
                     </div>
 
                     <div class="wm-event-checklist">
@@ -596,6 +740,9 @@
                     </div>
                 </article>
 
+            </div>
+
+            <div class="wm-event-stack">
                 <article class="wm-event-card wm-event-panel" id="budget">
                     <div class="wm-event-panel-header">
                         <h3 class="wm-event-panel-title">Budget progress</h3>
@@ -606,46 +753,30 @@
                         <span class="wm-event-progress-ring-value">{{ $budgetSummary['completion'] }}%</span>
                     </div>
 
-                    <div class="wm-event-budget-grid">
-                        <div class="wm-event-mini">
-                            <p class="wm-event-mini-label">Estimated</p>
-                            <p class="wm-event-mini-value">EUR {{ number_format($budgetSummary['estimated_total'], 2, ',', '.') }}</p>
-                        </div>
-                        <div class="wm-event-mini">
-                            <p class="wm-event-mini-label">Comparison</p>
+                    <div class="wm-event-budget-grid is-detailed">
+                        <div class="wm-event-mini is-highlighted">
+                            <p class="wm-event-mini-label">Updated total budget</p>
                             <p class="wm-event-mini-value">EUR {{ number_format($budgetSummary['comparison_total'], 2, ',', '.') }}</p>
+                            <p class="wm-event-mini-caption">Vs hypothetical total: EUR {{ number_format($budgetSummary['estimated_total'], 2, ',', '.') }}</p>
                         </div>
-                        <div class="wm-event-mini">
-                            <p class="wm-event-mini-label">Confirmed</p>
+                        <div class="wm-event-mini is-highlighted">
+                            <p class="wm-event-mini-label">Confirmed items</p>
                             <p class="wm-event-mini-value">EUR {{ number_format($budgetSummary['final_total'], 2, ',', '.') }}</p>
+                            <p class="wm-event-mini-caption">Vs hypothetical confirmed total: EUR {{ number_format($budgetSummary['confirmed_hypothetical_total'], 2, ',', '.') }}</p>
+                        </div>
+                        <div class="wm-event-mini">
+                            <p class="wm-event-mini-label">Confirmed items count</p>
+                            <p class="wm-event-mini-value">{{ $budgetSummary['confirmed_count'] }}</p>
+                            <p class="wm-event-mini-caption">Out of {{ $budgetSummary['categories_count'] }} wedding items</p>
+                        </div>
+                        <div class="wm-event-mini">
+                            <p class="wm-event-mini-label">Items in evaluation</p>
+                            <p class="wm-event-mini-value">{{ $budgetSummary['in_evaluation_count'] }}</p>
+                            <p class="wm-event-mini-caption">{{ $budgetSummary['categories_count'] - $budgetSummary['confirmed_count'] - $budgetSummary['in_evaluation_count'] }} still hypothetical</p>
                         </div>
                     </div>
                 </article>
 
-                <article class="wm-event-card wm-event-panel" id="timeline">
-                    <div class="wm-event-panel-header">
-                        <h3 class="wm-event-panel-title">Supplier scouting</h3>
-                        <span class="wm-event-panel-note">{{ $supplierSummary['completion'] }}% confirmed</span>
-                    </div>
-
-                    <div class="wm-event-scout-grid">
-                        <div class="wm-event-mini">
-                            <p class="wm-event-mini-label">Awaiting</p>
-                            <p class="wm-event-mini-value">{{ $supplierSummary['awaiting'] }}</p>
-                        </div>
-                        <div class="wm-event-mini">
-                            <p class="wm-event-mini-label">Shortlist</p>
-                            <p class="wm-event-mini-value">{{ $supplierSummary['shortlist'] }}</p>
-                        </div>
-                        <div class="wm-event-mini">
-                            <p class="wm-event-mini-label">Finalists</p>
-                            <p class="wm-event-mini-value">{{ $supplierSummary['finalists'] }}</p>
-                        </div>
-                    </div>
-                </article>
-            </div>
-
-            <div class="wm-event-stack">
                 <article class="wm-event-card wm-event-panel" id="notes">
                     <div class="wm-event-panel-header">
                         <h3 class="wm-event-panel-title">My to-dos</h3>
@@ -679,9 +810,9 @@
         </section>
 
         <section class="wm-event-stack">
-            <article class="wm-event-card wm-event-panel" id="design-studio">
+            <article class="wm-event-card wm-event-panel" id="moodboard">
                 <div class="wm-event-panel-header">
-                    <h3 class="wm-event-panel-title">Inspiration</h3>
+                    <h3 class="wm-event-panel-title">Moodboard</h3>
                     <span class="wm-event-panel-note">Initial placeholders</span>
                 </div>
 

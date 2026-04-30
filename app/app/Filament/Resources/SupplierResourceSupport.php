@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\RelationManagers\SupplierDocumentsRelationManager;
-use App\Filament\RelationManagers\SupplierImagesRelationManager;
 use App\Models\Category;
 use App\Models\Supplier;
 use Filament\Forms\Components;
@@ -15,7 +14,6 @@ class SupplierResourceSupport
     {
         return [
             SupplierDocumentsRelationManager::class,
-            SupplierImagesRelationManager::class,
         ];
     }
 

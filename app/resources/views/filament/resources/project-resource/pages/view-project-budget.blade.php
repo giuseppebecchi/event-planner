@@ -607,8 +607,7 @@
                                 <tr>
                                     <th>Category</th>
                                     <th>Estimate</th>
-                                    <th>Working quote</th>
-                                    <th>Final</th>
+                                    <th>Confirmed Quote</th>
                                     <th>Difference</th>
                                     <th>Status</th>
                                     <th></th>
@@ -639,13 +638,14 @@
                                         </td>
                                         <td class="wm-budget-number">EUR {{ number_format((float) ($budget->initial_estimated_amount ?? 0), 2, ',', '.') }}</td>
                                         <td class="wm-budget-number">
-                                            {{ $budget->comparison_amount !== null ? 'EUR ' . number_format((float) $budget->comparison_amount, 2, ',', '.') : '—' }}
-                                        </td>
-                                        <td class="wm-budget-number">
                                             {{ $budget->final_amount !== null ? 'EUR ' . number_format((float) $budget->final_amount, 2, ',', '.') : '—' }}
                                         </td>
-                                        <td class="wm-budget-number {{ $difference > 0 ? 'is-negative' : ($difference < 0 ? 'is-positive' : '') }}">
-                                            {{ $difference === 0.0 ? 'EUR 0,00' : (($difference > 0 ? '+ ' : '- ') . 'EUR ' . number_format(abs($difference), 2, ',', '.')) }}
+                                        <td class="wm-budget-number {{ $budget->final_amount !== null ? ($difference > 0 ? 'is-negative' : ($difference < 0 ? 'is-positive' : '')) : '' }}">
+                                            @if ($budget->final_amount !== null)
+                                                {{ $difference === 0.0 ? 'EUR 0,00' : (($difference > 0 ? '+ ' : '- ') . 'EUR ' . number_format(abs($difference), 2, ',', '.')) }}
+                                            @else
+                                                —
+                                            @endif
                                         </td>
                                         <td>
                                             <span class="wm-budget-status {{ $statusClass }}">
@@ -672,6 +672,21 @@
                                     </tr>
                                 @endforeach
                             </tbody>
+                            <tfoot>
+                                @php
+                                    $totalDifference = $budgetSummary['final_total'] - $budgetSummary['confirmed_hypothetical_total'];
+                                @endphp
+                                <tr>
+                                    <th>Totals</th>
+                                    <th class="wm-budget-number">EUR {{ number_format($budgetSummary['confirmed_hypothetical_total'], 2, ',', '.') }}</th>
+                                    <th class="wm-budget-number">EUR {{ number_format($budgetSummary['final_total'], 2, ',', '.') }}</th>
+                                    <th class="wm-budget-number {{ $totalDifference > 0 ? 'is-negative' : ($totalDifference < 0 ? 'is-positive' : '') }}">
+                                        {{ $totalDifference === 0.0 ? 'EUR 0,00' : (($totalDifference > 0 ? '+ ' : '- ') . 'EUR ' . number_format(abs($totalDifference), 2, ',', '.')) }}
+                                    </th>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 @endif

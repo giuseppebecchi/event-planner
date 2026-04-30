@@ -173,11 +173,6 @@ class Supplier extends Model
         return $this->hasMany(SupplierDocument::class);
     }
 
-    public function images(): HasMany
-    {
-        return $this->hasMany(SupplierImage::class);
-    }
-
     public function categoryBudgetSuppliers(): HasMany
     {
         return $this->hasMany(CategoryBudgetSupplier::class);

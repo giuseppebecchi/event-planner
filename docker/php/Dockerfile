@@ -8,13 +8,15 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libpng-dev \
     libjpeg-dev \
+    libwebp-dev \
     libfreetype6-dev \
     libicu-dev \
     libzip-dev \
     locales \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && pecl install mongodb \
     && docker-php-ext-enable mongodb \
-    && docker-php-ext-install intl zip pdo_mysql  \
+    && docker-php-ext-install gd intl zip pdo_mysql  \
     && rm -rf /var/lib/apt/lists/*
 
 # -------------------------------------------------

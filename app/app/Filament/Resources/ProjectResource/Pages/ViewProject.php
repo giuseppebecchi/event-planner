@@ -7,6 +7,7 @@ use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDa
 use App\Models\CategoryBudget;
 use App\Models\CategoryBudgetSupplier;
 use App\Models\Project;
+use App\Models\ProjectChecklistOption;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
@@ -51,7 +52,7 @@ class ViewProject extends ViewRecord
 
     public function getBudgetSummary(): array
     {
-        $project = $this->getRecord()->loadMissing('categoryBudgets');
+        $project = $this->getRecord()->loadMissing('categoryBudgets.category', 'categoryBudgets.supplierProposals');
         $budgets = $project->categoryBudgets;
         $confirmed = $budgets->where('budget_status', 'confirmed');
         $inEvaluation = $budgets->where('budget_status', 'in_evaluation');
@@ -59,6 +60,9 @@ class ViewProject extends ViewRecord
         $estimatedTotal = (float) $budgets->sum(fn (CategoryBudget $budget) => (float) ($budget->initial_estimated_amount ?? 0));
         $comparisonTotal = (float) $budgets->sum(fn (CategoryBudget $budget) => (float) ($budget->comparison_amount ?? $budget->initial_estimated_amount ?? 0));
         $finalTotal = (float) $confirmed->sum(fn (CategoryBudget $budget) => (float) ($budget->final_amount ?? 0));
+        $confirmedHypotheticalTotal = (float) $confirmed->sum(
+            fn (CategoryBudget $budget) => (float) ($budget->initial_estimated_amount ?? 0)
+        );
 
         return [
             'categories_count' => $budgets->count(),
@@ -67,6 +71,7 @@ class ViewProject extends ViewRecord
             'estimated_total' => $estimatedTotal,
             'comparison_total' => $comparisonTotal,
             'final_total' => $finalTotal,
+            'confirmed_hypothetical_total' => $confirmedHypotheticalTotal,
             'completion' => $budgets->count() > 0 ? (int) round(($confirmed->count() / $budgets->count()) * 100) : 0,
         ];
     }
@@ -87,17 +92,99 @@ class ViewProject extends ViewRecord
         ];
     }
 
-    public function getPreparationItems(): array
+    public function getSupplierScoutingSummary(): array
     {
-        $project = $this->getRecord()->loadMissing('categoryBudgets', 'categoryBudgetSuppliers');
-        $budgetSummary = $this->getBudgetSummary();
-        $supplierSummary = $this->getSupplierSummary();
+        $project = $this->getRecord()->loadMissing('categoryBudgets.category', 'categoryBudgets.supplierProposals');
+        $budgets = $project->categoryBudgets
+            ->sortBy(fn (CategoryBudget $budget) => mb_strtolower((string) ($budget->category?->label_it ?? $budget->category?->label ?? 'zzz')))
+            ->values();
+
+        $items = $budgets->map(function (CategoryBudget $budget): array {
+            $proposals = $budget->supplierProposals;
+
+            $hasConfirmed = $budget->budget_status === CategoryBudget::STATUS_CONFIRMED
+                || $proposals->contains(fn (CategoryBudgetSupplier $proposal): bool => $proposal->proposal_status === CategoryBudgetSupplier::STATUS_CONFIRMED);
+
+            $hasResponses = $proposals->contains(function (CategoryBudgetSupplier $proposal): bool {
+                return filled($proposal->responded_at)
+                    || filled($proposal->response_text)
+                    || filled($proposal->proposed_amount)
+                    || filled($proposal->proposal_summary)
+                    || filled($proposal->costs_and_conditions)
+                    || in_array($proposal->proposal_status, [
+                        CategoryBudgetSupplier::STATUS_RECEIVED,
+                        CategoryBudgetSupplier::STATUS_CONFIRMED,
+                        'presented',
+                        'shortlist',
+                        'finalist',
+                        'selected',
+                    ], true);
+            });
+
+            $status = $hasConfirmed ? 'confirmed' : ($hasResponses ? 'responded' : 'pending');
+
+            return [
+                'label' => (string) ($budget->category?->label_it ?? $budget->category?->label ?? 'Category'),
+                'status' => $status,
+                'proposals_count' => $proposals->count(),
+                'responses_count' => $proposals->filter(function (CategoryBudgetSupplier $proposal): bool {
+                    return filled($proposal->responded_at)
+                        || filled($proposal->response_text)
+                        || filled($proposal->proposed_amount)
+                        || filled($proposal->proposal_summary)
+                        || filled($proposal->costs_and_conditions)
+                        || in_array($proposal->proposal_status, [
+                            CategoryBudgetSupplier::STATUS_RECEIVED,
+                            CategoryBudgetSupplier::STATUS_CONFIRMED,
+                            'presented',
+                            'shortlist',
+                            'finalist',
+                            'selected',
+                        ], true);
+                })->count(),
+            ];
+        });
 
         return [
-            ['label' => 'Event profile completed', 'done' => filled($project->event_start_date) && filled($project->locality) && filled($project->partner_one_name)],
-            ['label' => 'Service budgets prepared', 'done' => $budgetSummary['categories_count'] > 0],
-            ['label' => 'Supplier scouting started', 'done' => $supplierSummary['total'] > 0],
-            ['label' => 'Confirmed suppliers selected', 'done' => $supplierSummary['confirmed'] > 0],
+            'items' => $items->all(),
+            'confirmed_count' => $items->where('status', 'confirmed')->count(),
+            'responded_count' => $items->where('status', 'responded')->count(),
+            'pending_count' => $items->where('status', 'pending')->count(),
+            'categories_count' => $items->count(),
+        ];
+    }
+
+    public function getPreparationItems(): array
+    {
+        $summary = $this->getChecklistSummary();
+
+        return [
+            ['label' => 'Checklist groups created', 'done' => $summary['groups'] > 0],
+            ['label' => 'Default checklist items enabled', 'done' => $summary['enabled'] > 0],
+            ['label' => 'Due dates calculated', 'done' => $summary['dated'] > 0 || blank($this->getRecord()->event_start_date)],
+            ['label' => 'Event date defined', 'done' => filled($this->getRecord()->event_start_date)],
+        ];
+    }
+
+    public function getChecklistSummary(): array
+    {
+        if ($this->getRecord()->projectChecklistOptions()->doesntExist()) {
+            $this->getRecord()->syncChecklistOptionsFromTemplates();
+            $this->getRecord()->refresh();
+        }
+
+        $items = $this->getRecord()->loadMissing('projectChecklistOptions')->projectChecklistOptions;
+
+        return [
+            'groups' => $items->pluck('checkbox_id')->unique()->count(),
+            'total' => $items->count(),
+            'enabled' => $items->where('enabled', true)->count(),
+            'optional' => $items->where('enabled', false)->count(),
+            'dated' => $items->whereNotNull('due_date')->count(),
+            'due_soon' => $items
+                ->where('enabled', true)
+                ->filter(fn (ProjectChecklistOption $item): bool => $item->due_date !== null && $item->due_date->between(now()->startOfDay(), now()->addDays(30)->startOfDay()))
+                ->count(),
         ];
     }
 

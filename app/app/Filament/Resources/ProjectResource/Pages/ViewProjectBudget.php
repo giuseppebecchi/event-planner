@@ -64,6 +64,7 @@ class ViewProjectBudget extends Page
         $estimatedTotal = (float) $budgets->sum(fn (CategoryBudget $budget) => (float) ($budget->initial_estimated_amount ?? 0));
         $comparisonTotal = (float) $budgets->sum(fn (CategoryBudget $budget) => (float) ($budget->comparison_amount ?? $budget->initial_estimated_amount ?? 0));
         $finalTotal = (float) $confirmed->sum(fn (CategoryBudget $budget) => (float) ($budget->final_amount ?? 0));
+        $confirmedHypotheticalTotal = (float) $confirmed->sum(fn (CategoryBudget $budget) => (float) ($budget->initial_estimated_amount ?? 0));
 
         return [
             'categories_count' => $budgets->count(),
@@ -73,6 +74,7 @@ class ViewProjectBudget extends Page
             'estimated_total' => $estimatedTotal,
             'comparison_total' => $comparisonTotal,
             'final_total' => $finalTotal,
+            'confirmed_hypothetical_total' => $confirmedHypotheticalTotal,
             'difference_total' => $comparisonTotal - $estimatedTotal,
             'completion' => $budgets->count() > 0 ? (int) round(($confirmed->count() / $budgets->count()) * 100) : 0,
         ];

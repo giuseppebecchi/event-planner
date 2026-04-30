@@ -89,8 +89,10 @@ class Lead extends Model
         'proposal_response_status',
         'proposal_response_at',
         'proposal_notes_log',
+        'proposal_content',
         'contract_sent_at',
         'contract_received_at',
+        'contract_content',
         'signed_contract_document_id',
         'internal_notes',
     ];

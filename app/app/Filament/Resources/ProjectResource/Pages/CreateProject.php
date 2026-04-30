@@ -32,6 +32,10 @@ class CreateProject extends CreateRecord
 
     protected function afterCreate(): void
     {
-        $this->getRecord()->loadMissing('lead')->initBudget();
+        $this->getRecord()
+            ->loadMissing('lead')
+            ->initBudget();
+
+        $this->getRecord()->syncChecklistOptionsFromTemplates();
     }
 }
