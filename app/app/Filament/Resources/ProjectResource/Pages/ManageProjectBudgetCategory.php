@@ -171,7 +171,9 @@ class ManageProjectBudgetCategory extends Page
             'request_text' => $data['request_text'],
             'planner_notes' => $data['planner_notes'],
             'scouting_status' => $data['scouting_status'],
-            'proposal_status' => CategoryBudgetSupplier::STATUS_REQUESTED,
+            'proposal_status' => $proposal->proposal_status === CategoryBudgetSupplier::STATUS_CONFIRMED
+                ? CategoryBudgetSupplier::STATUS_CONFIRMED
+                : CategoryBudgetSupplier::STATUS_REQUESTED,
         ]);
 
         if (blank($proposal->availability_status)) {
@@ -227,9 +229,7 @@ class ManageProjectBudgetCategory extends Page
             'proposed_dates' => collect($proposal->proposed_dates ?? [])->implode(', '),
             'location_available_dates' => collect($proposal->location_available_dates ?? [])->implode(', '),
             'scouting_status' => (string) ($proposal->scouting_status ?? 'shortlist'),
-            'proposal_status' => (string) (($proposal->proposal_status === CategoryBudgetSupplier::STATUS_CONFIRMED)
-                ? CategoryBudgetSupplier::STATUS_RECEIVED
-                : ($proposal->proposal_status ?? CategoryBudgetSupplier::STATUS_RECEIVED)),
+            'proposal_status' => (string) ($proposal->proposal_status ?? CategoryBudgetSupplier::STATUS_RECEIVED),
             'notes' => (string) ($proposal->notes ?? ''),
         ];
     }
@@ -368,7 +368,9 @@ class ManageProjectBudgetCategory extends Page
     public function getBudgetSummary(): array
     {
         $budget = $this->categoryBudgetRecord->loadMissing('category', 'supplierProposals.supplier');
-        $confirmedProposal = $budget->confirmedProposal();
+        $confirmedProposals = $budget->supplierProposals
+            ->where('proposal_status', CategoryBudgetSupplier::STATUS_CONFIRMED)
+            ->values();
         $proposalCount = $budget->supplierProposals->count();
         $responsesCount = $budget->supplierProposals->filter(fn (CategoryBudgetSupplier $proposal): bool => $proposal->hasResponse())->count();
 
@@ -382,8 +384,36 @@ class ManageProjectBudgetCategory extends Page
             'budget_status' => $budget->budget_status,
             'proposal_count' => $proposalCount,
             'responses_count' => $responsesCount,
-            'confirmed_supplier' => $confirmedProposal?->supplier?->name,
+            'confirmed_count' => $confirmedProposals->count(),
+            'confirmed_suppliers' => $confirmedProposals
+                ->map(fn (CategoryBudgetSupplier $proposal): ?string => $proposal->supplier?->name)
+                ->filter()
+                ->values()
+                ->all(),
         ];
+    }
+
+    public function isLocationCategory(): bool
+    {
+        $category = $this->categoryBudgetRecord->category;
+
+        return (int) $this->categoryBudgetRecord->category_id === Supplier::LOCATION_CATEGORY_ID
+            || strcasecmp((string) ($category?->label_it ?? ''), 'Location') === 0
+            || strcasecmp((string) ($category?->label ?? ''), 'Venue') === 0;
+    }
+
+    public function canExportPresentationPdf(): bool
+    {
+        $category = $this->categoryBudgetRecord->category;
+        $labels = collect([
+            $category?->label,
+            $category?->label_it,
+        ])
+            ->filter()
+            ->map(fn (string $label): string => mb_strtolower(trim($label)));
+
+        return $this->isLocationCategory()
+            || $labels->contains('catering');
     }
 
     public function getExistingRequests(): Collection
@@ -530,9 +560,29 @@ class ManageProjectBudgetCategory extends Page
             ->with([
                 'category',
                 'supplierProposals.supplier',
+                'supplierProposals.supplier.images',
                 'supplierProposals.projectDocuments',
             ])
             ->firstOrFail();
+    }
+
+    public function getPresentationExportCount(): int
+    {
+        $proposals = $this->categoryBudgetRecord
+            ->loadMissing('supplierProposals.projectDocuments')
+            ->supplierProposals;
+
+        $shortlisted = $proposals
+            ->where('scouting_status', 'shortlist')
+            ->count();
+
+        if ($shortlisted > 0) {
+            return $shortlisted;
+        }
+
+        return $proposals
+            ->filter(fn (CategoryBudgetSupplier $proposal): bool => $proposal->hasResponse())
+            ->count();
     }
 
     protected function findProposalBySupplier(int $supplierId): ?CategoryBudgetSupplier

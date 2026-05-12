@@ -826,7 +826,7 @@
                                         class="wm-checklist-main"
                                         @if ($isExpanded)
                                             x-data="{ mode: @js($checklistForms[$item->id]['due_date_mode'] ?? 'relative') }"
-                                            x-on:mousedown.window="if (! $el.contains($event.target)) { $wire.collapseChecklistItem() }"
+                                            x-on:mousedown.window="if (! $el.contains($event.target) && ! $event.target.closest('[data-checklist-delete-modal]')) { $wire.collapseChecklistItem() }"
                                         @endif
                                     >
                                         @if (! $isExpanded)
@@ -924,7 +924,8 @@
                                                 <button
                                                     type="button"
                                                     class="wm-checklist-action is-delete"
-                                                    wire:click="promptDeleteChecklistItem({{ $item->id }})"
+                                                    x-on:mousedown.stop
+                                                    wire:click.stop="promptDeleteChecklistItem({{ $item->id }})"
                                                     title="Delete task"
                                                 >
                                                     <x-heroicon-o-trash />
@@ -945,17 +946,25 @@
         </section>
 
         @if ($confirmDeleteChecklistItemId)
-            <div class="wm-checklist-modal-backdrop" wire:click="cancelDeleteChecklistItem"></div>
-            <div class="wm-checklist-modal" role="dialog" aria-modal="true" aria-labelledby="checklist-delete-title">
+            <div class="wm-checklist-modal-backdrop" data-checklist-delete-modal wire:click="cancelDeleteChecklistItem"></div>
+            <div
+                class="wm-checklist-modal"
+                data-checklist-delete-modal
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="checklist-delete-title"
+                x-on:mousedown.stop
+                x-on:click.stop
+            >
                 <p id="checklist-delete-title" class="wm-checklist-modal-copy">
                     Deleting this item will permanently remove it from the project's checklist.
                 </p>
 
                 <div class="wm-checklist-modal-actions">
-                    <button type="button" class="wm-checklist-modal-button" wire:click="cancelDeleteChecklistItem">
+                    <button type="button" class="wm-checklist-modal-button" wire:click.stop="cancelDeleteChecklistItem">
                         Cancel
                     </button>
-                    <button type="button" class="wm-checklist-modal-button is-danger" wire:click="confirmDeleteChecklistItem">
+                    <button type="button" class="wm-checklist-modal-button is-danger" wire:click.stop="confirmDeleteChecklistItem">
                         Delete item
                     </button>
                 </div>

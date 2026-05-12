@@ -217,9 +217,15 @@
                         <button type="button" class="lead-phase-button" wire:click="mountAction('editContent')">
                             Edit content
                         </button>
-                        <button type="button" class="lead-phase-button is-disabled" disabled>
-                            Export PDF
-                        </button>
+                        @if ($exportPdfUrl)
+                            <a href="{{ $exportPdfUrl }}" target="_blank" class="lead-phase-button">
+                                Export PDF
+                            </a>
+                        @else
+                            <button type="button" class="lead-phase-button is-disabled" disabled>
+                                Export PDF
+                            </button>
+                        @endif
                     </div>
                 </div>
 

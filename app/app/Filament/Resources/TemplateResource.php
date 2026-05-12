@@ -113,11 +113,11 @@ class TemplateResource extends Resource
                 TextColumn::make('type')
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => $state === Template::TYPE_TEXT_PLAIN ? 'Text plain' : 'HTML'),
-                TextColumn::make('content')
+                /*TextColumn::make('content')
                     ->label('Preview')
                     ->html()
                     ->limit(90)
-                    ->tooltip(fn (Template $record): string => Str::of(strip_tags((string) $record->content))->limit(240)->value()),
+                    ->tooltip(fn (Template $record): string => Str::of(strip_tags((string) $record->content))->limit(240)->value()),*/
                 TextColumn::make('updated_at')
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),

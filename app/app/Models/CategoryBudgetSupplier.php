@@ -147,21 +147,11 @@ class CategoryBudgetSupplier extends Model
             return;
         }
 
-        static::query()
-            ->where('category_budget_id', $this->category_budget_id)
-            ->whereKeyNot($this->getKey())
-            ->where('proposal_status', self::STATUS_CONFIRMED)
-            ->update([
-                'proposal_status' => self::STATUS_RECEIVED,
-                'confirmed_at' => null,
-                'updated_at' => now(),
-            ]);
-
         $this->forceFill([
             'proposal_status' => self::STATUS_CONFIRMED,
             'scouting_status' => 'chosen',
             'availability_status' => $this->availability_status === 'pending' ? 'available' : $this->availability_status,
-            'confirmed_at' => now(),
+            'confirmed_at' => $this->confirmed_at ?? now(),
         ])->save();
     }
 }

@@ -3,7 +3,9 @@
 namespace App\Filament\Resources;
 
 use App\Filament\RelationManagers\SupplierDocumentsRelationManager;
+use App\Filament\RelationManagers\SupplierImagesRelationManager;
 use App\Models\Category;
+use App\Models\PaymentMode;
 use App\Models\Supplier;
 use Filament\Forms\Components;
 use Filament\Schemas\Components\Section;
@@ -13,6 +15,7 @@ class SupplierResourceSupport
     public static function assetRelations(): array
     {
         return [
+            SupplierImagesRelationManager::class,
             SupplierDocumentsRelationManager::class,
         ];
     }
@@ -34,6 +37,27 @@ class SupplierResourceSupport
                     Components\TextInput::make('sdi_code')
                         ->label('SDI')
                         ->maxLength(50),
+                    Components\Select::make('accepted_payment_mode_ids')
+                        ->label('Accepted payment modes')
+                        ->options(fn (): array => PaymentMode::query()
+                            ->where('is_active', true)
+                            ->orderBy('sort_order')
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->all())
+                        ->multiple()
+                        ->preload()
+                        ->helperText('Leave empty if every payment mode is accepted.')
+                        ->formatStateUsing(fn ($state): array => collect(is_array($state) ? $state : explode(',', (string) $state))
+                            ->map(fn (string $id): int => (int) trim($id))
+                            ->filter()
+                            ->values()
+                            ->all())
+                        ->dehydrateStateUsing(fn ($state): ?string => collect($state ?? [])
+                            ->filter()
+                            ->map(fn ($id): int => (int) $id)
+                            ->implode(',') ?: null)
+                        ->columnSpanFull(),
                 ]),
 
             Section::make('Notes')

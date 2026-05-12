@@ -969,6 +969,9 @@
                                     <p class="wm-item-meta">
                                         EUR {{ number_format((float) $payment->amount, 2, ',', '.') }}
                                         · due {{ $payment->due_date?->format('d/m/Y') ?? '—' }}
+                                        @if ($payment->paymentMode?->name)
+                                            · {{ $payment->paymentMode->name }}
+                                        @endif
                                         · {{ \App\Models\Payment::STATUS_OPTIONS[$payment->payment_status] ?? $payment->payment_status }}
                                         @if ($payment->paid_at)
                                             · paid {{ $payment->paid_at->format('d/m/Y') }}
@@ -1044,20 +1047,32 @@
 
                     <div class="wm-inline-grid">
                         <div>
-                            <label class="wm-label" for="payment-reason">Reason</label>
-                            <input id="payment-reason" type="text" class="wm-field" wire:model="paymentForm.reason">
+                            <label class="wm-label" for="payment-mode-id">Payment mode</label>
+                            <select id="payment-mode-id" class="wm-select" wire:model="paymentForm.payment_mode_id">
+                                <option value="">Select payment mode</option>
+                                @foreach ($this->getPaymentModeOptions() as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div>
-                            <label class="wm-label" for="payment-amount">Amount</label>
-                            <input id="payment-amount" type="number" step="0.01" class="wm-field" wire:model="paymentForm.amount">
+                            <label class="wm-label" for="payment-reason">Reason</label>
+                            <input id="payment-reason" type="text" class="wm-field" wire:model="paymentForm.reason">
                         </div>
                     </div>
 
                     <div class="wm-inline-grid">
                         <div>
+                            <label class="wm-label" for="payment-amount">Amount</label>
+                            <input id="payment-amount" type="number" step="0.01" class="wm-field" wire:model="paymentForm.amount">
+                        </div>
+                        <div>
                             <label class="wm-label" for="payment-due-date">Due date</label>
                             <input id="payment-due-date" type="date" class="wm-field" wire:model="paymentForm.due_date">
                         </div>
+                    </div>
+
+                    <div class="wm-inline-grid">
                         <div>
                             <label class="wm-label" for="payment-invoice-reference">Invoice reference</label>
                             <input id="payment-invoice-reference" type="text" class="wm-field" wire:model="paymentForm.invoice_reference">

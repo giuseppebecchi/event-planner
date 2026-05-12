@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\LeadContractPdfController;
+use App\Http\Controllers\LeadProposalPdfController;
+use App\Http\Controllers\ProjectBudgetProposalPdfController;
 use App\Http\Controllers\PublicLeadFormController;
-use App\Models\Company;
+use App\Http\Controllers\PublicGuestRsvpController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::redirect('/', '/admin');
 
@@ -12,3 +14,21 @@ Route::get('/form/{hashId}', [PublicLeadFormController::class, 'show'])
 
 Route::post('/form/{hashId}', [PublicLeadFormController::class, 'submit'])
     ->name('public.lead-form.submit');
+
+Route::get('/rsvp/{token}', [PublicGuestRsvpController::class, 'show'])
+    ->name('public.rsvp.show');
+
+Route::post('/rsvp/{token}', [PublicGuestRsvpController::class, 'submit'])
+    ->name('public.rsvp.submit');
+
+Route::get('/admin/leads/{lead}/proposal.pdf', LeadProposalPdfController::class)
+    ->middleware('auth')
+    ->name('admin.leads.proposal.pdf');
+
+Route::get('/admin/leads/{lead}/contract.pdf', LeadContractPdfController::class)
+    ->middleware('auth')
+    ->name('admin.leads.contract.pdf');
+
+Route::get('/admin/projects/{project}/budget/{categoryBudget}/proposals.pdf', ProjectBudgetProposalPdfController::class)
+    ->middleware('auth')
+    ->name('admin.projects.budget.proposals.pdf');

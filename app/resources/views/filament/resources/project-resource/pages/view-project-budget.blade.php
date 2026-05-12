@@ -331,10 +331,7 @@
         }
 
         .wm-budget-layout {
-            display: grid;
-            grid-template-columns: minmax(0, 1.7fr) minmax(19rem, 0.8fr);
-            gap: 1rem;
-            align-items: start;
+            display: block;
         }
 
         .wm-budget-table-header,
@@ -369,7 +366,7 @@
         .wm-budget-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 58rem;
+            min-width: 68rem;
         }
 
         .wm-budget-table th {
@@ -455,6 +452,7 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            gap: 0.45rem;
             min-height: 2.4rem;
             padding: 0 0.95rem;
             border-radius: 999px;
@@ -467,30 +465,48 @@
         }
 
         .wm-budget-action.is-confirmed {
-            background: rgba(83, 168, 106, 0.14);
-            color: #2d7a39;
+            background: #2e4a62;
+            color: #fff;
         }
 
-        .wm-budget-open-list {
-            display: grid;
-            gap: 0.75rem;
-        }
-
-        .wm-budget-open-item {
-            display: flex;
+        .wm-budget-action-icon {
+            display: inline-flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 0.8rem;
-            padding: 0.9rem 1rem;
-            border-radius: 1rem;
-            background: #fbf8f4;
-            border: 1px solid #ece5dd;
+            justify-content: center;
+            width: 1rem;
+            height: 1rem;
+            color: currentColor;
         }
 
-        .wm-budget-open-item a {
-            color: #2e4a62;
-            font-weight: 700;
-            text-decoration: none;
+        .wm-budget-action-icon svg {
+            width: 1rem;
+            height: 1rem;
+            stroke-width: 2.2;
+        }
+
+        .wm-budget-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        .wm-budget-accepted-list {
+            display: grid;
+            gap: 0.45rem;
+            justify-items: end;
+        }
+
+        .wm-budget-accepted-name {
+            max-width: 12rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .wm-budget-action-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
         }
 
         .wm-budget-empty {
@@ -610,13 +626,15 @@
                                     <th>Confirmed Quote</th>
                                     <th>Difference</th>
                                     <th>Status</th>
-                                    <th></th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach ($budgetRows as $budget)
                                     @php
-                                        $confirmedProposal = $budget->confirmedProposal();
+                                        $confirmedProposals = $budget->supplierProposals
+                                            ->where('proposal_status', \App\Models\CategoryBudgetSupplier::STATUS_CONFIRMED)
+                                            ->values();
                                         $difference = $budget->amountDifference();
                                         $statusClass = match ($budget->budget_status) {
                                             \App\Models\CategoryBudget::STATUS_CONFIRMED => 'is-confirmed',
@@ -630,8 +648,8 @@
                                                 <span class="wm-budget-category-name">{{ $budget->category?->label_it ?? 'Category' }}</span>
                                                 <span class="wm-budget-category-meta">
                                                     {{ $budget->supplierProposals->count() }} supplier {{ \Illuminate\Support\Str::plural('request', $budget->supplierProposals->count()) }}
-                                                    @if ($confirmedProposal?->supplier?->name)
-                                                        • accepted: {{ $confirmedProposal->supplier->name }}
+                                                    @if ($confirmedProposals->isNotEmpty())
+                                                        • accepted: {{ $confirmedProposals->count() }}
                                                     @endif
                                                 </span>
                                             </div>
@@ -653,21 +671,35 @@
                                             </span>
                                         </td>
                                         <td>
-                                            @if ($budget->budget_status === \App\Models\CategoryBudget::STATUS_CONFIRMED)
-                                                <a
-                                                    href="{{ \App\Filament\Resources\ProjectResource::getUrl('budget-manage', ['record' => $record, 'categoryBudget' => $budget]) }}"
-                                                    class="wm-budget-action is-confirmed"
-                                                >
-                                                    Manage
-                                                </a>
-                                            @else
+                                            <div class="wm-budget-actions">
+                                                @if ($confirmedProposals->isNotEmpty())
+                                                    <div class="wm-budget-accepted-list">
+                                                        @foreach ($confirmedProposals as $proposal)
+                                                            <a
+                                                                href="{{ \App\Filament\Resources\ProjectResource::getUrl('budget-manage', ['record' => $record, 'categoryBudget' => $budget, 'proposal' => $proposal->id]) }}"
+                                                                class="wm-budget-action is-confirmed"
+                                                                title="Manage {{ $proposal->supplier?->name ?? 'Supplier' }}"
+                                                            >
+                                                                <span class="wm-budget-action-icon" aria-hidden="true">
+                                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                                        <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path>
+                                                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8.92 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15Z"></path>
+                                                                    </svg>
+                                                                </span>
+                                                                <span class="wm-budget-accepted-name">{{ $proposal->supplier?->name ?? 'Supplier' }}</span>
+                                                                <span>Manage</span>
+                                                            </a>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+
                                                 <a
                                                     href="{{ \App\Filament\Resources\ProjectResource::getUrl('budget-scouting', ['record' => $record, 'categoryBudget' => $budget]) }}"
                                                     class="wm-budget-action"
                                                 >
                                                     Choose supplier
                                                 </a>
-                                            @endif
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -691,38 +723,6 @@
                     </div>
                 @endif
             </article>
-
-            <aside class="wm-event-card wm-budget-sidebar-card">
-                <div class="wm-budget-sidebar-title">
-                    <h3 class="wm-budget-sidebar-heading">Open selections</h3>
-                    <span class="wm-budget-table-note">Next categories</span>
-                </div>
-
-                @php
-                    $openBudgets = $budgetRows->where('budget_status', '!=', \App\Models\CategoryBudget::STATUS_CONFIRMED)->values();
-                @endphp
-
-                @if ($openBudgets->isEmpty())
-                    <div class="wm-budget-empty">All categories have an accepted quote.</div>
-                @else
-                    <div class="wm-budget-open-list">
-                        @foreach ($openBudgets as $budget)
-                            <div class="wm-budget-open-item">
-                                <div>
-                                    <div class="wm-budget-category-name">{{ $budget->category?->label_it ?? 'Category' }}</div>
-                                    <div class="wm-budget-category-meta">
-                                        {{ \App\Models\CategoryBudget::STATUS_OPTIONS[$budget->budget_status] ?? $budget->budget_status }}
-                                    </div>
-                                </div>
-
-                                <a href="{{ \App\Filament\Resources\ProjectResource::getUrl('budget-scouting', ['record' => $record, 'categoryBudget' => $budget]) }}">
-                                    Open
-                                </a>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
-            </aside>
         </section>
     </div>
 </x-filament-panels::page>

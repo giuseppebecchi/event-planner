@@ -7,6 +7,7 @@ use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDa
 use App\Models\CategoryBudget;
 use App\Models\CategoryBudgetSupplier;
 use App\Models\Payment;
+use App\Models\PaymentMode;
 use App\Models\ProjectDocument;
 use App\Models\ProjectImage;
 use App\Models\ProjectSupplierCommunication;
@@ -55,6 +56,7 @@ class ManageProjectConfirmedSupplier extends Page
     ];
 
     public array $paymentForm = [
+        'payment_mode_id' => '',
         'reason' => '',
         'amount' => '',
         'due_date' => '',
@@ -87,7 +89,7 @@ class ManageProjectConfirmedSupplier extends Page
     {
         $this->record = $this->resolveRecord($record);
         $this->categoryBudgetRecord = $this->resolveCategoryBudget($categoryBudget);
-        $this->proposalRecord = $this->resolveConfirmedProposal();
+        $this->proposalRecord = $this->resolveConfirmedProposal(request()->integer('proposal') ?: null);
         $this->communicationForm['communication_at'] = now()->format('Y-m-d\TH:i');
     }
 
@@ -189,6 +191,23 @@ class ManageProjectConfirmedSupplier extends Page
                 ['created_at', 'desc'],
             ])
             ->values();
+    }
+
+    public function getPaymentModeOptions(): array
+    {
+        $supplier = $this->proposalRecord->supplier;
+        $acceptedIds = $supplier?->acceptedPaymentModeIds() ?? [];
+
+        return PaymentMode::query()
+            ->where('is_active', true)
+            ->when(
+                filled($acceptedIds),
+                fn ($query) => $query->whereIn('id', $acceptedIds)
+            )
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
     }
 
     public function getImages(): Collection
@@ -382,6 +401,7 @@ class ManageProjectConfirmedSupplier extends Page
             ],
             [
                 'form.reason' => ['required', 'string', 'max:255'],
+                'form.payment_mode_id' => ['required', 'integer'],
                 'form.amount' => ['required', 'numeric'],
                 'form.due_date' => ['nullable', 'date'],
                 'form.paid_at' => ['nullable', 'date'],
@@ -394,6 +414,17 @@ class ManageProjectConfirmedSupplier extends Page
         $paymentStatus = $this->paymentEntryMode === 'register'
             ? Payment::STATUS_PAID
             : Payment::STATUS_UNPAID;
+        $paymentModeId = (int) $data['form']['payment_mode_id'];
+        $allowedPaymentModeIds = array_map('intval', array_keys($this->getPaymentModeOptions()));
+
+        if ($paymentModeId && ! in_array($paymentModeId, $allowedPaymentModeIds, true)) {
+            Notification::make()
+                ->title('This payment mode is not accepted by the supplier')
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         $receiptDocumentId = null;
 
@@ -416,6 +447,7 @@ class ManageProjectConfirmedSupplier extends Page
         $this->proposalRecord->payments()->create([
             'project_id' => $this->getRecord()->getKey(),
             'supplier_id' => $this->proposalRecord->supplier_id,
+            'payment_mode_id' => $paymentModeId,
             'reason' => $data['form']['reason'],
             'amount' => $data['form']['amount'],
             'due_date' => $data['form']['due_date'] ?: null,
@@ -601,16 +633,21 @@ class ManageProjectConfirmedSupplier extends Page
                 'supplierProposals.category',
                 'supplierProposals.projectDocuments',
                 'supplierProposals.communications',
+                'supplierProposals.payments.paymentMode',
                 'supplierProposals.payments.paymentReceiptDocument',
                 'project.projectImages',
             ])
             ->firstOrFail();
     }
 
-    protected function resolveConfirmedProposal(): CategoryBudgetSupplier
+    protected function resolveConfirmedProposal(?int $proposalId = null): CategoryBudgetSupplier
     {
-        $proposal = $this->categoryBudgetRecord->supplierProposals
-            ->firstWhere('proposal_status', CategoryBudgetSupplier::STATUS_CONFIRMED);
+        $confirmedProposals = $this->categoryBudgetRecord->supplierProposals
+            ->where('proposal_status', CategoryBudgetSupplier::STATUS_CONFIRMED);
+
+        $proposal = $proposalId
+            ? $confirmedProposals->firstWhere('id', $proposalId)
+            : $confirmedProposals->first();
 
         abort_if(! $proposal, 404);
 
@@ -621,12 +658,13 @@ class ManageProjectConfirmedSupplier extends Page
     {
         $this->categoryBudgetRecord = $this->resolveCategoryBudget($this->categoryBudgetRecord->getKey());
         $this->record = $this->resolveRecord($this->getRecord()->getKey());
-        $this->proposalRecord = $this->resolveConfirmedProposal();
+        $this->proposalRecord = $this->resolveConfirmedProposal($this->proposalRecord->getKey());
     }
 
     protected function resetPaymentEntryForm(): void
     {
         $this->paymentForm = [
+            'payment_mode_id' => '',
             'reason' => '',
             'amount' => '',
             'due_date' => '',

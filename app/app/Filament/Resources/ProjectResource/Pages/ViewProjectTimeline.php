@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ProjectResource\Pages;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Filament\Resources\ProjectResource;
 use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDateEditor;
+use App\Models\CategoryBudgetSupplier;
 use App\Models\Project;
 use App\Models\ProjectTimeline;
 use Filament\Notifications\Notification;
@@ -14,6 +15,7 @@ use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Livewire\WithFileUploads;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -22,6 +24,8 @@ class ViewProjectTimeline extends Page
     use InteractsWithRecord;
     use InteractsWithProjectDateEditor;
     use WithFileUploads;
+
+    protected const DAILY_NOTES_TITLE = 'Daily notes';
 
     protected static string $resource = ProjectResource::class;
 
@@ -40,10 +44,15 @@ class ViewProjectTimeline extends Page
         'start_time' => '',
         'end_time' => '',
         'sunset_time' => '',
+        'is_surprise' => false,
+        'cover_activity' => false,
+        'cover_activity_type' => '',
         'location' => '',
         'supplier_id' => '',
         'title' => '',
         'description' => '',
+        'has_extended_description' => false,
+        'extended_description' => '',
         'notes' => '',
         'existing_image_paths' => [],
     ];
@@ -51,6 +60,10 @@ class ViewProjectTimeline extends Page
     public array $timelineImageUploads = [];
 
     public ?int $confirmDeleteTimelineItemId = null;
+
+    public ?string $editingDailyNoteDate = null;
+
+    public array $dailyNoteForms = [];
 
     public function mount(int|string $record): void
     {
@@ -85,10 +98,15 @@ class ViewProjectTimeline extends Page
 
     public function exportTimelinePdf(): StreamedResponse
     {
-        $project = $this->getRecord()->loadMissing('projectTimelineItems.supplier');
+        $project = $this->getRecord()->loadMissing(
+            'projectTimelineItems.supplier',
+            'categoryBudgetSuppliers.supplier.category',
+            'categoryBudgetSuppliers.category'
+        );
         $days = $this->getTimelineDays()->map(function (array $day): array {
             return [
                 ...$day,
+                'daily_note_description' => $day['daily_note']?->description,
                 'items' => $day['items']->map(function (ProjectTimeline $item): array {
                     return [
                         'title' => $item->title,
@@ -97,7 +115,12 @@ class ViewProjectTimeline extends Page
                         'start_time' => $item->start_time?->format('H:i'),
                         'end_time' => $item->end_time?->format('H:i'),
                         'sunset_time' => $item->sunset_time?->format('H:i'),
+                        'is_surprise' => (bool) $item->is_surprise,
+                        'cover_activity' => (bool) $item->cover_activity,
+                        'cover_activity_type' => $item->cover_activity_type,
                         'description' => $item->description,
+                        'has_extended_description' => (bool) $item->has_extended_description,
+                        'extended_description' => $item->extended_description,
                         'notes' => $item->notes,
                         'images' => collect($item->image_paths ?? [])
                             ->map(fn (string $path): ?string => $this->imagePathToDataUri($path))
@@ -108,17 +131,55 @@ class ViewProjectTimeline extends Page
                 })->all(),
             ];
         });
+        $timelineItems = $project->projectTimelineItems
+            ->reject(fn (ProjectTimeline $item): bool => $this->isDailyNoteItem($item))
+            ->sortBy(fn (ProjectTimeline $item): string => sprintf(
+                '%s-%s-%05d',
+                $item->timeline_date?->format('Ymd') ?? '99999999',
+                $item->start_time?->format('H:i') ?? '99:99',
+                $item->sort_order,
+            ))
+            ->values();
+        $coverActivities = $timelineItems
+            ->filter(fn (ProjectTimeline $item): bool => (bool) $item->cover_activity)
+            ->map(fn (ProjectTimeline $item): array => $this->timelineItemPdfPayload($item) + [
+                'icon' => $this->coverActivityIconDataUri($item->cover_activity_type),
+            ])
+            ->values();
+        $extendedActivities = $timelineItems
+            ->filter(fn (ProjectTimeline $item): bool => (bool) $item->has_extended_description && filled($item->extended_description))
+            ->map(fn (ProjectTimeline $item): array => $this->timelineItemPdfPayload($item))
+            ->values();
+        $confirmedSuppliers = $project->categoryBudgetSuppliers
+            ->filter(fn (CategoryBudgetSupplier $proposal): bool => $proposal->proposal_status === CategoryBudgetSupplier::STATUS_CONFIRMED && $proposal->supplier)
+            ->sortBy(fn (CategoryBudgetSupplier $proposal): string => sprintf(
+                '%s-%s',
+                $proposal->category?->label ?? $proposal->supplier?->category?->label ?? '',
+                $proposal->supplier?->name ?? ''
+            ))
+            ->map(fn (CategoryBudgetSupplier $proposal): array => $this->confirmedSupplierPdfPayload($proposal))
+            ->values();
 
         $dateRange = $this->getProjectDateRangeLabel($project);
         $location = collect([$project->locality, $project->region])->filter()->implode(', ');
         $partners = collect([$project->partner_one_name, $project->partner_two_name])->filter()->implode(' & ');
+        $coverImage = filled($project->cover_image_path)
+            ? $this->imagePathToDataUri($project->cover_image_path)
+            : null;
+        $leftRailImage = $this->localFileToDataUri(public_path('images/pdf/timeline-left-rail.png'));
 
         $pdf = Pdf::loadView('filament.resources.project-resource.exports.timeline-pdf', [
             'project' => $project,
             'days' => $days,
+            'coverActivities' => $coverActivities,
+            'extendedActivities' => $extendedActivities,
+            'confirmedSuppliers' => $confirmedSuppliers,
             'dateRange' => $dateRange,
             'location' => $location,
             'partners' => $partners,
+            'coverImage' => $coverImage,
+            'leftRailImage' => $leftRailImage,
+            'generatedAt' => now()->format('F j, Y'),
         ])->setPaper('a4', 'portrait');
 
         return response()->streamDownload(
@@ -133,12 +194,13 @@ class ViewProjectTimeline extends Page
     public function getTimelineSummary(): array
     {
         $items = $this->getRecord()->loadMissing('projectTimelineItems')->projectTimelineItems;
+        $timelineItems = $items->reject(fn (ProjectTimeline $item): bool => $this->isDailyNoteItem($item));
 
         return [
             'days' => $this->getTimelineDays()->count(),
-            'items' => $items->count(),
-            'suppliers' => $items->whereNotNull('supplier_id')->pluck('supplier_id')->unique()->count(),
-            'notes' => $items->filter(fn (ProjectTimeline $item): bool => filled($item->notes))->count(),
+            'items' => $timelineItems->count(),
+            'suppliers' => $timelineItems->whereNotNull('supplier_id')->pluck('supplier_id')->unique()->count(),
+            'notes' => $items->filter(fn (ProjectTimeline $item): bool => filled($item->notes) || $this->isDailyNoteItem($item))->count(),
         ];
     }
 
@@ -152,7 +214,7 @@ class ViewProjectTimeline extends Page
             return collect();
         }
 
-        $groupedItems = $project
+        $allItems = $project
             ->loadMissing('projectTimelineItems.supplier')
             ->projectTimelineItems
             ->sortBy(fn (ProjectTimeline $item): string => sprintf(
@@ -160,7 +222,14 @@ class ViewProjectTimeline extends Page
                 $item->timeline_date?->format('Ymd') ?? '99999999',
                 $item->start_time?->format('H:i') ?? '99:99',
                 $item->sort_order,
-            ))
+            ));
+
+        $dailyNotes = $allItems
+            ->filter(fn (ProjectTimeline $item): bool => $this->isDailyNoteItem($item))
+            ->keyBy(fn (ProjectTimeline $item): string => $item->timeline_date->format('Y-m-d'));
+
+        $groupedItems = $allItems
+            ->reject(fn (ProjectTimeline $item): bool => $this->isDailyNoteItem($item))
             ->groupBy(fn (ProjectTimeline $item): string => $item->timeline_date->format('Y-m-d'));
 
         $days = collect();
@@ -175,6 +244,7 @@ class ViewProjectTimeline extends Page
                 'date' => $cursor->copy(),
                 'key' => $key,
                 'sunset_time' => $items->first(fn (ProjectTimeline $item): bool => $item->sunset_time !== null)?->sunset_time,
+                'daily_note' => $dailyNotes->get($key),
                 'items' => $items,
             ]);
 
@@ -197,6 +267,80 @@ class ViewProjectTimeline extends Page
             ->all();
     }
 
+    public function startEditDailyNotes(string $date): void
+    {
+        $dailyNote = $this->findDailyNoteForDate($date);
+
+        $this->editingDailyNoteDate = $date;
+        $this->dailyNoteForms[$date] = [
+            'description' => $dailyNote?->description ?? '',
+        ];
+    }
+
+    public function cancelEditDailyNotes(): void
+    {
+        $this->editingDailyNoteDate = null;
+    }
+
+    public function saveDailyNotes(string $date): void
+    {
+        $data = validator(
+            [
+                'date' => $date,
+                'description' => $this->dailyNoteForms[$date]['description'] ?? null,
+            ],
+            [
+                'date' => ['required', 'date'],
+                'description' => ['required', 'string'],
+            ]
+        )->validate();
+
+        if (! $this->dateBelongsToProjectRange($data['date'])) {
+            Notification::make()
+                ->title('Daily notes date is outside the project dates')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $description = trim((string) $data['description']);
+
+        $dailyNote = $this->findDailyNoteForDate($data['date']);
+        $payload = [
+            'timeline_date' => $data['date'],
+            'start_time' => null,
+            'end_time' => null,
+            'sunset_time' => null,
+            'is_surprise' => false,
+            'cover_activity' => false,
+            'cover_activity_type' => null,
+            'location' => null,
+            'supplier_id' => null,
+            'title' => self::DAILY_NOTES_TITLE,
+            'description' => $description,
+            'has_extended_description' => false,
+            'extended_description' => null,
+            'notes' => null,
+            'image_paths' => [],
+            'sort_order' => 0,
+        ];
+
+        if ($dailyNote) {
+            $dailyNote->update($payload);
+        } else {
+            $this->getRecord()->projectTimelineItems()->create($payload);
+        }
+
+        $this->editingDailyNoteDate = null;
+        $this->getRecord()->unsetRelation('projectTimelineItems');
+
+        Notification::make()
+            ->title('Daily notes saved')
+            ->success()
+            ->send();
+    }
+
     public function startCreateTimelineItem(?string $date = null): void
     {
         $this->editingTimelineItemId = null;
@@ -216,10 +360,15 @@ class ViewProjectTimeline extends Page
             'start_time' => $item->start_time?->format('H:i') ?? '',
             'end_time' => $item->end_time?->format('H:i') ?? '',
             'sunset_time' => $item->sunset_time?->format('H:i') ?? '',
+            'is_surprise' => (bool) $item->is_surprise,
+            'cover_activity' => (bool) $item->cover_activity,
+            'cover_activity_type' => $item->cover_activity_type ?? '',
             'location' => $item->location ?? '',
             'supplier_id' => $item->supplier_id ?? '',
             'title' => $item->title ?? '',
             'description' => $item->description ?? '',
+            'has_extended_description' => (bool) $item->has_extended_description,
+            'extended_description' => $item->extended_description ?? '',
             'notes' => $item->notes ?? '',
             'existing_image_paths' => array_values($item->image_paths ?? []),
         ];
@@ -264,10 +413,24 @@ class ViewProjectTimeline extends Page
                 'form.start_time' => ['nullable', 'date_format:H:i'],
                 'form.end_time' => ['nullable', 'date_format:H:i'],
                 'form.sunset_time' => ['nullable', 'date_format:H:i'],
+                'form.is_surprise' => ['boolean'],
+                'form.cover_activity' => ['boolean'],
+                'form.cover_activity_type' => [
+                    Rule::requiredIf((bool) ($this->timelineForm['cover_activity'] ?? false)),
+                    'nullable',
+                    'string',
+                    Rule::in(array_keys($this->getCoverActivityTypeOptions())),
+                ],
                 'form.location' => ['nullable', 'string', 'max:255'],
                 'form.supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
                 'form.title' => ['required', 'string', 'max:255'],
                 'form.description' => ['nullable', 'string'],
+                'form.has_extended_description' => ['boolean'],
+                'form.extended_description' => [
+                    Rule::requiredIf((bool) ($this->timelineForm['has_extended_description'] ?? false)),
+                    'nullable',
+                    'string',
+                ],
                 'form.notes' => ['nullable', 'string'],
                 'form.existing_image_paths' => ['array'],
                 'form.existing_image_paths.*' => ['string'],
@@ -305,10 +468,20 @@ class ViewProjectTimeline extends Page
             'start_time' => $data['form']['start_time'] ?: null,
             'end_time' => $data['form']['end_time'] ?: null,
             'sunset_time' => $data['form']['sunset_time'] ?: null,
+            'is_surprise' => (bool) ($data['form']['is_surprise'] ?? false),
+            'cover_activity' => (bool) ($data['form']['cover_activity'] ?? false),
+            'cover_activity_type' => (bool) ($data['form']['cover_activity'] ?? false)
+                ? ($data['form']['cover_activity_type'] ?: null)
+                : null,
             'location' => $data['form']['location'] ?: null,
             'supplier_id' => $data['form']['supplier_id'] ?: null,
             'title' => trim((string) $data['form']['title']),
             'description' => filled($data['form']['description'] ?? null) ? trim((string) $data['form']['description']) : null,
+            'has_extended_description' => (bool) ($data['form']['has_extended_description'] ?? false),
+            'extended_description' => (bool) ($data['form']['has_extended_description'] ?? false)
+                && filled($data['form']['extended_description'] ?? null)
+                    ? trim((string) $data['form']['extended_description'])
+                    : null,
             'notes' => filled($data['form']['notes'] ?? null) ? trim((string) $data['form']['notes']) : null,
             'image_paths' => array_values(array_merge($data['form']['existing_image_paths'] ?? [], $storedUploads)),
         ];
@@ -388,6 +561,36 @@ class ViewProjectTimeline extends Page
         return $item;
     }
 
+    protected function findDailyNoteForDate(string $date): ?ProjectTimeline
+    {
+        return $this->getRecord()
+            ->projectTimelineItems()
+            ->whereDate('timeline_date', $date)
+            ->whereNull('start_time')
+            ->where('title', self::DAILY_NOTES_TITLE)
+            ->first();
+    }
+
+    protected function isDailyNoteItem(ProjectTimeline $item): bool
+    {
+        return $item->start_time === null && $item->title === self::DAILY_NOTES_TITLE;
+    }
+
+    protected function dateBelongsToProjectRange(string $date): bool
+    {
+        $project = $this->getRecord();
+        $projectStart = $project->event_start_date?->copy()?->startOfDay();
+        $projectEnd = ($project->event_end_date ?: $project->event_start_date)?->copy()?->startOfDay();
+
+        if (! $projectStart || ! $projectEnd) {
+            return true;
+        }
+
+        $timelineDate = \Illuminate\Support\Carbon::parse($date)->startOfDay();
+
+        return $timelineDate->between($projectStart, $projectEnd, true);
+    }
+
     protected function resetTimelineForm(?string $date = null): void
     {
         $defaultDate = $date ?: $this->getRecord()->event_start_date?->format('Y-m-d') ?? '';
@@ -397,10 +600,15 @@ class ViewProjectTimeline extends Page
             'start_time' => '',
             'end_time' => '',
             'sunset_time' => '',
+            'is_surprise' => false,
+            'cover_activity' => false,
+            'cover_activity_type' => '',
             'location' => '',
             'supplier_id' => '',
             'title' => '',
             'description' => '',
+            'has_extended_description' => false,
+            'extended_description' => '',
             'notes' => '',
             'existing_image_paths' => [],
         ];
@@ -423,6 +631,92 @@ class ViewProjectTimeline extends Page
             $project->event_start_date->format('F j, Y'),
             $project->event_end_date->format('F j, Y'),
         );
+    }
+
+    public function getCoverActivityTypeOptions(): array
+    {
+        return config('timeline.cover_activity_types', []);
+    }
+
+    protected function timelineItemPdfPayload(ProjectTimeline $item): array
+    {
+        return [
+            'title' => $item->title,
+            'date' => $item->timeline_date?->format('F j, Y'),
+            'location' => $item->location,
+            'supplier_name' => $item->supplier?->name,
+            'start_time' => $item->start_time?->format('H:i'),
+            'end_time' => $item->end_time?->format('H:i'),
+            'sunset_time' => $item->sunset_time?->format('H:i'),
+            'is_surprise' => (bool) $item->is_surprise,
+            'cover_activity' => (bool) $item->cover_activity,
+            'cover_activity_type' => $item->cover_activity_type,
+            'description' => $item->description,
+            'has_extended_description' => (bool) $item->has_extended_description,
+            'extended_description' => $item->extended_description,
+            'notes' => $item->notes,
+        ];
+    }
+
+    protected function confirmedSupplierPdfPayload(CategoryBudgetSupplier $proposal): array
+    {
+        $supplier = $proposal->supplier;
+
+        return [
+            'category' => $proposal->category?->label ?? $supplier?->category?->label ?? 'Supplier',
+            'name' => $supplier?->name,
+            'contact_person' => $supplier?->contact_person,
+            'email' => $supplier?->email,
+            'phone' => $supplier?->phone,
+            'website' => $supplier?->loc_website,
+            'address' => collect([
+                $supplier?->address_line_1,
+                $supplier?->address_line_2,
+                $supplier?->postal_code,
+                $supplier?->city,
+                $supplier?->province,
+                $supplier?->region,
+                $supplier?->country,
+            ])->filter()->implode(', '),
+            'notes' => $proposal->notes,
+            'confirmed_at' => $proposal->confirmed_at?->format('F j, Y'),
+        ];
+    }
+
+    protected function coverActivityIconDataUri(?string $type): ?string
+    {
+        $filename = match ($type) {
+            'CEREMONY' => 'ceremony.png',
+            'PHOTOS' => 'photos.png',
+            'APERITIVO' => 'aperitivo.png',
+            'DINNER' => 'dinner.png',
+            'CAKE CUTTING' => 'cake-cutting.png',
+            'FIRST DANCE' => 'first-dance.png',
+            'SEND OFF' => 'send-off.png',
+            default => null,
+        };
+
+        if (! $filename) {
+            return null;
+        }
+
+        return $this->localFileToDataUri(public_path('images/timeline-icons/' . $filename));
+    }
+
+    protected function localFileToDataUri(string $path): ?string
+    {
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $mimeType = mime_content_type($path) ?: 'image/png';
+        $contents = @file_get_contents($path);
+
+        if ($contents === false) {
+            return null;
+        }
+
+        return 'data:' . $mimeType . ';base64,' . base64_encode($contents);
     }
 
     protected function imagePathToDataUri(string $path): ?string

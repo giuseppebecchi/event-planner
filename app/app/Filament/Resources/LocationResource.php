@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\LocationResource\Pages;
+use App\Models\PaymentMode;
 use App\Models\Supplier;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -353,6 +354,27 @@ class LocationResource extends Resource
                                         ->label('Payment terms and timing')
                                         ->rows(4)
                                         ->columnSpan(2),
+                                    Components\Select::make('accepted_payment_mode_ids')
+                                        ->label('Accepted payment modes')
+                                        ->options(fn (): array => PaymentMode::query()
+                                            ->where('is_active', true)
+                                            ->orderBy('sort_order')
+                                            ->orderBy('name')
+                                            ->pluck('name', 'id')
+                                            ->all())
+                                        ->multiple()
+                                        ->preload()
+                                        ->helperText('Leave empty if every payment mode is accepted.')
+                                        ->formatStateUsing(fn ($state): array => collect(is_array($state) ? $state : explode(',', (string) $state))
+                                            ->map(fn (string $id): int => (int) trim($id))
+                                            ->filter()
+                                            ->values()
+                                            ->all())
+                                        ->dehydrateStateUsing(fn ($state): ?string => collect($state ?? [])
+                                            ->filter()
+                                            ->map(fn ($id): int => (int) $id)
+                                            ->implode(',') ?: null)
+                                        ->columnSpanFull(),
                                 ]),
                         ]),
                     Tab::make('Admin')

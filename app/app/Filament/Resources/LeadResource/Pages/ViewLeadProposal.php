@@ -133,4 +133,9 @@ class ViewLeadProposal extends BaseLeadPhasePage
             'notes_log' => collect($lead->proposal_notes_log ?? [])->sortByDesc('created_at')->values()->all(),
         ];
     }
+
+    protected function getExportPdfUrl(): ?string
+    {
+        return route('admin.leads.proposal.pdf', ['lead' => $this->getRecord()]);
+    }
 }

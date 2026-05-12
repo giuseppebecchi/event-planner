@@ -13,6 +13,7 @@
     $calendarUrl = ProjectResource::getUrl('calendar', ['record' => $record]);
     $timelineUrl = ProjectResource::getUrl('timeline', ['record' => $record]);
     $moodboardUrl = ProjectResource::getUrl('moodboard', ['record' => $record]);
+    $guestsUrl = ProjectResource::getUrl('guests', ['record' => $record]);
     $budgetUrl = ProjectResource::getUrl('budget', ['record' => $record]);
     $infoUrl = ProjectResource::getUrl('edit', ['record' => $record]);
 @endphp
@@ -121,7 +122,7 @@
         <a href="{{ $calendarUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'calendar' ? 'is-active' : '' }}">Calendar</a>
         <a href="{{ $timelineUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'timeline' ? 'is-active' : '' }}">Timeline</a>
         <a href="{{ $moodboardUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'moodboard' ? 'is-active' : '' }}">Moodboard</a>
-        <span class="wm-event-workspace-link is-disabled" aria-disabled="true">Guests</span>
+        <a href="{{ $guestsUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'guests' ? 'is-active' : '' }}">Guests</a>
         <span class="wm-event-workspace-link is-disabled" aria-disabled="true">Layout &amp; Seating</span>
     </nav>
 </section>

@@ -55,6 +55,12 @@ class CategoryBudget extends Model
             ->firstWhere('proposal_status', CategoryBudgetSupplier::STATUS_CONFIRMED);
     }
 
+    public function confirmedProposals()
+    {
+        return $this->supplierProposals()
+            ->where('proposal_status', CategoryBudgetSupplier::STATUS_CONFIRMED);
+    }
+
     public function currentWorkingAmount(): ?float
     {
         return $this->final_amount !== null
@@ -69,16 +75,18 @@ class CategoryBudget extends Model
 
     public function syncFromSupplierProposals(): void
     {
-        $confirmedProposal = $this->supplierProposals()
+        $confirmedProposals = $this->supplierProposals()
             ->where('proposal_status', CategoryBudgetSupplier::STATUS_CONFIRMED)
             ->latest('responded_at')
             ->latest('updated_at')
-            ->first();
+            ->get();
 
-        if ($confirmedProposal) {
+        if ($confirmedProposals->isNotEmpty()) {
+            $confirmedTotal = (float) $confirmedProposals->sum(fn (CategoryBudgetSupplier $proposal): float => (float) ($proposal->proposed_amount ?? 0));
+
             $this->forceFill([
-                'comparison_amount' => $confirmedProposal->proposed_amount ?? $this->comparison_amount,
-                'final_amount' => $confirmedProposal->proposed_amount,
+                'comparison_amount' => $confirmedTotal > 0 ? $confirmedTotal : $this->comparison_amount,
+                'final_amount' => $confirmedTotal > 0 ? $confirmedTotal : null,
                 'budget_status' => self::STATUS_CONFIRMED,
             ])->saveQuietly();
 

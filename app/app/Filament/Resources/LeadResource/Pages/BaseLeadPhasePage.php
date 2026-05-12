@@ -8,16 +8,16 @@ use App\Models\Lead;
 use App\Models\Template;
 use Filament\Actions\Action;
 use Filament\Forms\Components\RichEditor;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
-use Filament\Notifications\Notification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 abstract class BaseLeadPhasePage extends Page
 {
-    use InteractsWithRecord;
     use InteractsWithLeadPhaseContent;
+    use InteractsWithRecord;
 
     protected static string $resource = LeadResource::class;
 
@@ -51,6 +51,7 @@ abstract class BaseLeadPhasePage extends Page
             'phaseContentHtml' => $this->getPhaseContentHtml(),
             'phaseEmptyCopy' => $this->getPhaseEmptyCopy(),
             'asideData' => $this->getAsideData(),
+            'exportPdfUrl' => $this->getExportPdfUrl(),
         ];
     }
 
@@ -242,7 +243,7 @@ abstract class BaseLeadPhasePage extends Page
             return null;
         }
 
-        return number_format((float) $value, 2, '.', ',') . ' euros';
+        return number_format((float) $value, 2, '.', ',').' euros';
     }
 
     abstract protected function getPhaseTitle(): string;
@@ -259,5 +260,10 @@ abstract class BaseLeadPhasePage extends Page
     protected function getAsideData(): array
     {
         return [];
+    }
+
+    protected function getExportPdfUrl(): ?string
+    {
+        return null;
     }
 }

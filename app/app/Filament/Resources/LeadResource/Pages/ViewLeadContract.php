@@ -73,7 +73,7 @@ class ViewLeadContract extends BaseLeadPhasePage
 
                     $document = LeadDocument::query()->create([
                         'lead_id' => $lead->id,
-                        'title' => 'Signed contract - ' . ($lead->couple_name ?: 'Lead'),
+                        'title' => 'Signed contract - '.($lead->couple_name ?: 'Lead'),
                         'document_type' => 'signed_contract',
                         'file_path' => $data['file_path'],
                         'description' => 'Signed contract uploaded from Contract phase',
@@ -91,7 +91,7 @@ class ViewLeadContract extends BaseLeadPhasePage
                     if (($data['create_project'] ?? false) && ! $lead->project()->exists()) {
                         $project = Project::query()->create([
                             'lead_id' => $lead->id,
-                            'name' => $lead->couple_name ? ('Wedding - ' . $lead->couple_name) : 'Wedding project',
+                            'name' => $lead->couple_name ? ('Wedding - '.$lead->couple_name) : 'Wedding project',
                             'partner_one_name' => $lead->first_name,
                             'partner_two_name' => $lead->last_name,
                             'reference_email' => $lead->email,
@@ -135,5 +135,10 @@ class ViewLeadContract extends BaseLeadPhasePage
                 : null,
             'project' => $lead->project,
         ];
+    }
+
+    protected function getExportPdfUrl(): ?string
+    {
+        return route('admin.leads.contract.pdf', ['lead' => $this->getRecord()]);
     }
 }

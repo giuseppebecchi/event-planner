@@ -3,6 +3,7 @@
         $record = $this->getRecord();
         $days = $this->getTimelineDays();
         $supplierOptions = $this->getSupplierOptions();
+        $coverActivityTypeOptions = $this->getCoverActivityTypeOptions();
     @endphp
 
     <style>
@@ -343,12 +344,72 @@
         }
 
         .wm-timeline-add {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
             border: 0;
             background: transparent;
             color: #b38b43;
             font-size: 0.88rem;
             font-weight: 700;
             cursor: pointer;
+        }
+
+        .wm-timeline-add svg {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .wm-timeline-daily-notes {
+            display: grid;
+            gap: 0.7rem;
+            padding: 0.85rem 1rem;
+            border: 1px solid #eadfce;
+            border-radius: 1rem;
+            background: #fffdf9;
+        }
+
+        .wm-timeline-daily-notes-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.85rem;
+        }
+
+        .wm-timeline-daily-notes-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            margin: 0;
+            color: #6f5830;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .wm-timeline-daily-notes-label svg {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .wm-timeline-daily-notes-text {
+            margin: 0;
+            color: #4f4943;
+            font-size: 0.93rem;
+            line-height: 1.7;
+            white-space: pre-line;
+        }
+
+        .wm-timeline-daily-notes-form {
+            display: grid;
+            gap: 0.7rem;
+        }
+
+        .wm-timeline-daily-notes-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.65rem;
         }
 
         .wm-timeline-items {
@@ -470,6 +531,17 @@
             line-height: 1.7;
         }
 
+        .wm-timeline-item-html {
+            margin-top: 0.85rem;
+            padding: 0.85rem 1rem;
+            border: 1px solid #eee2d2;
+            border-radius: 0.85rem;
+            background: #fffdf9;
+            color: #4d453e;
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
         .wm-timeline-images {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(6.75rem, 8.25rem));
@@ -526,6 +598,31 @@
             font-weight: 700;
             letter-spacing: 0.08em;
             text-transform: uppercase;
+        }
+
+        .wm-timeline-check {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.9rem;
+            min-height: 2.8rem;
+            margin-top: 1.58rem;
+            border-radius: 0.95rem;
+            border: 1px solid #ddd2c5;
+            background: #fff;
+            padding: 0 0.95rem;
+            color: #5e5852;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .wm-timeline-check input {
+            width: 1.1rem;
+            height: 1.1rem;
+            accent-color: #b38b43;
         }
 
         .wm-timeline-input,
@@ -724,9 +821,62 @@
                                 </div>
 
                                 <button type="button" class="wm-timeline-add" wire:click="startCreateTimelineItem('{{ $day['key'] }}')">
-                                    + Add item
+                                    <x-heroicon-o-plus />
+                                    <span>Add item</span>
                                 </button>
                             </div>
+
+                            @if ($editingDailyNoteDate === $day['key'])
+                                <div class="wm-timeline-daily-notes">
+                                    <div class="wm-timeline-daily-notes-head">
+                                        <p class="wm-timeline-daily-notes-label">
+                                            <x-heroicon-o-document-text />
+                                            <span>Daily notes</span>
+                                        </p>
+                                    </div>
+
+                                    <div class="wm-timeline-daily-notes-form">
+                                        <textarea
+                                            class="wm-timeline-textarea"
+                                            rows="4"
+                                            placeholder="Add notes for this day"
+                                            wire:model="dailyNoteForms.{{ $day['key'] }}.description"
+                                        ></textarea>
+
+                                        <div class="wm-timeline-daily-notes-actions">
+                                            <x-filament::button color="gray" size="sm" wire:click="cancelEditDailyNotes">
+                                                Cancel
+                                            </x-filament::button>
+                                            <x-filament::button size="sm" wire:click="saveDailyNotes('{{ $day['key'] }}')">
+                                                Save notes
+                                            </x-filament::button>
+                                        </div>
+                                    </div>
+                                </div>
+                            @elseif ($day['daily_note'])
+                                <div class="wm-timeline-daily-notes">
+                                    <div class="wm-timeline-daily-notes-head">
+                                        <p class="wm-timeline-daily-notes-label">
+                                            <x-heroicon-o-document-text />
+                                            <span>Daily notes</span>
+                                        </p>
+
+                                        <button type="button" class="wm-timeline-add" wire:click="startEditDailyNotes('{{ $day['key'] }}')">
+                                            <x-heroicon-o-pencil-square />
+                                            <span>Edit</span>
+                                        </button>
+                                    </div>
+
+                                    <p class="wm-timeline-daily-notes-text">{{ $day['daily_note']->description }}</p>
+                                </div>
+                            @else
+                                <div>
+                                    <button type="button" class="wm-timeline-add" wire:click="startEditDailyNotes('{{ $day['key'] }}')">
+                                        <x-heroicon-o-plus-circle />
+                                        <span>Add daily notes</span>
+                                    </button>
+                                </div>
+                            @endif
 
                             @if ($day['items']->isEmpty())
                                 <div class="wm-timeline-empty">No timeline items for this day yet.</div>
@@ -766,6 +916,12 @@
                                                     @if ($item->supplier?->name)
                                                         <span class="wm-timeline-chip">{{ $item->supplier->name }}</span>
                                                     @endif
+                                                    @if ($item->is_surprise)
+                                                        <span class="wm-timeline-chip">Surprise</span>
+                                                    @endif
+                                                    @if ($item->cover_activity)
+                                                        <span class="wm-timeline-chip">Cover {{ $item->cover_activity_type }}</span>
+                                                    @endif
                                                     @if ($item->sunset_time)
                                                         <span class="wm-timeline-chip">Sunset {{ $item->sunset_time->format('H:i') }}</span>
                                                     @endif
@@ -773,6 +929,10 @@
 
                                                 @if ($item->description)
                                                     <p class="wm-timeline-item-text">{{ $item->description }}</p>
+                                                @endif
+
+                                                @if ($item->has_extended_description && $item->extended_description)
+                                                    <div class="wm-timeline-item-html">{!! $item->extended_description !!}</div>
                                                 @endif
 
                                                 @if ($item->notes)
@@ -830,10 +990,6 @@
 
                 <div class="wm-timeline-field-grid">
                     <div class="wm-timeline-field">
-                        <label for="timeline-sunset-time">Sunset</label>
-                        <input id="timeline-sunset-time" type="time" class="wm-timeline-input" wire:model="timelineForm.sunset_time">
-                    </div>
-                    <div class="wm-timeline-field">
                         <label for="timeline-supplier">Supplier</label>
                         <select id="timeline-supplier" class="wm-timeline-select" wire:model="timelineForm.supplier_id">
                             <option value="">None</option>
@@ -842,6 +998,29 @@
                             @endforeach
                         </select>
                     </div>
+                    <label class="wm-timeline-field wm-timeline-check">
+                        <span>Surprise</span>
+                        <input type="checkbox" wire:model="timelineForm.is_surprise">
+                    </label>
+                </div>
+
+                <div class="wm-timeline-field-grid">
+                    <label class="wm-timeline-field wm-timeline-check">
+                        <span>Key cover activity</span>
+                        <input type="checkbox" wire:model.live="timelineForm.cover_activity">
+                    </label>
+
+                    @if ($timelineForm['cover_activity'] ?? false)
+                        <div class="wm-timeline-field">
+                            <label for="timeline-cover-activity-type">Cover activity type</label>
+                            <select id="timeline-cover-activity-type" class="wm-timeline-select" wire:model="timelineForm.cover_activity_type">
+                                <option value="">Select type</option>
+                                @foreach ($coverActivityTypeOptions as $coverActivityType => $coverActivityTypeLabel)
+                                    <option value="{{ $coverActivityType }}">{{ $coverActivityTypeLabel }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="wm-timeline-field">
@@ -850,7 +1029,7 @@
                 </div>
 
                 <div class="wm-timeline-field">
-                    <label for="timeline-title">Activity title</label>
+                    <label for="timeline-title">Activity title <span style="color: #dc2626;">*</span></label>
                     <input id="timeline-title" type="text" class="wm-timeline-input" wire:model="timelineForm.title">
                 </div>
 
@@ -858,6 +1037,18 @@
                     <label for="timeline-description">Activity description</label>
                     <textarea id="timeline-description" class="wm-timeline-textarea" rows="4" wire:model="timelineForm.description"></textarea>
                 </div>
+
+                <label class="wm-timeline-field wm-timeline-check">
+                    <span>Has extended HTML description</span>
+                    <input type="checkbox" wire:model.live="timelineForm.has_extended_description">
+                </label>
+
+                @if ($timelineForm['has_extended_description'] ?? false)
+                    <div class="wm-timeline-field">
+                        <label for="timeline-extended-description">Extended HTML description</label>
+                        <textarea id="timeline-extended-description" class="wm-timeline-textarea" rows="8" wire:model="timelineForm.extended_description"></textarea>
+                    </div>
+                @endif
 
                 <div class="wm-timeline-field">
                     <label for="timeline-notes">Notes</label>

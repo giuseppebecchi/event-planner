@@ -133,6 +133,7 @@ class Supplier extends Model
         'loc_extra_costs',
         'loc_booking_deposit',
         'loc_payment_terms',
+        'accepted_payment_mode_ids',
     ];
 
     protected $casts = [
@@ -173,6 +174,11 @@ class Supplier extends Model
         return $this->hasMany(SupplierDocument::class);
     }
 
+    public function images(): HasMany
+    {
+        return $this->hasMany(SupplierImage::class)->orderBy('sort_order')->orderByDesc('created_at');
+    }
+
     public function categoryBudgetSuppliers(): HasMany
     {
         return $this->hasMany(CategoryBudgetSupplier::class);
@@ -191,6 +197,15 @@ class Supplier extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function acceptedPaymentModeIds(): array
+    {
+        return collect(explode(',', (string) $this->accepted_payment_mode_ids))
+            ->map(fn (string $id): int => (int) trim($id))
+            ->filter()
+            ->values()
+            ->all();
     }
 
     public function supplierCommunications(): HasMany

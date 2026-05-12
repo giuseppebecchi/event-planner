@@ -19,6 +19,7 @@ class Payment extends Model
         'project_id',
         'supplier_id',
         'category_budget_supplier_id',
+        'payment_mode_id',
         'reason',
         'amount',
         'due_date',
@@ -48,6 +49,11 @@ class Payment extends Model
     public function categoryBudgetSupplier(): BelongsTo
     {
         return $this->belongsTo(CategoryBudgetSupplier::class);
+    }
+
+    public function paymentMode(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMode::class);
     }
 
     public function paymentReceiptDocument(): BelongsTo

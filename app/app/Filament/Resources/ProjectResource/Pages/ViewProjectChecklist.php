@@ -278,7 +278,9 @@ class ViewProjectChecklist extends Page
 
     public function promptDeleteChecklistItem(int $itemId): void
     {
-        $this->confirmDeleteChecklistItemId = $itemId;
+        $item = $this->findChecklistItem($itemId);
+
+        $this->confirmDeleteChecklistItemId = $item->id;
     }
 
     public function cancelDeleteChecklistItem(): void
@@ -292,7 +294,11 @@ class ViewProjectChecklist extends Page
             return;
         }
 
-        $itemId = $this->confirmDeleteChecklistItemId;
+        $this->deleteChecklistItem($this->confirmDeleteChecklistItemId);
+    }
+
+    public function deleteChecklistItem(int $itemId): void
+    {
         $item = $this->findChecklistItem($itemId);
 
         unset($this->checklistForms[$itemId]);

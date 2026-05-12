@@ -117,6 +117,13 @@ class ProjectResource extends Resource
                         ->prefix('EUR')
                         ->step('0.01')
                         ->minValue(0),
+                    Components\FileUpload::make('cover_image_path')
+                        ->label('RSVP cover image')
+                        ->disk('public')
+                        ->directory('projects/covers')
+                        ->image()
+                        ->imageEditor()
+                        ->columnSpanFull(),
                     Components\Textarea::make('logistics_notes')
                         ->label('Logistics notes')
                         ->rows(6)
@@ -187,6 +194,9 @@ class ProjectResource extends Resource
             'calendar' => Pages\ViewProjectCalendar::route('/{record}/calendar'),
             'timeline' => Pages\ViewProjectTimeline::route('/{record}/timeline'),
             'moodboard' => Pages\ViewProjectMoodboard::route('/{record}/moodboard'),
+            'guests' => Pages\ViewProjectGuests::route('/{record}/guests'),
+            'guests-rsvp-configuration' => Pages\ManageProjectRsvpConfiguration::route('/{record}/guests/rsvp-configuration'),
+            'guests-rsvp-responses' => Pages\ViewProjectRsvpResponses::route('/{record}/guests/rsvp-responses'),
             'budget' => Pages\ViewProjectBudget::route('/{record}/budget'),
             'budget-scouting' => Pages\ManageProjectBudgetCategory::route('/{record}/budget/{categoryBudget}'),
             'budget-manage' => Pages\ManageProjectConfirmedSupplier::route('/{record}/budget/{categoryBudget}/manage'),

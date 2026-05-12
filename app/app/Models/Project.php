@@ -38,12 +38,15 @@ class Project extends Model
         'budget_amount',
         'status',
         'logistics_notes',
+        'cover_image_path',
+        'rsvp_configuration',
     ];
 
     protected $casts = [
         'event_start_date' => 'date',
         'event_end_date' => 'date',
         'budget_amount' => 'decimal:2',
+        'rsvp_configuration' => 'array',
     ];
 
     protected static function booted(): void
@@ -202,6 +205,11 @@ class Project extends Model
         return $this->hasMany(ProjectMoodboard::class);
     }
 
+    public function guests(): HasMany
+    {
+        return $this->hasMany(Guest::class);
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
@@ -210,6 +218,133 @@ class Project extends Model
     public function supplierCommunications(): HasMany
     {
         return $this->hasMany(ProjectSupplierCommunication::class);
+    }
+
+    public function rsvpConfigurationFields(): array
+    {
+        $fields = $this->rsvp_configuration['fields'] ?? null;
+
+        if (! is_array($fields) || $fields === []) {
+            return static::defaultRsvpConfiguration()['fields'];
+        }
+
+        return collect($fields)
+            ->map(fn (array $field): array => [
+                'key' => trim((string) ($field['key'] ?? Str::uuid())),
+                'enabled' => (bool) ($field['enabled'] ?? false),
+                'label' => trim((string) ($field['label'] ?? 'RSVP field')),
+                'help_text' => trim((string) ($field['help_text'] ?? '')),
+                'type' => in_array(($field['type'] ?? 'text'), ['text', 'select', 'checkbox'], true) ? $field['type'] : 'text',
+                'response_scope' => in_array(($field['response_scope'] ?? null), ['aggregate', 'per_guest'], true)
+                    ? $field['response_scope']
+                    : (($field['key'] ?? null) === 'food_allergies' ? 'per_guest' : 'aggregate'),
+                'options' => array_values(array_filter(array_map(
+                    fn ($option): string => trim((string) $option),
+                    is_array($field['options'] ?? null) ? $field['options'] : preg_split('/\r\n|\r|\n|,/', (string) ($field['options'] ?? ''))
+                ))),
+                'order' => (int) ($field['order'] ?? 0),
+            ])
+            ->sortBy('order')
+            ->values()
+            ->all();
+    }
+
+    public static function defaultRsvpConfiguration(): array
+    {
+        return [
+            'fields' => [
+                [
+                    'key' => 'ceremony_attendance',
+                    'enabled' => true,
+                    'label' => 'Ceremony attendance',
+                    'help_text' => 'Confirm whether this guest will attend the ceremony.',
+                    'type' => 'select',
+                    'response_scope' => 'aggregate',
+                    'options' => ['Yes', 'No'],
+                    'order' => 1,
+                ],
+                [
+                    'key' => 'food_allergies',
+                    'enabled' => true,
+                    'label' => 'Food Allergies',
+                    'help_text' => 'List allergies, intolerances or dietary restrictions.',
+                    'type' => 'text',
+                    'response_scope' => 'per_guest',
+                    'options' => [],
+                    'order' => 2,
+                ],
+                [
+                    'key' => 'mobility_issues',
+                    'enabled' => true,
+                    'label' => 'Mobility issues',
+                    'help_text' => 'Tell us if accessibility support is needed.',
+                    'type' => 'text',
+                    'response_scope' => 'aggregate',
+                    'options' => [],
+                    'order' => 3,
+                ],
+                [
+                    'key' => 'notes',
+                    'enabled' => true,
+                    'label' => 'Notes',
+                    'help_text' => 'Any extra information for the planner.',
+                    'type' => 'text',
+                    'response_scope' => 'aggregate',
+                    'options' => [],
+                    'order' => 4,
+                ],
+                [
+                    'key' => 'accommodation',
+                    'enabled' => false,
+                    'label' => 'Accommodation',
+                    'help_text' => 'Ask if the guest needs overnight accommodation.',
+                    'type' => 'checkbox',
+                    'response_scope' => 'aggregate',
+                    'options' => [],
+                    'order' => 5,
+                ],
+                [
+                    'key' => 'makeup_interest',
+                    'enabled' => false,
+                    'label' => 'Interested in makeup',
+                    'help_text' => 'Ask if the guest is interested in makeup service.',
+                    'type' => 'checkbox',
+                    'response_scope' => 'aggregate',
+                    'options' => [],
+                    'order' => 6,
+                ],
+                [
+                    'key' => 'transfer_from',
+                    'enabled' => false,
+                    'label' => 'Interested in transfer from',
+                    'help_text' => 'Ask where the guest would need transport from.',
+                    'type' => 'text',
+                    'response_scope' => 'aggregate',
+                    'options' => [],
+                    'order' => 7,
+                ],
+                [
+                    'key' => 'extra_activities',
+                    'enabled' => false,
+                    'label' => 'Interested in extra activities',
+                    'help_text' => 'Trips, tastings or other extra activities.',
+                    'type' => 'checkbox',
+                    'response_scope' => 'aggregate',
+                    'options' => [],
+                    'order' => 8,
+                ],
+                [
+                    'key' => 'menu_choice',
+                    'enabled' => false,
+                    'label' => 'Menu choice',
+                    'help_text' => 'Let guests choose between available menus.',
+                    'type' => 'select',
+                    'response_scope' => 'aggregate',
+                    'options' => ['Menu 1', 'Menu 2', 'Menu 3'],
+                    'order' => 9,
+                ],
+            ],
+        ];
     }
 
     public function syncChecklistOptionsFromTemplates(): void
