@@ -34,7 +34,12 @@
         .person-subtitle { margin: .2rem 0 0; color: #8d847b; font-size: .82rem; line-height: 1.35; }
         .person-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
         .person-questions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; padding-top: .85rem; border-top: 1px solid #eadfce; }
+        .additional-type-age { display: grid; grid-template-columns: minmax(0, 1fr); gap: .8rem; }
+        .additional-type-age.is-child { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .additional-age-field { display: none; }
+        .additional-type-age.is-child .additional-age-field { display: block; }
         label span { display: block; margin-bottom: .35rem; color: #5e5852; font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+        .required-mark { display: inline; margin: 0 0 0 .2rem; color: #dc2626; }
         input, select, textarea { width: 100%; min-height: 2.8rem; box-sizing: border-box; border: 1px solid #ddd2c5; border-radius: 8px; background: #fff; padding: .7rem .85rem; color: #2d2a26; font: inherit; }
         textarea { min-height: 4.25rem; resize: vertical; }
         .check { display: flex; align-items: center; gap: .65rem; min-height: 2.8rem; }
@@ -109,8 +114,8 @@
 
                             <div class="person-fields">
                                 @if ($subject['type'] === 'primary')
-                                    <label><span>First name</span><input name="primary_first_name" value="{{ old('primary_first_name', $guest->primary_first_name) }}" required></label>
-                                    <label><span>Last name</span><input name="primary_last_name" value="{{ old('primary_last_name', $guest->primary_last_name) }}"></label>
+                                    <label><span>First name <span class="required-mark">*</span></span><input name="primary_first_name" value="{{ old('primary_first_name', $guest->primary_first_name) }}" required></label>
+                                    <label><span>Last name <span class="required-mark">*</span></span><input name="primary_last_name" value="{{ old('primary_last_name', $guest->primary_last_name) }}" required></label>
                                 @elseif ($subject['type'] === 'partner')
                                     <label><span>First name</span><input name="partner_first_name" value="{{ old('partner_first_name', $guest->partner_first_name) }}"></label>
                                     <label><span>Last name</span><input name="partner_last_name" value="{{ old('partner_last_name', $guest->partner_last_name) }}"></label>
@@ -118,7 +123,30 @@
                                     <label><span>First name</span><input name="additional_guests[{{ $subject['index'] }}][first_name]" value="{{ old("additional_guests.{$subject['index']}.first_name", $additional['first_name'] ?? '') }}"></label>
                                     <label><span>Last name</span><input name="additional_guests[{{ $subject['index'] }}][last_name]" value="{{ old("additional_guests.{$subject['index']}.last_name", $additional['last_name'] ?? '') }}"></label>
                                     <label><span>Role</span><input name="additional_guests[{{ $subject['index'] }}][role]" value="{{ old("additional_guests.{$subject['index']}.role", $additional['role'] ?? '') }}"></label>
-                                    <label><span>Type</span><select name="additional_guests[{{ $subject['index'] }}][type]"><option value="">Type</option><option value="Adult" @selected(($additional['type'] ?? '') === 'Adult')>Adult</option><option value="Child" @selected(($additional['type'] ?? '') === 'Child')>Child</option><option value="Guest" @selected(($additional['type'] ?? '') === 'Guest')>Guest</option></select></label>
+                                    @php
+                                        $additionalType = old("additional_guests.{$subject['index']}.type", $additional['type'] ?? '');
+                                        $additionalAge = old("additional_guests.{$subject['index']}.age", $additional['age'] ?? '');
+                                    @endphp
+                                    <div class="additional-type-age {{ $additionalType === 'Child' ? 'is-child' : '' }}" data-additional-type-age>
+                                        <label>
+                                            <span>Type</span>
+                                            <select name="additional_guests[{{ $subject['index'] }}][type]" data-additional-type-select>
+                                                <option value="">Type</option>
+                                                <option value="Adult" @selected($additionalType === 'Adult')>Adult</option>
+                                                <option value="Child" @selected($additionalType === 'Child')>Child</option>
+                                                <option value="Guest" @selected($additionalType === 'Guest')>Guest</option>
+                                            </select>
+                                        </label>
+                                        <label class="additional-age-field">
+                                            <span>Age</span>
+                                            <select name="additional_guests[{{ $subject['index'] }}][age]" data-additional-age-select>
+                                                <option value="">Age</option>
+                                                @for ($age = 0; $age <= 18; $age++)
+                                                    <option value="{{ $age }}" @selected((string) $additionalAge === (string) $age)>{{ $age }}</option>
+                                                @endfor
+                                            </select>
+                                        </label>
+                                    </div>
                                 @endif
                             </div>
 
@@ -160,8 +188,8 @@
             <section class="section">
                 <h2>Contact information</h2>
                 <div class="grid">
-                    <label><span>Email</span><input type="email" name="email" value="{{ old('email', $guest->email) }}"></label>
-                    <label><span>Phone</span><input name="phone" value="{{ old('phone', $guest->phone) }}"></label>
+                    <label><span>Email <span class="required-mark">*</span></span><input type="email" name="email" value="{{ old('email', $guest->email) }}" required></label>
+                    <label><span>Phone <span class="required-mark">*</span></span><input name="phone" value="{{ old('phone', $guest->phone) }}" required></label>
                     <label><span>Address line 1</span><input name="address_line_1" value="{{ old('address_line_1', $guest->address_line_1) }}"></label>
                     <label><span>Address line 2</span><input name="address_line_2" value="{{ old('address_line_2', $guest->address_line_2) }}"></label>
                     <label><span>City</span><input name="city" value="{{ old('city', $guest->city) }}"></label>
@@ -207,5 +235,22 @@
             </section>
         </form>
     </main>
+    <script>
+        document.querySelectorAll('[data-additional-type-age]').forEach((field) => {
+            const typeSelect = field.querySelector('[data-additional-type-select]');
+            const ageSelect = field.querySelector('[data-additional-age-select]');
+            const syncAgeField = () => {
+                const isChild = typeSelect.value === 'Child';
+                field.classList.toggle('is-child', isChild);
+
+                if (! isChild && ageSelect) {
+                    ageSelect.value = '';
+                }
+            };
+
+            typeSelect.addEventListener('change', syncAgeField);
+            syncAgeField();
+        });
+    </script>
 </body>
 </html>

@@ -20,6 +20,7 @@ class ProjectTimeline extends Model
         'cover_activity',
         'cover_activity_type',
         'location',
+        'location_plan_b',
         'title',
         'description',
         'has_extended_description',

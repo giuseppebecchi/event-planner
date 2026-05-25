@@ -1,6 +1,4 @@
 @php
-    use App\Filament\Resources\ProjectResource;
-
     $daysToGo = $record->event_start_date
         ? now()->startOfDay()->diffInDays($record->event_start_date->startOfDay(), false)
         : null;
@@ -8,14 +6,15 @@
     $dateLabel = $record->event_start_date?->format('F j, Y') ?? 'Date to be defined';
     $locationLabel = collect([$record->locality, $record->region])->filter()->implode(', ') ?: 'Location to be defined';
     $partnerLabel = collect([$record->partner_one_name, $record->partner_two_name])->filter()->implode(' & ') ?: 'Partners not set';
-    $overviewUrl = ProjectResource::getUrl('view', ['record' => $record]);
-    $checklistUrl = ProjectResource::getUrl('checklist', ['record' => $record]);
-    $calendarUrl = ProjectResource::getUrl('calendar', ['record' => $record]);
-    $timelineUrl = ProjectResource::getUrl('timeline', ['record' => $record]);
-    $moodboardUrl = ProjectResource::getUrl('moodboard', ['record' => $record]);
-    $guestsUrl = ProjectResource::getUrl('guests', ['record' => $record]);
-    $budgetUrl = ProjectResource::getUrl('budget', ['record' => $record]);
-    $infoUrl = ProjectResource::getUrl('edit', ['record' => $record]);
+    $overviewUrl = \App\Filament\Resources\ProjectResource::getUrl('view', ['record' => $record]);
+    $checklistUrl = \App\Filament\Resources\ProjectResource::getUrl('checklist', ['record' => $record]);
+    $calendarUrl = \App\Filament\Resources\ProjectResource::getUrl('calendar', ['record' => $record]);
+    $timelineUrl = \App\Filament\Resources\ProjectResource::getUrl('timeline', ['record' => $record]);
+    $layoutsUrl = \App\Filament\Resources\ProjectResource::getUrl('layouts', ['record' => $record]);
+    $moodboardUrl = \App\Filament\Resources\ProjectResource::getUrl('moodboard', ['record' => $record]);
+    $guestsUrl = \App\Filament\Resources\ProjectResource::getUrl('guests', ['record' => $record]);
+    $budgetUrl = \App\Filament\Resources\ProjectResource::getUrl('budget', ['record' => $record]);
+    $infoUrl = \App\Filament\Resources\ProjectResource::getUrl('edit', ['record' => $record]);
 @endphp
 
 <section class="wm-event-card wm-event-top">
@@ -123,6 +122,6 @@
         <a href="{{ $timelineUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'timeline' ? 'is-active' : '' }}">Timeline</a>
         <a href="{{ $moodboardUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'moodboard' ? 'is-active' : '' }}">Moodboard</a>
         <a href="{{ $guestsUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'guests' ? 'is-active' : '' }}">Guests</a>
-        <span class="wm-event-workspace-link is-disabled" aria-disabled="true">Layout &amp; Seating</span>
+        <a href="{{ $layoutsUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'layouts' ? 'is-active' : '' }}">Layout &amp; Seating</a>
     </nav>
 </section>

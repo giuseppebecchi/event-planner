@@ -205,6 +205,11 @@ class Project extends Model
         return $this->hasMany(ProjectMoodboard::class);
     }
 
+    public function seatingPlans(): HasMany
+    {
+        return $this->hasMany(ProjectSeatingPlan::class);
+    }
+
     public function guests(): HasMany
     {
         return $this->hasMany(Guest::class);

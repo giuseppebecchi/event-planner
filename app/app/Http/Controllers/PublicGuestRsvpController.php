@@ -28,11 +28,11 @@ class PublicGuestRsvpController extends Controller
 
         $rules = [
             'primary_first_name' => ['required', 'string', 'max:255'],
-            'primary_last_name' => ['nullable', 'string', 'max:255'],
+            'primary_last_name' => ['required', 'string', 'max:255'],
             'partner_first_name' => ['nullable', 'string', 'max:255'],
             'partner_last_name' => ['nullable', 'string', 'max:255'],
-            'email' => ['nullable', 'email', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+            'phone' => ['required', 'string', 'max:255'],
             'address_line_1' => ['nullable', 'string', 'max:255'],
             'address_line_2' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
@@ -44,6 +44,7 @@ class PublicGuestRsvpController extends Controller
             'additional_guests.*.last_name' => ['nullable', 'string', 'max:255'],
             'additional_guests.*.role' => ['nullable', 'string', 'max:255'],
             'additional_guests.*.type' => ['nullable', 'string', 'max:50'],
+            'additional_guests.*.age' => ['nullable', 'integer', 'min:0', 'max:18'],
             'rsvp_response' => ['array'],
         ];
 
@@ -143,6 +144,9 @@ class PublicGuestRsvpController extends Controller
                 'last_name' => trim((string) ($guest['last_name'] ?? '')),
                 'role' => trim((string) ($guest['role'] ?? '')),
                 'type' => trim((string) ($guest['type'] ?? '')),
+                'age' => ($guest['type'] ?? null) === 'Child' && ($guest['age'] ?? '') !== ''
+                    ? (int) $guest['age']
+                    : '',
                 'gender' => trim((string) ($guest['gender'] ?? '')),
             ])
             ->filter(fn (array $guest): bool => collect($guest)->filter()->isNotEmpty())

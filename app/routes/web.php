@@ -3,6 +3,7 @@
 use App\Http\Controllers\LeadContractPdfController;
 use App\Http\Controllers\LeadProposalPdfController;
 use App\Http\Controllers\ProjectBudgetProposalPdfController;
+use App\Http\Controllers\ProjectSeatingPlanPdfController;
 use App\Http\Controllers\PublicLeadFormController;
 use App\Http\Controllers\PublicGuestRsvpController;
 use Illuminate\Support\Facades\Route;
@@ -32,3 +33,7 @@ Route::get('/admin/leads/{lead}/contract.pdf', LeadContractPdfController::class)
 Route::get('/admin/projects/{project}/budget/{categoryBudget}/proposals.pdf', ProjectBudgetProposalPdfController::class)
     ->middleware('auth')
     ->name('admin.projects.budget.proposals.pdf');
+
+Route::get('/admin/projects/{project}/layouts/{seatingPlan}/seating-plan.pdf', ProjectSeatingPlanPdfController::class)
+    ->middleware('auth')
+    ->name('admin.projects.layouts.seating-plan.pdf');

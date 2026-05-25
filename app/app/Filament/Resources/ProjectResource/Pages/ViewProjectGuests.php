@@ -180,6 +180,7 @@ class ViewProjectGuests extends Page
             'last_name' => '',
             'role' => '',
             'type' => 'Child',
+            'age' => '',
             'gender' => '',
         ];
     }
@@ -214,6 +215,7 @@ class ViewProjectGuests extends Page
             'additional_guests.*.last_name' => ['nullable', 'string', 'max:255'],
             'additional_guests.*.role' => ['nullable', 'string', 'max:255'],
             'additional_guests.*.type' => ['nullable', 'string', 'max:50'],
+            'additional_guests.*.age' => ['nullable', 'integer', 'min:0', 'max:18'],
             'additional_guests.*.gender' => ['nullable', 'string', 'max:20'],
             'formal_addressing' => ['nullable', 'string', 'max:255'],
             'address_line_1' => ['nullable', 'string', 'max:255'],
@@ -493,6 +495,7 @@ class ViewProjectGuests extends Page
                 'last_name' => trim((string) ($guest['last_name'] ?? '')),
                 'role' => trim((string) ($guest['role'] ?? '')),
                 'type' => trim((string) ($guest['type'] ?? '')),
+                'age' => ($guest['age'] ?? '') !== '' ? (string) $guest['age'] : '',
                 'gender' => trim((string) ($guest['gender'] ?? '')),
             ])
             ->filter(fn (array $guest): bool => collect($guest)->filter()->isNotEmpty())

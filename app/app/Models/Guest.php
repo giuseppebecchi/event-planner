@@ -108,6 +108,7 @@ class Guest extends Model
             'last_name' => trim((string) ($guest['last_name'] ?? '')),
             'role' => trim((string) ($guest['role'] ?? '')),
             'type' => trim((string) ($guest['type'] ?? '')),
+            'age' => ($guest['age'] ?? '') !== '' ? (string) $guest['age'] : '',
             'gender' => trim((string) ($guest['gender'] ?? '')),
         ]);
     }

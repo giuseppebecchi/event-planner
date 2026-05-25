@@ -583,16 +583,27 @@
         .wm-timeline-field-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.8rem;
+            gap: 1rem 0.8rem;
         }
 
         .wm-timeline-field-grid.is-three {
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
+        .wm-timeline-modal > .wm-timeline-field,
+        .wm-timeline-modal > .wm-timeline-field-grid,
+        .wm-timeline-modal > .wm-timeline-check {
+            margin-top: 1rem;
+        }
+
+        .wm-timeline-field {
+            display: flex;
+            flex-direction: column;
+        }
+
         .wm-timeline-field label {
             display: block;
-            margin-bottom: 0.35rem;
+            margin: 0 0 0.5rem;
             color: #5e5852;
             font-size: 0.78rem;
             font-weight: 700;
@@ -681,6 +692,55 @@
             cursor: pointer;
         }
 
+        .wm-timeline-html-editor {
+            overflow: hidden;
+            border: 1px solid #ddd2c5;
+            border-radius: 0.95rem;
+            background: #fff;
+        }
+
+        .wm-timeline-html-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            padding: 0.45rem;
+            border-bottom: 1px solid #eadfce;
+            background: #fbf8f4;
+        }
+
+        .wm-timeline-html-toolbar button,
+        .wm-timeline-html-toolbar select {
+            min-height: 2rem;
+            border: 1px solid #ddd2c5;
+            border-radius: 0.65rem;
+            background: #fff;
+            color: #4f4943;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .wm-timeline-html-toolbar button {
+            min-width: 2.1rem;
+            padding: 0 0.55rem;
+        }
+
+        .wm-timeline-html-toolbar select {
+            padding: 0 0.6rem;
+        }
+
+        .wm-timeline-html-surface {
+            min-height: 12rem;
+            padding: 0.9rem 1rem;
+            color: #2d2a26;
+            line-height: 1.7;
+            outline: none;
+        }
+
+        .wm-timeline-html-surface:focus {
+            box-shadow: inset 0 0 0 2px rgba(201, 169, 106, 0.26);
+        }
+
         .wm-timeline-modal-backdrop {
             position: fixed;
             inset: 0;
@@ -693,7 +753,8 @@
             top: 50%;
             left: 50%;
             z-index: 50;
-            width: min(52rem, calc(100vw - 2rem));
+            width: calc(100vw - 2rem);
+            max-width: none;
             max-height: calc(100vh - 2rem);
             overflow: auto;
             transform: translate(-50%, -50%);
@@ -913,6 +974,9 @@
                                                     @if ($item->location)
                                                         <span class="wm-timeline-chip">{{ $item->location }}</span>
                                                     @endif
+                                                    @if ($item->location_plan_b)
+                                                        <span class="wm-timeline-chip">Plan B: {{ $item->location_plan_b }}</span>
+                                                    @endif
                                                     @if ($item->supplier?->name)
                                                         <span class="wm-timeline-chip">{{ $item->supplier->name }}</span>
                                                     @endif
@@ -1023,9 +1087,16 @@
                     @endif
                 </div>
 
-                <div class="wm-timeline-field">
-                    <label for="timeline-location">Location</label>
-                    <input id="timeline-location" type="text" class="wm-timeline-input" wire:model="timelineForm.location">
+                <div class="wm-timeline-field-grid">
+                    <div class="wm-timeline-field">
+                        <label for="timeline-location">Location</label>
+                        <input id="timeline-location" type="text" class="wm-timeline-input" wire:model="timelineForm.location">
+                    </div>
+
+                    <div class="wm-timeline-field">
+                        <label for="timeline-location-plan-b">Location Plan B</label>
+                        <input id="timeline-location-plan-b" type="text" class="wm-timeline-input" wire:model="timelineForm.location_plan_b">
+                    </div>
                 </div>
 
                 <div class="wm-timeline-field">
@@ -1046,7 +1117,49 @@
                 @if ($timelineForm['has_extended_description'] ?? false)
                     <div class="wm-timeline-field">
                         <label for="timeline-extended-description">Extended HTML description</label>
-                        <textarea id="timeline-extended-description" class="wm-timeline-textarea" rows="8" wire:model="timelineForm.extended_description"></textarea>
+                        <div
+                            class="wm-timeline-html-editor"
+                            x-data="{
+                                content: @entangle('timelineForm.extended_description').live,
+                                sync() { this.content = this.$refs.editor.innerHTML },
+                                command(command, value = null) {
+                                    this.$refs.editor.focus()
+                                    document.execCommand(command, false, value)
+                                    this.sync()
+                                },
+                                link() {
+                                    const url = window.prompt('URL')
+                                    if (! url) return
+                                    this.command('createLink', url)
+                                },
+                            }"
+                            x-init="$refs.editor.innerHTML = content || ''"
+                        >
+                            <div class="wm-timeline-html-toolbar" aria-label="HTML editor toolbar">
+                                <select aria-label="Format" x-on:change="command('formatBlock', $event.target.value); $event.target.value = 'p'">
+                                    <option value="p">Paragraph</option>
+                                    <option value="h2">Heading 2</option>
+                                    <option value="h3">Heading 3</option>
+                                    <option value="blockquote">Quote</option>
+                                </select>
+                                <button type="button" title="Bold" x-on:click="command('bold')">B</button>
+                                <button type="button" title="Italic" x-on:click="command('italic')"><em>I</em></button>
+                                <button type="button" title="Underline" x-on:click="command('underline')"><u>U</u></button>
+                                <button type="button" title="Bullet list" x-on:click="command('insertUnorderedList')">UL</button>
+                                <button type="button" title="Numbered list" x-on:click="command('insertOrderedList')">OL</button>
+                                <button type="button" title="Link" x-on:click="link()">Link</button>
+                                <button type="button" title="Clear formatting" x-on:click="command('removeFormat')">Clear</button>
+                            </div>
+                            <div
+                                id="timeline-extended-description"
+                                class="wm-timeline-html-surface"
+                                contenteditable="true"
+                                role="textbox"
+                                aria-multiline="true"
+                                x-on:input="sync()"
+                                x-on:blur="sync()"
+                            ></div>
+                        </div>
                     </div>
                 @endif
 

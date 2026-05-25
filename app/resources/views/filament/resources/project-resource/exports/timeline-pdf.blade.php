@@ -117,8 +117,8 @@
                                                 </td>
                                                 <td class="cover-activity-text">
                                                     <div class="cover-activity-label">{{ $activity['cover_activity_type'] ?: $activity['title'] }}</div>
-                                                    @if ($activity['location'] || $activity['supplier_name'])
-                                                        <div class="cover-activity-detail">{{ collect([$activity['location'], $activity['supplier_name']])->filter()->implode(' | ') }}</div>
+                                                    @if ($activity['location'] || $activity['location_plan_b'] || $activity['supplier_name'])
+                                                        <div class="cover-activity-detail">{{ collect([$activity['location'], $activity['location_plan_b'] ? 'Plan B: ' . $activity['location_plan_b'] : null, $activity['supplier_name']])->filter()->implode(' | ') }}</div>
                                                     @endif
                                                 </td>
                                             </tr>
@@ -176,10 +176,13 @@
                                     <td class="item-body">
                                         <h3 class="item-title">{{ $item['title'] }}</h3>
 
-                                        @if ($item['location'] || $item['supplier_name'] || $item['is_surprise'] || $item['cover_activity'] || $item['sunset_time'])
+                                        @if ($item['location'] || $item['location_plan_b'] || $item['supplier_name'] || $item['is_surprise'] || $item['cover_activity'] || $item['sunset_time'])
                                             <div class="item-tags">
                                                 @if ($item['location'])
                                                     <span class="item-tag">{{ $item['location'] }}</span>
+                                                @endif
+                                                @if ($item['location_plan_b'])
+                                                    <span class="item-tag">Plan B: {{ $item['location_plan_b'] }}</span>
                                                 @endif
                                                 @if ($item['supplier_name'])
                                                     <span class="item-tag">{{ $item['supplier_name'] }}</span>
@@ -249,6 +252,9 @@
                             @endif
                             @if ($activity['location'])
                                 | {{ $activity['location'] }}
+                            @endif
+                            @if ($activity['location_plan_b'])
+                                | Plan B: {{ $activity['location_plan_b'] }}
                             @endif
                         </p>
 
