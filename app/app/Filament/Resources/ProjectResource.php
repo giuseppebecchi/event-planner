@@ -18,6 +18,8 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class ProjectResource extends Resource
 {
@@ -32,6 +34,38 @@ class ProjectResource extends Resource
 
     protected static ?string $modelLabel = 'Project';
     protected static ?int $navigationSort = 2;
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if ($user?->isCustomer()) {
+            $query->whereHas('users', fn (Builder $query): Builder => $query->whereKey($user->id));
+        }
+
+        return $query;
+    }
+
+    public static function canCreate(): bool
+    {
+        return ! auth()->user()?->isCustomer();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return ! auth()->user()?->isCustomer();
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return ! auth()->user()?->isCustomer();
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return ! auth()->user()?->isCustomer();
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -65,6 +99,10 @@ class ProjectResource extends Resource
                         ->maxLength(100),
                     Components\TextInput::make('reference_email')
                         ->label('Reference email')
+                        ->email()
+                        ->maxLength(255),
+                    Components\TextInput::make('partner_2_reference_email')
+                        ->label('Partner 2 reference email')
                         ->email()
                         ->maxLength(255),
                     Components\TextInput::make('primary_phone')
@@ -194,6 +232,7 @@ class ProjectResource extends Resource
             'calendar' => Pages\ViewProjectCalendar::route('/{record}/calendar'),
             'timeline' => Pages\ViewProjectTimeline::route('/{record}/timeline'),
             'layouts' => Pages\ViewProjectLayouts::route('/{record}/layouts'),
+            'website' => Pages\ManageProjectWebsite::route('/{record}/website'),
             'layout-edit' => Pages\EditProjectLayout::route('/{record}/layouts/{seatingPlan}'),
             'layout-assign' => Pages\AssignProjectLayout::route('/{record}/layouts/{seatingPlan}/assign'),
             'moodboard' => Pages\ViewProjectMoodboard::route('/{record}/moodboard'),

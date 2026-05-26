@@ -33,6 +33,11 @@ class CategoryResource extends Resource
 
     protected static ?int $navigationSort = 80;
 
+    public static function canViewAny(): bool
+    {
+        return ! auth()->user()?->isCustomer();
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->components([

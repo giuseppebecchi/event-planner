@@ -5,6 +5,7 @@
         $summary = $this->getLayoutSummary();
         $planTypeOptions = $this->getPlanTypeOptions();
         $initialTableTypeOptions = $this->getInitialTableTypeOptions();
+        $isCustomer = auth()->user()?->isCustomer();
     @endphp
 
     <style>
@@ -102,9 +103,11 @@
 
             <section class="wm-event-card wm-layouts-toolbar">
                 <h2 class="wm-layouts-title">Seating plans</h2>
-                <x-filament::button wire:click="startCreateSeatingPlan">
-                    New layout
-                </x-filament::button>
+                @if (! $isCustomer)
+                    <x-filament::button wire:click="startCreateSeatingPlan">
+                        New layout
+                    </x-filament::button>
+                @endif
             </section>
 
             @if ($plans->isEmpty())
@@ -163,16 +166,18 @@
                             @endif
 
                             <div class="wm-layout-actions">
-                                <x-filament::button color="gray" size="sm" wire:click="editSeatingPlan({{ $plan->id }})">
-                                    Edit details
-                                </x-filament::button>
-                                <x-filament::button
-                                    tag="a"
-                                    size="sm"
-                                    href="{{ \App\Filament\Resources\ProjectResource::getUrl('layout-edit', ['record' => $record, 'seatingPlan' => $plan]) }}"
-                                >
-                                    Open editor
-                                </x-filament::button>
+                                @if (! $isCustomer)
+                                    <x-filament::button color="gray" size="sm" wire:click="editSeatingPlan({{ $plan->id }})">
+                                        Edit details
+                                    </x-filament::button>
+                                    <x-filament::button
+                                        tag="a"
+                                        size="sm"
+                                        href="{{ \App\Filament\Resources\ProjectResource::getUrl('layout-edit', ['record' => $record, 'seatingPlan' => $plan]) }}"
+                                    >
+                                        Open editor
+                                    </x-filament::button>
+                                @endif
                                 <x-filament::button
                                     tag="a"
                                     color="gray"
@@ -190,9 +195,11 @@
                                 >
                                     PDF
                                 </x-filament::button>
-                                <x-filament::button color="danger" size="sm" wire:click="promptDeleteSeatingPlan({{ $plan->id }})">
-                                    Delete
-                                </x-filament::button>
+                                @if (! $isCustomer)
+                                    <x-filament::button color="danger" size="sm" wire:click="promptDeleteSeatingPlan({{ $plan->id }})">
+                                        Delete
+                                    </x-filament::button>
+                                @endif
                             </div>
                         </article>
                     @endforeach

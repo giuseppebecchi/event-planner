@@ -267,6 +267,31 @@
             margin-top: 1rem;
         }
 
+        .wm-credential-panel {
+            display: grid;
+            gap: .75rem;
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid #ece5dd;
+            border-radius: 1rem;
+            background: #fbf8f4;
+        }
+
+        .wm-credential-title {
+            margin: 0;
+            color: #2d2a26;
+            font-size: .78rem;
+            font-weight: 900;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+
+        .wm-credential-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .65rem;
+        }
+
         @media (max-width: 1280px) {
             .wm-event-top-head,
             .wm-event-date-grid {
@@ -297,6 +322,31 @@
             <h3 class="wm-edit-form-title">Event Information</h3>
             <form wire:submit="save">
                 {{ $this->form }}
+
+                @if (! auth()->user()?->isCustomer())
+                    <div class="wm-credential-panel">
+                        <p class="wm-credential-title">Customer portal credentials</p>
+                        <div class="wm-credential-actions">
+                            <x-filament::button
+                                type="button"
+                                size="sm"
+                                wire:click="sendCustomerCredentials('reference_email')"
+                                wire:confirm="Create/link a Customer user and send credentials to the reference email?"
+                            >
+                                Send Credential
+                            </x-filament::button>
+                            <x-filament::button
+                                type="button"
+                                size="sm"
+                                color="gray"
+                                wire:click="sendCustomerCredentials('partner_2_reference_email')"
+                                wire:confirm="Create/link a Customer user and send credentials to the partner 2 reference email?"
+                            >
+                                Send Partner 2 Credential
+                            </x-filament::button>
+                        </div>
+                    </div>
+                @endif
 
                 <div class="wm-edit-form-actions">
                     <x-filament::button type="submit">

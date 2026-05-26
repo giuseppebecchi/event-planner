@@ -28,7 +28,9 @@
         .wm-seat-table { cursor: grab; }
         .wm-seat-table.is-selected { cursor: grabbing; }
         .wm-seat-table-shape { fill: #fffdf9; stroke: #7a8f7b; stroke-width: 2.5; filter: drop-shadow(0 8px 10px rgba(45,42,38,.12)); }
-        .wm-seat-table.is-selected .wm-seat-table-shape { stroke: #c9a96a; stroke-width: 4; }
+        .wm-seat-table-glow { fill: #d9b86f; opacity: 0; filter: drop-shadow(0 0 18px rgba(201,169,106,.62)); pointer-events: none; }
+        .wm-seat-table.is-selected .wm-seat-table-glow { opacity: .35; }
+        .wm-seat-table.is-selected .wm-seat-table-shape { fill: #fff4d8; stroke: #c9a96a; stroke-width: 4; filter: drop-shadow(0 14px 18px rgba(201,169,106,.28)); }
         .wm-seat-label { fill: #2d2a26; font-size: 13px; font-weight: 900; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
         .wm-seat-chair { pointer-events: none; }
         .wm-seat-chair-seat { fill: #fffaf2; stroke: #9d8451; stroke-width: 1.4; }
@@ -132,6 +134,31 @@
                                 x-on:pointerdown.stop="startDrag($event, tableById({{ $table['id'] }}))"
                                 x-on:click.stop="select({{ $table['id'] }})"
                             >
+                                <ellipse
+                                    class="wm-seat-table-glow"
+                                    cx="0"
+                                    cy="0"
+                                    rx="{{ ($table['primary_dimension'] / 2) + 18 }}"
+                                    ry="{{ ($table['secondary_dimension'] / 2) + 18 }}"
+                                    x-show="isRound(tableById({{ $table['id'] }}))"
+                                    x-bind:rx="(tableById({{ $table['id'] }}).primary_dimension / 2) + 18"
+                                    x-bind:ry="(tableById({{ $table['id'] }}).secondary_dimension / 2) + 18"
+                                    @if (! in_array($table['table_type'], ['round', 'oval'], true)) style="display: none;" @endif
+                                ></ellipse>
+                                <rect
+                                    class="wm-seat-table-glow"
+                                    x="{{ -($table['primary_dimension'] / 2) - 18 }}"
+                                    y="{{ -($table['secondary_dimension'] / 2) - 18 }}"
+                                    width="{{ $table['primary_dimension'] + 36 }}"
+                                    height="{{ $table['secondary_dimension'] + 36 }}"
+                                    rx="18"
+                                    x-show="! isRound(tableById({{ $table['id'] }}))"
+                                    x-bind:x="-(tableById({{ $table['id'] }}).primary_dimension / 2) - 18"
+                                    x-bind:y="-(tableById({{ $table['id'] }}).secondary_dimension / 2) - 18"
+                                    x-bind:width="tableById({{ $table['id'] }}).primary_dimension + 36"
+                                    x-bind:height="tableById({{ $table['id'] }}).secondary_dimension + 36"
+                                    @if (in_array($table['table_type'], ['round', 'oval'], true)) style="display: none;" @endif
+                                ></rect>
                                 <ellipse
                                     class="wm-seat-table-shape"
                                     cx="0"

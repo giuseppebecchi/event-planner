@@ -49,8 +49,11 @@
         .wm-seat-save-state { color: #8b8279; font-size: .78rem; font-weight: 800; }
         .wm-seat-select { width: 100%; min-height: 2rem; border: 1px solid #ddd2c5; border-radius: .55rem; background: #fff; color: #2d2a26; padding: 0 .5rem; font-size: .8rem; }
         .wm-seat-row { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr); gap: .4rem; align-items: center; padding: .18rem .25rem; border: 1px solid transparent; border-radius: .55rem; }
+        .wm-seat-row.is-assigned { border-color: #7fb47b; background: #d7ecd4; }
+        .wm-seat-row.is-empty { border-color: #ead8a3; background: #fff7dc; }
         .wm-seat-row.is-active { border-color: #c9a96a; background: #fff8e8; }
         .wm-seat-index { display: inline-flex; align-items: center; justify-content: center; width: 1.65rem; height: 1.65rem; border-radius: 999px; background: #f4eee6; color: #6f5830; font-size: .72rem; font-weight: 900; }
+        .wm-seat-row.is-assigned .wm-seat-index { background: #5f985c; color: #fff; }
         .wm-seat-guest-list { display: grid; gap: .3rem; }
         .wm-seat-guest-item { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .42rem .55rem; border: 1px solid #ece3d9; border-radius: .65rem; background: #fffaf5; }
         .wm-seat-guest-item.is-assigned { background: #edf6eb; border-color: #c9dfc7; }
@@ -205,7 +208,7 @@
                     <h2 x-text="selectedTable().name"></h2>
                     <p class="wm-seat-muted"><span x-text="tableAssignedCount(selectedTable())"></span>/<span x-text="seats(selectedTable()).length"></span> seats assigned</p>
                     <template x-for="seat in seats(selectedTable())" :key="selectedTable().id + '-' + seat.number">
-                        <div class="wm-seat-row" :class="{ 'is-active': isActiveSeat(selectedTable().id, seat.number) }" :id="'seat-row-' + selectedTable().id + '-' + seat.number">
+                        <div class="wm-seat-row" :class="{ 'is-active': isActiveSeat(selectedTable().id, seat.number), 'is-assigned': Boolean(seatGuestKey(selectedTable(), seat.number)), 'is-empty': ! seatGuestKey(selectedTable(), seat.number) }" :id="'seat-row-' + selectedTable().id + '-' + seat.number">
                             <button type="button" class="wm-seat-index" x-on:click="selectSeat(selectedTable().id, seat.number)" x-text="seat.number"></button>
                             <select
                                 class="wm-seat-select"

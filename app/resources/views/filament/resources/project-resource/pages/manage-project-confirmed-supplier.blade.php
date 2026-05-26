@@ -13,6 +13,7 @@
         $payments = $this->getPayments();
         $images = $this->getImages();
         $checklistItems = $this->getChecklistItems();
+        $isCustomer = auth()->user()?->isCustomer();
     @endphp
 
     <style>
@@ -348,7 +349,8 @@
         .wm-dashboard-card {
             position: relative;
             display: grid;
-            gap: 0.55rem;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 0.55rem 0.85rem;
             width: 100%;
             padding: 1.05rem 1.1rem;
             border-radius: 1rem;
@@ -356,12 +358,21 @@
             border: 1px solid #ece5dd;
             text-align: left;
             cursor: pointer;
+            transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease, background 140ms ease;
         }
 
         .wm-dashboard-card:hover,
+        .wm-dashboard-card:focus-visible,
         .wm-dashboard-card.is-active {
             border-color: rgba(201, 169, 106, 0.42);
             background: linear-gradient(180deg, rgba(247, 243, 237, 0.98), rgba(255, 255, 255, 0.98));
+        }
+
+        .wm-dashboard-card:hover,
+        .wm-dashboard-card:focus-visible {
+            transform: translateY(-1px);
+            box-shadow: 0 18px 34px rgba(45, 42, 38, 0.10);
+            outline: none;
         }
 
         .wm-dashboard-card.is-active {
@@ -386,6 +397,25 @@
             color: #2d7a39;
         }
 
+        .wm-dashboard-card:hover .wm-dashboard-action,
+        .wm-dashboard-card:focus-visible .wm-dashboard-action,
+        .wm-dashboard-card.is-active .wm-dashboard-action {
+            background: #2e4a62;
+            border-color: #2e4a62;
+            color: #fff;
+        }
+
+        .wm-dashboard-card:hover .wm-dashboard-action svg,
+        .wm-dashboard-card:focus-visible .wm-dashboard-action svg {
+            transform: translateX(2px);
+        }
+
+        .wm-dashboard-copy {
+            display: grid;
+            gap: 0.55rem;
+            min-width: 0;
+        }
+
         .wm-dashboard-label {
             margin: 0;
             color: #8b847d;
@@ -407,6 +437,26 @@
             margin: 0;
             color: #746d66;
             line-height: 1.55;
+        }
+
+        .wm-dashboard-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            align-self: start;
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 999px;
+            border: 1px solid rgba(46, 74, 98, 0.20);
+            background: rgba(46, 74, 98, 0.07);
+            color: #2e4a62;
+            transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+        }
+
+        .wm-dashboard-action svg {
+            width: 1rem;
+            height: 1rem;
+            transition: transform 140ms ease;
         }
 
         .wm-section {
@@ -676,14 +726,19 @@
                     wire:click="setActiveWorkspaceTab('{{ $card['key'] }}')"
                     class="wm-dashboard-card wm-card {{ $this->activeWorkspaceTab === $card['key'] ? 'is-active' : '' }}"
                 >
-                    <p class="wm-dashboard-label">{{ $card['label'] }}</p>
-                    <p class="wm-dashboard-value">{{ $card['value'] }}</p>
-                    <p class="wm-dashboard-meta">{{ $card['meta'] }}</p>
+                    <span class="wm-dashboard-copy">
+                        <span class="wm-dashboard-label">{{ $card['label'] }}</span>
+                        <span class="wm-dashboard-value">{{ $card['value'] }}</span>
+                        <span class="wm-dashboard-meta">{{ $card['meta'] }}</span>
+                    </span>
+                    <span class="wm-dashboard-action" aria-hidden="true">
+                        <x-heroicon-o-arrow-right />
+                    </span>
                 </button>
             @endforeach
         </section>
 
-        @if ($this->activeWorkspaceTab === 'communications')
+        @if (! $isCustomer && $this->activeWorkspaceTab === 'communications')
         <section id="communications" class="wm-section wm-two-col">
             <div class="wm-card wm-panel">
                 <div class="wm-section-head">
@@ -818,7 +873,9 @@
                                     @endif
                                     <div class="wm-actions">
                                         <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($document->file_path) }}" target="_blank" class="wm-link">Open</a>
-                                        <button type="button" class="wm-link" wire:click="deleteDocument({{ $document->id }})">Delete</button>
+                                        @if (! $isCustomer)
+                                            <button type="button" class="wm-link" wire:click="deleteDocument({{ $document->id }})">Delete</button>
+                                        @endif
                                     </div>
                                 </div>
                             @empty
@@ -829,6 +886,7 @@
                 </div>
             </div>
 
+            @if (! $isCustomer)
             <div class="wm-card wm-panel">
                 <div class="wm-section-head">
                     <div>
@@ -870,6 +928,7 @@
                     </div>
                 </div>
             </div>
+            @endif
         </section>
         @endif
 
@@ -896,7 +955,9 @@
                                 <p class="wm-item-copy" style="margin-top:.45rem;">{{ $image->description ?: 'No description' }}</p>
                                 <div class="wm-actions">
                                     <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($image->image_path) }}" target="_blank" class="wm-link">Open</a>
-                                    <button type="button" class="wm-link" wire:click="deleteImage({{ $image->id }})">Delete</button>
+                                    @if (! $isCustomer)
+                                        <button type="button" class="wm-link" wire:click="deleteImage({{ $image->id }})">Delete</button>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -906,6 +967,7 @@
                 </div>
             </div>
 
+            @if (! $isCustomer)
             <div class="wm-card wm-panel">
                 <div class="wm-section-head">
                     <div>
@@ -947,6 +1009,7 @@
                     </div>
                 </div>
             </div>
+            @endif
         </section>
         @endif
 
@@ -990,13 +1053,15 @@
                                 @if ($payment->paymentReceiptDocument)
                                     <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($payment->paymentReceiptDocument->file_path) }}" target="_blank" class="wm-link">Open receipt</a>
                                 @endif
-                                @if ($payment->payment_status === \App\Models\Payment::STATUS_UNPAID)
+                                @if (! $isCustomer && $payment->payment_status === \App\Models\Payment::STATUS_UNPAID)
                                     <button type="button" class="wm-link" wire:click="startPaymentRegistration({{ $payment->id }})">Register payment</button>
                                 @endif
-                                <button type="button" class="wm-link" wire:click="deletePayment({{ $payment->id }})">Delete</button>
+                                @if (! $isCustomer)
+                                    <button type="button" class="wm-link" wire:click="deletePayment({{ $payment->id }})">Delete</button>
+                                @endif
                             </div>
 
-                            @if (($this->openPaymentRegistrations[$payment->id] ?? false) && $payment->payment_status === \App\Models\Payment::STATUS_UNPAID)
+                            @if (! $isCustomer && ($this->openPaymentRegistrations[$payment->id] ?? false) && $payment->payment_status === \App\Models\Payment::STATUS_UNPAID)
                                 <div class="wm-inline-form">
                                     <div class="wm-inline-grid">
                                         <div>
@@ -1022,6 +1087,7 @@
                 </div>
             </div>
 
+            @if (! $isCustomer)
             <div class="wm-card wm-panel">
                 <div class="wm-section-head">
                     <div>
@@ -1103,6 +1169,7 @@
                     </div>
                 </div>
             </div>
+            @endif
         </section>
         @endif
 

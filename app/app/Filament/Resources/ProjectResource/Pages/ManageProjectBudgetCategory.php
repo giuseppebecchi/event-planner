@@ -76,6 +76,9 @@ class ManageProjectBudgetCategory extends Page
     public function mount(int|string $record, int|string $categoryBudget): void
     {
         $this->record = $this->resolveRecord($record);
+
+        abort_if(auth()->user()?->isCustomer(), 403);
+
         $this->categoryBudgetRecord = $this->resolveCategoryBudget($categoryBudget);
     }
 

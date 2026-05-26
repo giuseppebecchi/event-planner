@@ -36,6 +36,11 @@ class LeadResource extends Resource
     protected static ?string $modelLabel = 'Lead';
     protected static ?int $navigationSort = 1;
 
+    public static function canViewAny(): bool
+    {
+        return ! auth()->user()?->isCustomer();
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->components([

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\ProjectResource;
 use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDateEditor;
 use App\Models\CategoryBudget;
+use App\Models\CategoryBudgetSupplier;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Support\Enums\Width;
@@ -57,7 +58,9 @@ class ViewProjectBudget extends Page
     public function getBudgetSummary(): array
     {
         $project = $this->getRecord()->loadMissing('categoryBudgets');
-        $budgets = $project->categoryBudgets;
+        $budgets = auth()->user()?->isCustomer()
+            ? $this->getBudgetRows()
+            : $project->categoryBudgets;
         $confirmed = $budgets->where('budget_status', CategoryBudget::STATUS_CONFIRMED);
         $inEvaluation = $budgets->where('budget_status', CategoryBudget::STATUS_IN_EVALUATION);
 
@@ -82,17 +85,33 @@ class ViewProjectBudget extends Page
 
     public function getBudgetRows(): Collection
     {
-        return $this->getRecord()
+        $rows = $this->getRecord()
             ->loadMissing([
                 'categoryBudgets.category',
                 'categoryBudgets.supplierProposals.supplier',
             ])
             ->categoryBudgets
+            ->when(auth()->user()?->isCustomer(), function (Collection $budgets): Collection {
+                return $budgets
+                    ->map(function (CategoryBudget $budget): CategoryBudget {
+                        $budget->setRelation(
+                            'supplierProposals',
+                            $budget->supplierProposals
+                                ->filter(fn (CategoryBudgetSupplier $proposal): bool => $proposal->scouting_status === 'shortlist')
+                                ->values()
+                        );
+
+                        return $budget;
+                    })
+                    ->filter(fn (CategoryBudget $budget): bool => $budget->supplierProposals->isNotEmpty());
+            })
             ->sortBy(fn (CategoryBudget $budget): string => sprintf(
                 '%05d-%s',
                 (int) ($budget->category?->order ?? 99999),
                 mb_strtolower((string) ($budget->category?->label ?? 'zzz'))
             ))
             ->values();
+
+        return $rows;
     }
 }

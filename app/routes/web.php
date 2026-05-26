@@ -6,6 +6,7 @@ use App\Http\Controllers\ProjectBudgetProposalPdfController;
 use App\Http\Controllers\ProjectSeatingPlanPdfController;
 use App\Http\Controllers\PublicLeadFormController;
 use App\Http\Controllers\PublicGuestRsvpController;
+use App\Http\Controllers\PublicProjectWebsiteController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin');
@@ -21,6 +22,9 @@ Route::get('/rsvp/{token}', [PublicGuestRsvpController::class, 'show'])
 
 Route::post('/rsvp/{token}', [PublicGuestRsvpController::class, 'submit'])
     ->name('public.rsvp.submit');
+
+Route::get('/event/{project}', PublicProjectWebsiteController::class)
+    ->name('public.project-website.show');
 
 Route::get('/admin/leads/{lead}/proposal.pdf', LeadProposalPdfController::class)
     ->middleware('auth')

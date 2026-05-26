@@ -38,6 +38,9 @@ class EditProjectLayout extends Page
     public function mount(int|string $record, int|string $seatingPlan): void
     {
         $this->record = $this->resolveRecord($record);
+
+        abort_if(auth()->user()?->isCustomer(), 403);
+
         $this->currentSeatingPlan = $this->getRecord()
             ->seatingPlans()
             ->with('tables')

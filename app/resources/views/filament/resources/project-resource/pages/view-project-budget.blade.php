@@ -3,6 +3,7 @@
         $record = $this->getRecord();
         $budgetSummary = $this->getBudgetSummary();
         $budgetRows = $this->getBudgetRows();
+        $isCustomer = auth()->user()?->isCustomer();
     @endphp
 
     <style>
@@ -635,6 +636,9 @@
                                         $confirmedProposals = $budget->supplierProposals
                                             ->where('proposal_status', \App\Models\CategoryBudgetSupplier::STATUS_CONFIRMED)
                                             ->values();
+                                        $visibleProposals = $isCustomer
+                                            ? $budget->supplierProposals->where('scouting_status', 'shortlist')->values()
+                                            : $confirmedProposals;
                                         $difference = $budget->amountDifference();
                                         $statusClass = match ($budget->budget_status) {
                                             \App\Models\CategoryBudget::STATUS_CONFIRMED => 'is-confirmed',
@@ -656,7 +660,20 @@
                                         </td>
                                         <td class="wm-budget-number">EUR {{ number_format((float) ($budget->initial_estimated_amount ?? 0), 2, ',', '.') }}</td>
                                         <td class="wm-budget-number">
-                                            {{ $budget->final_amount !== null ? 'EUR ' . number_format((float) $budget->final_amount, 2, ',', '.') : '—' }}
+                                            @if ($isCustomer && $visibleProposals->isNotEmpty())
+                                                <div class="wm-budget-accepted-list">
+                                                    @foreach ($visibleProposals as $proposal)
+                                                        <span class="wm-budget-action is-confirmed">
+                                                            <span class="wm-budget-accepted-name">{{ $proposal->supplier?->name ?? 'Supplier' }}</span>
+                                                            @if ($proposal->proposed_amount !== null)
+                                                                <span>EUR {{ number_format((float) $proposal->proposed_amount, 2, ',', '.') }}</span>
+                                                            @endif
+                                                        </span>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                {{ $budget->final_amount !== null ? 'EUR ' . number_format((float) $budget->final_amount, 2, ',', '.') : '—' }}
+                                            @endif
                                         </td>
                                         <td class="wm-budget-number {{ $budget->final_amount !== null ? ($difference > 0 ? 'is-negative' : ($difference < 0 ? 'is-positive' : '')) : '' }}">
                                             @if ($budget->final_amount !== null)
@@ -672,7 +689,22 @@
                                         </td>
                                         <td>
                                             <div class="wm-budget-actions">
-                                                @if ($confirmedProposals->isNotEmpty())
+                                                @if ($isCustomer && $visibleProposals->isNotEmpty())
+                                                    <div class="wm-budget-accepted-list">
+                                                        @foreach ($visibleProposals as $proposal)
+                                                            <a
+                                                                href="{{ \App\Filament\Resources\ProjectResource::getUrl('budget-manage', ['record' => $record, 'categoryBudget' => $budget, 'proposal' => $proposal->id]) }}"
+                                                                class="wm-budget-action is-confirmed"
+                                                                title="View {{ $proposal->supplier?->name ?? 'Supplier' }}"
+                                                            >
+                                                                <span class="wm-budget-accepted-name">{{ $proposal->supplier?->name ?? 'Supplier' }}</span>
+                                                                <span>Manage</span>
+                                                            </a>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+
+                                                @if (! $isCustomer && $confirmedProposals->isNotEmpty())
                                                     <div class="wm-budget-accepted-list">
                                                         @foreach ($confirmedProposals as $proposal)
                                                             <a
@@ -693,12 +725,14 @@
                                                     </div>
                                                 @endif
 
-                                                <a
-                                                    href="{{ \App\Filament\Resources\ProjectResource::getUrl('budget-scouting', ['record' => $record, 'categoryBudget' => $budget]) }}"
-                                                    class="wm-budget-action"
-                                                >
-                                                    Choose supplier
-                                                </a>
+                                                @if (! $isCustomer)
+                                                    <a
+                                                        href="{{ \App\Filament\Resources\ProjectResource::getUrl('budget-scouting', ['record' => $record, 'categoryBudget' => $budget]) }}"
+                                                        class="wm-budget-action"
+                                                    >
+                                                        Choose supplier
+                                                    </a>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>

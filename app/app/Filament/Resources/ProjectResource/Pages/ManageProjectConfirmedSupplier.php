@@ -88,9 +88,14 @@ class ManageProjectConfirmedSupplier extends Page
     public function mount(int|string $record, int|string $categoryBudget): void
     {
         $this->record = $this->resolveRecord($record);
+
         $this->categoryBudgetRecord = $this->resolveCategoryBudget($categoryBudget);
         $this->proposalRecord = $this->resolveConfirmedProposal(request()->integer('proposal') ?: null);
         $this->communicationForm['communication_at'] = now()->format('Y-m-d\TH:i');
+
+        if (auth()->user()?->isCustomer()) {
+            $this->activeWorkspaceTab = 'documents';
+        }
     }
 
     public function getTitle(): string|Htmlable
@@ -249,7 +254,7 @@ class ManageProjectConfirmedSupplier extends Page
             ->sortBy('due_date')
             ->first();
 
-        return [
+        $cards = [
             [
                 'key' => 'communications',
                 'label' => 'Communications',
@@ -281,10 +286,23 @@ class ManageProjectConfirmedSupplier extends Page
                 'meta' => 'Operational milestones and reminders',
             ],
         ];
+
+        if (auth()->user()?->isCustomer()) {
+            return collect($cards)
+                ->reject(fn (array $card): bool => $card['key'] === 'communications')
+                ->values()
+                ->all();
+        }
+
+        return $cards;
     }
 
     public function setActiveWorkspaceTab(string $tab): void
     {
+        if (auth()->user()?->isCustomer() && $tab === 'communications') {
+            return;
+        }
+
         if (! in_array($tab, ['communications', 'documents', 'photogallery', 'payments', 'checklist'], true)) {
             return;
         }
@@ -294,6 +312,10 @@ class ManageProjectConfirmedSupplier extends Page
 
     public function saveCommunication(): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $data = validator(
             ['form' => $this->communicationForm],
             [
@@ -336,6 +358,10 @@ class ManageProjectConfirmedSupplier extends Page
 
     public function saveDocument(): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $data = validator(
             [
                 'form' => $this->documentForm,
@@ -379,6 +405,10 @@ class ManageProjectConfirmedSupplier extends Page
 
     public function deleteDocument(int $documentId): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $document = $this->proposalRecord->projectDocuments()->whereKey($documentId)->firstOrFail();
 
         Storage::disk('public')->delete($document->file_path);
@@ -394,6 +424,10 @@ class ManageProjectConfirmedSupplier extends Page
 
     public function savePayment(): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $data = validator(
             [
                 'form' => $this->paymentForm,
@@ -470,6 +504,10 @@ class ManageProjectConfirmedSupplier extends Page
 
     public function startPaymentRegistration(int $paymentId): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $payment = $this->proposalRecord->payments()->whereKey($paymentId)->firstOrFail();
 
         $this->paymentCompletionForms[$paymentId] = [
@@ -489,6 +527,10 @@ class ManageProjectConfirmedSupplier extends Page
 
     public function registerScheduledPayment(int $paymentId): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $payment = $this->proposalRecord->payments()->with('paymentReceiptDocument')->whereKey($paymentId)->firstOrFail();
 
         $data = validator(
@@ -550,6 +592,10 @@ class ManageProjectConfirmedSupplier extends Page
 
     public function deletePayment(int $paymentId): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $payment = $this->proposalRecord->payments()->with('paymentReceiptDocument')->whereKey($paymentId)->firstOrFail();
 
         if ($payment->paymentReceiptDocument) {
@@ -569,6 +615,10 @@ class ManageProjectConfirmedSupplier extends Page
 
     public function saveImage(): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $data = validator(
             [
                 'form' => $this->imageForm,
@@ -609,6 +659,10 @@ class ManageProjectConfirmedSupplier extends Page
 
     public function deleteImage(int $imageId): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $image = $this->getRecord()->projectImages()->where('supplier_id', $this->proposalRecord->supplier_id)->whereKey($imageId)->firstOrFail();
 
         Storage::disk('public')->delete($image->image_path);
@@ -642,12 +696,16 @@ class ManageProjectConfirmedSupplier extends Page
 
     protected function resolveConfirmedProposal(?int $proposalId = null): CategoryBudgetSupplier
     {
-        $confirmedProposals = $this->categoryBudgetRecord->supplierProposals
-            ->where('proposal_status', CategoryBudgetSupplier::STATUS_CONFIRMED);
+        $availableProposals = $this->categoryBudgetRecord->supplierProposals
+            ->when(
+                auth()->user()?->isCustomer(),
+                fn (Collection $proposals): Collection => $proposals->where('scouting_status', 'shortlist'),
+                fn (Collection $proposals): Collection => $proposals->where('proposal_status', CategoryBudgetSupplier::STATUS_CONFIRMED),
+            );
 
         $proposal = $proposalId
-            ? $confirmedProposals->firstWhere('id', $proposalId)
-            : $confirmedProposals->first();
+            ? $availableProposals->firstWhere('id', $proposalId)
+            : $availableProposals->first();
 
         abort_if(! $proposal, 404);
 

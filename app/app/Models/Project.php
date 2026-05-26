@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -23,6 +24,7 @@ class Project extends Model
         'partner_one_name',
         'partner_two_name',
         'reference_email',
+        'partner_2_reference_email',
         'primary_phone',
         'secondary_phone',
         'nationality',
@@ -40,6 +42,7 @@ class Project extends Model
         'logistics_notes',
         'cover_image_path',
         'rsvp_configuration',
+        'website_json',
     ];
 
     protected $casts = [
@@ -47,6 +50,7 @@ class Project extends Model
         'event_end_date' => 'date',
         'budget_amount' => 'decimal:2',
         'rsvp_configuration' => 'array',
+        'website_json' => 'array',
     ];
 
     protected static function booted(): void
@@ -69,6 +73,11 @@ class Project extends Model
     public function lead(): BelongsTo
     {
         return $this->belongsTo(Lead::class);
+    }
+
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class)->withTimestamps();
     }
 
     public function initBudget(): array
@@ -349,6 +358,51 @@ class Project extends Model
                     'order' => 9,
                 ],
             ],
+        ];
+    }
+
+    public function websiteConfiguration(): array
+    {
+        return array_replace_recursive(static::defaultWebsiteConfiguration($this), is_array($this->website_json) ? $this->website_json : []);
+    }
+
+    public static function defaultWebsiteConfiguration(?Project $project = null): array
+    {
+        $partners = trim(collect([$project?->partner_one_name, $project?->partner_two_name])->filter()->implode(' & '));
+        $date = $project?->event_start_date?->format('F j, Y') ?? '';
+        $location = trim(collect([$project?->locality, $project?->region])->filter()->implode(', '));
+
+        return [
+            'settings' => [
+                'published' => true,
+                'accent_color' => '#b08c8f',
+                'background_color' => '#fbf7f4',
+                'text_color' => '#4d4141',
+                'font_preset' => 'classic',
+                'signature' => $partners,
+                'footer_text' => 'With love, ' . ($partners ?: 'the couple'),
+            ],
+            'home' => [
+                'enabled' => true,
+                'title' => $partners ?: ($project?->name ?? ''),
+                'eyebrow' => "We're getting married",
+                'subtitle' => 'We cannot wait to celebrate with you.',
+                'date' => $date,
+                'location' => $location,
+                'hero_image' => $project?->cover_image_path ? '/storage/' . $project->cover_image_path : '',
+                'intro_title' => $partners,
+                'intro_text' => '',
+                'intro_image' => '',
+            ],
+            'schedule' => ['enabled' => true, 'title' => 'Schedule', 'intro' => '', 'items' => []],
+            'travel' => ['enabled' => true, 'title' => 'Travel', 'intro' => '', 'image' => '', 'hotels' => [], 'transportation' => []],
+            'registry' => ['enabled' => true, 'title' => 'Registry', 'intro' => '', 'button_label' => 'View registry', 'url' => ''],
+            'wedding_party' => ['enabled' => true, 'title' => 'Wedding Party', 'intro' => '', 'people' => []],
+            'gallery' => ['enabled' => true, 'title' => 'Gallery', 'intro' => '', 'images' => []],
+            'things_to_do' => ['enabled' => true, 'title' => 'Things To Do', 'intro' => '', 'items' => []],
+            'faqs' => ['enabled' => true, 'title' => 'FAQs', 'items' => []],
+            'events' => ['enabled' => true, 'title' => 'Welcome Party & Wedding Event', 'intro' => '', 'items' => []],
+            'rsvp' => ['enabled' => true, 'title' => 'RSVP', 'intro' => 'Please use the personal RSVP link you received with your invitation.'],
         ];
     }
 

@@ -6,6 +6,8 @@ namespace App\Models;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -24,6 +26,7 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'email',
         'password',
+        'role_id',
     ];
 
     /**
@@ -52,5 +55,45 @@ class User extends Authenticatable implements FilamentUser
     public function canAccessPanel(Panel $panel): bool
     {
         return true;
+    }
+
+    public function role(): BelongsTo
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class)->withTimestamps();
+    }
+
+    public function roleName(): ?string
+    {
+        return $this->role?->name;
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->roleName() === Role::SUPER_ADMIN;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->roleName() === Role::ADMIN;
+    }
+
+    public function isCollaborator(): bool
+    {
+        return $this->roleName() === Role::COLLABORATOR;
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->roleName() === Role::CUSTOMER;
+    }
+
+    public function canManageUsers(): bool
+    {
+        return $this->isSuperAdmin() || $this->isAdmin();
     }
 }

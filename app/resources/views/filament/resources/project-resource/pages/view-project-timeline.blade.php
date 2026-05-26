@@ -4,6 +4,7 @@
         $days = $this->getTimelineDays();
         $supplierOptions = $this->getSupplierOptions();
         $coverActivityTypeOptions = $this->getCoverActivityTypeOptions();
+        $isCustomer = auth()->user()?->isCustomer();
     @endphp
 
     <style>
@@ -881,13 +882,15 @@
                                     </div>
                                 </div>
 
-                                <button type="button" class="wm-timeline-add" wire:click="startCreateTimelineItem('{{ $day['key'] }}')">
-                                    <x-heroicon-o-plus />
-                                    <span>Add item</span>
-                                </button>
+                                @if (! $isCustomer)
+                                    <button type="button" class="wm-timeline-add" wire:click="startCreateTimelineItem('{{ $day['key'] }}')">
+                                        <x-heroicon-o-plus />
+                                        <span>Add item</span>
+                                    </button>
+                                @endif
                             </div>
 
-                            @if ($editingDailyNoteDate === $day['key'])
+                            @if (! $isCustomer && $editingDailyNoteDate === $day['key'])
                                 <div class="wm-timeline-daily-notes">
                                     <div class="wm-timeline-daily-notes-head">
                                         <p class="wm-timeline-daily-notes-label">
@@ -914,7 +917,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            @elseif ($day['daily_note'])
+                            @elseif (! $isCustomer && $day['daily_note'])
                                 <div class="wm-timeline-daily-notes">
                                     <div class="wm-timeline-daily-notes-head">
                                         <p class="wm-timeline-daily-notes-label">
@@ -930,7 +933,7 @@
 
                                     <p class="wm-timeline-daily-notes-text">{{ $day['daily_note']->description }}</p>
                                 </div>
-                            @else
+                            @elseif (! $isCustomer)
                                 <div>
                                     <button type="button" class="wm-timeline-add" wire:click="startEditDailyNotes('{{ $day['key'] }}')">
                                         <x-heroicon-o-plus-circle />
@@ -960,14 +963,16 @@
                                                 <div class="wm-timeline-item-head">
                                                     <h4 class="wm-timeline-item-title">{{ $item->title }}</h4>
 
-                                                    <div class="wm-timeline-item-actions">
-                                                        <button type="button" class="wm-timeline-action" wire:click="editTimelineItem({{ $item->id }})">
-                                                            <x-heroicon-o-pencil-square />
-                                                        </button>
-                                                        <button type="button" class="wm-timeline-action is-danger" wire:click="promptDeleteTimelineItem({{ $item->id }})">
-                                                            <x-heroicon-o-trash />
-                                                        </button>
-                                                    </div>
+                                                    @if (! $isCustomer)
+                                                        <div class="wm-timeline-item-actions">
+                                                            <button type="button" class="wm-timeline-action" wire:click="editTimelineItem({{ $item->id }})">
+                                                                <x-heroicon-o-pencil-square />
+                                                            </button>
+                                                            <button type="button" class="wm-timeline-action is-danger" wire:click="promptDeleteTimelineItem({{ $item->id }})">
+                                                                <x-heroicon-o-trash />
+                                                            </button>
+                                                        </div>
+                                                    @endif
                                                 </div>
 
                                                 <div class="wm-timeline-item-grid">
@@ -980,7 +985,7 @@
                                                     @if ($item->supplier?->name)
                                                         <span class="wm-timeline-chip">{{ $item->supplier->name }}</span>
                                                     @endif
-                                                    @if ($item->is_surprise)
+                                                    @if (! $isCustomer && $item->is_surprise)
                                                         <span class="wm-timeline-chip">Surprise</span>
                                                     @endif
                                                     @if ($item->cover_activity)
@@ -999,7 +1004,7 @@
                                                     <div class="wm-timeline-item-html">{!! $item->extended_description !!}</div>
                                                 @endif
 
-                                                @if ($item->notes)
+                                                @if (! $isCustomer && $item->notes)
                                                     <p class="wm-timeline-item-text"><strong>Notes:</strong> {{ $item->notes }}</p>
                                                 @endif
 

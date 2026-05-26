@@ -40,6 +40,11 @@ class LocationResource extends Resource
 
     protected static ?int $navigationSort = 84;
 
+    public static function canViewAny(): bool
+    {
+        return ! auth()->user()?->isCustomer();
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()

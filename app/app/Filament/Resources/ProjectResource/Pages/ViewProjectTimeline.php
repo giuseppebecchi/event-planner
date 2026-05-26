@@ -135,6 +135,7 @@ class ViewProjectTimeline extends Page
         });
         $timelineItems = $project->projectTimelineItems
             ->reject(fn (ProjectTimeline $item): bool => $this->isDailyNoteItem($item))
+            ->when(auth()->user()?->isCustomer(), fn (Collection $items): Collection => $items->reject(fn (ProjectTimeline $item): bool => (bool) $item->is_surprise))
             ->sortBy(fn (ProjectTimeline $item): string => sprintf(
                 '%s-%s-%05d',
                 $item->timeline_date?->format('Ymd') ?? '99999999',
@@ -232,6 +233,7 @@ class ViewProjectTimeline extends Page
 
         $groupedItems = $allItems
             ->reject(fn (ProjectTimeline $item): bool => $this->isDailyNoteItem($item))
+            ->when(auth()->user()?->isCustomer(), fn (Collection $items): Collection => $items->reject(fn (ProjectTimeline $item): bool => (bool) $item->is_surprise))
             ->groupBy(fn (ProjectTimeline $item): string => $item->timeline_date->format('Y-m-d'));
 
         $days = collect();
@@ -246,7 +248,7 @@ class ViewProjectTimeline extends Page
                 'date' => $cursor->copy(),
                 'key' => $key,
                 'sunset_time' => $items->first(fn (ProjectTimeline $item): bool => $item->sunset_time !== null)?->sunset_time,
-                'daily_note' => $dailyNotes->get($key),
+                'daily_note' => auth()->user()?->isCustomer() ? null : $dailyNotes->get($key),
                 'items' => $items,
             ]);
 
@@ -271,6 +273,10 @@ class ViewProjectTimeline extends Page
 
     public function startEditDailyNotes(string $date): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $dailyNote = $this->findDailyNoteForDate($date);
 
         $this->editingDailyNoteDate = $date;
@@ -286,6 +292,10 @@ class ViewProjectTimeline extends Page
 
     public function saveDailyNotes(string $date): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $data = validator(
             [
                 'date' => $date,
@@ -346,6 +356,10 @@ class ViewProjectTimeline extends Page
 
     public function startCreateTimelineItem(?string $date = null): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $this->editingTimelineItemId = null;
         $this->resetTimelineForm($date ?: $this->getRecord()->event_start_date?->format('Y-m-d'));
         $this->showTimelineEditor = true;
@@ -353,6 +367,10 @@ class ViewProjectTimeline extends Page
 
     public function editTimelineItem(int $itemId): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $item = $this->findTimelineItem($itemId);
         $this->editingTimelineItemId = $item->id;
         $this->timelineImageUploads = [];
@@ -387,6 +405,10 @@ class ViewProjectTimeline extends Page
 
     public function removeTimelineImage(int $index): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         if (! array_key_exists($index, $this->timelineForm['existing_image_paths'])) {
             return;
         }
@@ -403,6 +425,10 @@ class ViewProjectTimeline extends Page
 
     public function saveTimelineItem(): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $project = $this->getRecord();
         $projectStart = $project->event_start_date?->copy()?->startOfDay();
         $projectEnd = ($project->event_end_date ?: $project->event_start_date)?->copy()?->startOfDay();
@@ -519,6 +545,10 @@ class ViewProjectTimeline extends Page
 
     public function promptDeleteTimelineItem(int $itemId): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $this->confirmDeleteTimelineItemId = $itemId;
     }
 
@@ -529,6 +559,10 @@ class ViewProjectTimeline extends Page
 
     public function confirmDeleteTimelineItem(): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         if (! $this->confirmDeleteTimelineItemId) {
             return;
         }

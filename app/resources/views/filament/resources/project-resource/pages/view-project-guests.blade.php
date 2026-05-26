@@ -11,6 +11,7 @@
             'gift_received' => 'Gift',
             'thank_you_sent' => 'Thank You',
         ];
+        $isCustomer = auth()->user()?->isCustomer();
     @endphp
 
     <style>
@@ -667,10 +668,12 @@
                         <x-heroicon-o-arrow-up-tray />
                         <span>Import guest list</span>
                     </button>
-                    <a href="{{ \App\Filament\Resources\ProjectResource::getUrl('guests-rsvp-configuration', ['record' => $record]) }}" class="wm-guests-button is-secondary">
-                        <x-heroicon-o-adjustments-horizontal />
-                        <span>RSVP form</span>
-                    </a>
+                    @if (! $isCustomer)
+                        <a href="{{ \App\Filament\Resources\ProjectResource::getUrl('guests-rsvp-configuration', ['record' => $record]) }}" class="wm-guests-button is-secondary">
+                            <x-heroicon-o-adjustments-horizontal />
+                            <span>RSVP form</span>
+                        </a>
+                    @endif
                     <a href="{{ \App\Filament\Resources\ProjectResource::getUrl('guests-rsvp-responses', ['record' => $record]) }}" class="wm-guests-button is-secondary">
                         <x-heroicon-o-table-cells />
                         <span>RSVP responses</span>

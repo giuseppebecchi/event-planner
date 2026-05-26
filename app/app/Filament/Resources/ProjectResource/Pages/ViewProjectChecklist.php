@@ -133,6 +133,12 @@ class ViewProjectChecklist extends Page
             ->sortBy(fn (array $section): string => mb_strtolower($section['title']))
             ->values();
 
+        if (auth()->user()?->isCustomer()) {
+            $sections = $sections
+                ->reject(fn (array $section): bool => $section['key'] === 'admin')
+                ->values();
+        }
+
         return $sections
             ->concat($supplierSections)
             ->map(function (array $section): array {
@@ -158,6 +164,10 @@ class ViewProjectChecklist extends Page
 
     public function saveChecklistItem(int $itemId): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $item = $this->findChecklistItem($itemId);
         $data = $this->checklistForms[$itemId] ?? [];
 
@@ -177,6 +187,10 @@ class ViewProjectChecklist extends Page
     public function updatedChecklistForms(mixed $value, string $name): void
     {
         if (! preg_match('/^(\d+)\.(title|details|anticipation_value|anticipation_unit|exact_due_date)$/', $name, $matches)) {
+            return;
+        }
+
+        if (auth()->user()?->isCustomer()) {
             return;
         }
 
@@ -203,6 +217,10 @@ class ViewProjectChecklist extends Page
 
     public function addChecklistItem(string $assignedTo, ?int $supplierId = null): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $assignedTo = ProjectChecklistOption::normalizeAssignedTo($assignedTo);
 
         $customChecklist = Checklist::query()->firstOrCreate(
@@ -238,6 +256,10 @@ class ViewProjectChecklist extends Page
 
     public function saveChecklistSchedule(int $itemId): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $item = $this->findChecklistItem($itemId);
         $data = $this->checklistForms[$itemId] ?? [];
         $mode = $data['due_date_mode'] ?? 'relative';
@@ -278,6 +300,10 @@ class ViewProjectChecklist extends Page
 
     public function promptDeleteChecklistItem(int $itemId): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $item = $this->findChecklistItem($itemId);
 
         $this->confirmDeleteChecklistItemId = $item->id;
@@ -299,6 +325,10 @@ class ViewProjectChecklist extends Page
 
     public function deleteChecklistItem(int $itemId): void
     {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
         $item = $this->findChecklistItem($itemId);
 
         unset($this->checklistForms[$itemId]);
@@ -324,7 +354,7 @@ class ViewProjectChecklist extends Page
 
     public function collapseChecklistItem(): void
     {
-        if ($this->expandedChecklistItemId) {
+        if ($this->expandedChecklistItemId && ! auth()->user()?->isCustomer()) {
             $this->saveChecklistSchedule($this->expandedChecklistItemId);
         }
 

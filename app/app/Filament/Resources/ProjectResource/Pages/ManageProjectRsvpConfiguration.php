@@ -30,6 +30,9 @@ class ManageProjectRsvpConfiguration extends Page
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
+
+        abort_if(auth()->user()?->isCustomer(), 403);
+
         $this->fields = $this->normalizeFields($this->getRecord()->rsvpConfigurationFields());
     }
 

@@ -11,10 +11,12 @@
     $calendarUrl = \App\Filament\Resources\ProjectResource::getUrl('calendar', ['record' => $record]);
     $timelineUrl = \App\Filament\Resources\ProjectResource::getUrl('timeline', ['record' => $record]);
     $layoutsUrl = \App\Filament\Resources\ProjectResource::getUrl('layouts', ['record' => $record]);
+    $websiteUrl = \App\Filament\Resources\ProjectResource::getUrl('website', ['record' => $record]);
     $moodboardUrl = \App\Filament\Resources\ProjectResource::getUrl('moodboard', ['record' => $record]);
     $guestsUrl = \App\Filament\Resources\ProjectResource::getUrl('guests', ['record' => $record]);
     $budgetUrl = \App\Filament\Resources\ProjectResource::getUrl('budget', ['record' => $record]);
     $infoUrl = \App\Filament\Resources\ProjectResource::getUrl('edit', ['record' => $record]);
+    $isCustomer = auth()->user()?->isCustomer();
 @endphp
 
 <section class="wm-event-card wm-event-top">
@@ -115,13 +117,18 @@
 
     <nav class="wm-event-workspace" aria-label="Event workspace navigation">
         <a href="{{ $overviewUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'dashboard' ? 'is-active' : '' }}">Dashboard</a>
-        <a href="{{ $infoUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'info' ? 'is-active' : '' }}">Edit info</a>
+        @if (! $isCustomer)
+            <a href="{{ $infoUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'info' ? 'is-active' : '' }}">Edit info</a>
+        @endif
         <a href="{{ $budgetUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'budget' ? 'is-active' : '' }}">Budget</a>
         <a href="{{ $checklistUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'checklist' ? 'is-active' : '' }}">Checklist</a>
-        <a href="{{ $calendarUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'calendar' ? 'is-active' : '' }}">Calendar</a>
+        @if (! $isCustomer)
+            <a href="{{ $calendarUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'calendar' ? 'is-active' : '' }}">Calendar</a>
+        @endif
         <a href="{{ $timelineUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'timeline' ? 'is-active' : '' }}">Timeline</a>
         <a href="{{ $moodboardUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'moodboard' ? 'is-active' : '' }}">Moodboard</a>
         <a href="{{ $guestsUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'guests' ? 'is-active' : '' }}">Guests</a>
         <a href="{{ $layoutsUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'layouts' ? 'is-active' : '' }}">Layout &amp; Seating</a>
+        <a href="{{ $websiteUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'website' ? 'is-active' : '' }}">Website</a>
     </nav>
 </section>

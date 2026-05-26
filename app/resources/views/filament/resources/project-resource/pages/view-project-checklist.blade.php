@@ -3,6 +3,7 @@
         $record = $this->getRecord();
         $summary = $this->getChecklistSummary();
         $sections = $this->getChecklistSections();
+        $isCustomer = auth()->user()?->isCustomer();
     @endphp
 
     <style>
@@ -737,11 +738,13 @@
         ])
 
         <section class="wm-checklist-summary">
-            <article class="wm-event-card wm-checklist-stat">
-                <p class="wm-checklist-stat-label">Sections</p>
-                <p class="wm-checklist-stat-value">{{ $summary['sections'] }}</p>
-                <p class="wm-checklist-stat-meta">Admin, client and supplier task boards.</p>
-            </article>
+            @if (! $isCustomer)
+                <article class="wm-event-card wm-checklist-stat">
+                    <p class="wm-checklist-stat-label">Sections</p>
+                    <p class="wm-checklist-stat-value">{{ $summary['sections'] }}</p>
+                    <p class="wm-checklist-stat-meta">Admin, client and supplier task boards.</p>
+                </article>
+            @endif
             <article class="wm-event-card wm-checklist-stat">
                 <p class="wm-checklist-stat-label">Total tasks</p>
                 <p class="wm-checklist-stat-value">{{ $summary['total'] }}</p>
@@ -778,25 +781,27 @@
                         </div>
                     </div>
 
-                    <div class="wm-checklist-add-row">
-                        @if (str_starts_with($section['key'], 'supplier-'))
-                            <button
-                                type="button"
-                                class="wm-checklist-add-button"
-                                wire:click="addChecklistItem('supplier', {{ $section['items']->first()?->supplier_id ? $section['items']->first()->supplier_id : 'null' }})"
-                            >
-                                + Add task
-                            </button>
-                        @elseif ($section['key'] === 'client')
-                            <button type="button" class="wm-checklist-add-button" wire:click="addChecklistItem('client')">
-                                + Add task
-                            </button>
-                        @else
-                            <button type="button" class="wm-checklist-add-button" wire:click="addChecklistItem('admin')">
-                                + Add task
-                            </button>
-                        @endif
-                    </div>
+                    @if (! $isCustomer)
+                        <div class="wm-checklist-add-row">
+                            @if (str_starts_with($section['key'], 'supplier-'))
+                                <button
+                                    type="button"
+                                    class="wm-checklist-add-button"
+                                    wire:click="addChecklistItem('supplier', {{ $section['items']->first()?->supplier_id ? $section['items']->first()->supplier_id : 'null' }})"
+                                >
+                                    + Add task
+                                </button>
+                            @elseif ($section['key'] === 'client')
+                                <button type="button" class="wm-checklist-add-button" wire:click="addChecklistItem('client')">
+                                    + Add task
+                                </button>
+                            @else
+                                <button type="button" class="wm-checklist-add-button" wire:click="addChecklistItem('admin')">
+                                    + Add task
+                                </button>
+                            @endif
+                        </div>
+                    @endif
 
                     @if ($section['items']->isEmpty())
                         <div class="wm-checklist-empty">
@@ -845,20 +850,31 @@
                                             </button>
                                         @else
                                             <div class="wm-checklist-editor">
-                                                <input
-                                                    type="text"
-                                                    class="wm-checklist-title-input"
-                                                    placeholder="Enter a task description"
-                                                    wire:model.live.debounce.400ms="checklistForms.{{ $item->id }}.title"
-                                                >
+                                                @if ($isCustomer)
+                                                    <div class="wm-checklist-summary-title">{{ $titleLabel !== '' ? $titleLabel : '(Unnamed Task)' }}</div>
+                                                @else
+                                                    <input
+                                                        type="text"
+                                                        class="wm-checklist-title-input"
+                                                        placeholder="Enter a task description"
+                                                        wire:model.live.debounce.400ms="checklistForms.{{ $item->id }}.title"
+                                                    >
+                                                @endif
 
-                                                <textarea
-                                                    class="wm-checklist-details-input"
-                                                    rows="3"
-                                                    placeholder="details"
-                                                    wire:model.live.debounce.400ms="checklistForms.{{ $item->id }}.details"
-                                                ></textarea>
+                                                @if ($isCustomer)
+                                                    @if (filled($checklistForms[$item->id]['details'] ?? $item->details))
+                                                        <div class="wm-checklist-summary-details">{{ trim((string) ($checklistForms[$item->id]['details'] ?? $item->details)) }}</div>
+                                                    @endif
+                                                @else
+                                                    <textarea
+                                                        class="wm-checklist-details-input"
+                                                        rows="3"
+                                                        placeholder="details"
+                                                        wire:model.live.debounce.400ms="checklistForms.{{ $item->id }}.details"
+                                                    ></textarea>
+                                                @endif
 
+                                                @if (! $isCustomer)
                                                 <div class="wm-checklist-schedule">
                                                     <div class="wm-checklist-schedule-toggle">
                                                         <button
@@ -907,6 +923,7 @@
                                                         </select>
                                                     </div>
                                                 </div>
+                                                @endif
 
                                                 <div class="wm-checklist-meta">
                                                     <span class="wm-checklist-pill">{{ $item->checklist?->title ?? 'Checklist' }}</span>
@@ -919,7 +936,7 @@
                                     </div>
 
                                     <div class="wm-checklist-side">
-                                        @if ($isExpanded)
+                                        @if ($isExpanded && ! $isCustomer)
                                             <div class="wm-checklist-actions">
                                                 <button
                                                     type="button"
