@@ -31,6 +31,7 @@
         .wm-seat-table-glow { fill: #d9b86f; opacity: 0; filter: drop-shadow(0 0 18px rgba(201,169,106,.62)); pointer-events: none; }
         .wm-seat-table.is-selected .wm-seat-table-glow { opacity: .35; }
         .wm-seat-table.is-selected .wm-seat-table-shape { fill: #fff4d8; stroke: #c9a96a; stroke-width: 4; filter: drop-shadow(0 14px 18px rgba(201,169,106,.28)); }
+        .wm-seat-hit-area { fill: transparent; stroke: transparent; pointer-events: all; }
         .wm-seat-label { fill: #2d2a26; font-size: 13px; font-weight: 900; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
         .wm-seat-chair { cursor: pointer; }
         .wm-seat-chair-seat { fill: #fffaf2; stroke: #9d8451; stroke-width: 1.4; }
@@ -115,6 +116,16 @@
                                 transform="translate({{ $table['center_x'] }}, {{ $table['center_y'] }}) rotate({{ $table['rotation'] }})"
                                 x-on:click.stop="selectTable({{ $table['id'] }})"
                             >
+                                <rect
+                                    class="wm-seat-hit-area"
+                                    x="{{ -($table['primary_dimension'] / 2) - 18 }}"
+                                    y="-28"
+                                    width="{{ $table['primary_dimension'] + 36 }}"
+                                    height="74"
+                                    rx="18"
+                                    x-show="isChairRow(tableById({{ $table['id'] }}))"
+                                    @if ($table['table_type'] !== 'chair_row') style="display: none;" @endif
+                                ></rect>
                                 <ellipse
                                     class="wm-seat-table-glow"
                                     cx="0"
@@ -131,8 +142,8 @@
                                     width="{{ $table['primary_dimension'] + 36 }}"
                                     height="{{ $table['secondary_dimension'] + 36 }}"
                                     rx="18"
-                                    x-show="! isRound(tableById({{ $table['id'] }}))"
-                                    @if (in_array($table['table_type'], ['round', 'oval'], true)) style="display: none;" @endif
+                                    x-show="isBoxTable(tableById({{ $table['id'] }}))"
+                                    @if (in_array($table['table_type'], ['round', 'oval', 'chair_row'], true)) style="display: none;" @endif
                                 ></rect>
                                 <ellipse
                                     class="wm-seat-table-shape"
@@ -150,8 +161,8 @@
                                     width="{{ $table['primary_dimension'] }}"
                                     height="{{ $table['secondary_dimension'] }}"
                                     rx="7"
-                                    x-show="! isRound(tableById({{ $table['id'] }}))"
-                                    @if (in_array($table['table_type'], ['round', 'oval'], true)) style="display: none;" @endif
+                                    x-show="isBoxTable(tableById({{ $table['id'] }}))"
+                                    @if (in_array($table['table_type'], ['round', 'oval', 'chair_row'], true)) style="display: none;" @endif
                                 ></rect>
 
                                 @for ($seatIndex = 0; $seatIndex < 160; $seatIndex++)
@@ -167,11 +178,17 @@
                                         <rect class="wm-seat-chair-back" x="-10" y="-14" width="20" height="7" rx="3"></rect>
                                         <line class="wm-seat-chair-seat" x1="-6" y1="9" x2="-6" y2="13"></line>
                                         <line class="wm-seat-chair-seat" x1="6" y1="9" x2="6" y2="13"></line>
-                                        <text class="wm-seat-number" x="0" y="1" x-text="{{ $seatIndex + 1 }}"></text>
+                                        <text
+                                            class="wm-seat-number"
+                                            x="0"
+                                            y="1"
+                                            x-bind:transform="isChairRow(tableById({{ $table['id'] }})) ? 'rotate(180)' : ''"
+                                            x-text="{{ $seatIndex + 1 }}"
+                                        ></text>
                                     </g>
                                     <g
                                         class="wm-seat-tag"
-                                        x-show="seatGuestShort(tableById({{ $table['id'] }}), {{ $seatIndex + 1 }})"
+                                        x-show="! isChairRow(tableById({{ $table['id'] }})) && seatGuestShort(tableById({{ $table['id'] }}), {{ $seatIndex + 1 }})"
                                         x-bind:transform="seatTagTransform(tableById({{ $table['id'] }}), {{ $seatIndex }})"
                                         style="display: none;"
                                     >
@@ -189,7 +206,12 @@
                                     </g>
                                 @endfor
 
-                                <text class="wm-seat-label" x="0" y="0">{{ $table['name'] }}</text>
+                                <text
+                                    class="wm-seat-label"
+                                    x="0"
+                                    y="0"
+                                    x-bind:y="isChairRow(tableById({{ $table['id'] }})) ? 34 : 0"
+                                >{{ $table['name'] }}</text>
                             </g>
                         @endforeach
                     </g>
@@ -292,6 +314,12 @@
                 isRound(table) {
                     return table && ['round', 'oval'].includes(table.table_type);
                 },
+                isChairRow(table) {
+                    return table?.table_type === 'chair_row';
+                },
+                isBoxTable(table) {
+                    return table && ! this.isRound(table) && ! this.isChairRow(table);
+                },
                 seats(table) {
                     if (! table) return [];
                     const seats = [];
@@ -299,6 +327,23 @@
                     const height = Number(table.secondary_dimension || width);
                     const seatGap = 18;
                     const chairInset = 7;
+
+                    if (this.isChairRow(table)) {
+                        const count = Number(table.seats_total || 0);
+                        const spacing = 26;
+                        const startX = -((count - 1) * spacing) / 2;
+
+                        for (let index = 0; index < count; index++) {
+                            seats.push({
+                                number: index + 1,
+                                x: startX + (index * spacing),
+                                y: 0,
+                                rotation: 180,
+                            });
+                        }
+
+                        return seats;
+                    }
 
                     if (this.isRound(table)) {
                         const count = Number(table.seats_total || 0);

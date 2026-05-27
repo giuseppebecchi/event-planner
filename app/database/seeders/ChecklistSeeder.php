@@ -37,6 +37,7 @@ class ChecklistSeeder extends Seeder
                         'order' => (int) ($option['order'] ?? 0),
                         'title' => (string) ($option['title'] ?? ''),
                         'default' => (bool) ($option['default'] ?? false),
+                        'to_be_filled' => (bool) ($option['to_be_filled'] ?? false),
                         'anticipation' => $option['default'] ? ($option['anticipation'] ?? null) : null,
                         'assigned_to' => Arr::get($option, 'assigned_to', 'none'),
                     ];

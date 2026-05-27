@@ -12,7 +12,10 @@
         $otherDocuments = $this->getOtherDocuments();
         $payments = $this->getPayments();
         $images = $this->getImages();
-        $checklistItems = $this->getChecklistItems();
+        $checklistSummary = $this->getChecklistSummary();
+        $checklistSections = $this->getChecklistSections();
+        $supplierOptions = $this->getSupplierOptions();
+        $commissionSummary = $this->getCommissionSummary();
         $isCustomer = auth()->user()?->isCustomer();
     @endphp
 
@@ -21,6 +24,10 @@
             display: flex;
             flex-direction: column;
             gap: 1rem;
+        }
+
+        [x-cloak] {
+            display: none !important;
         }
 
         .wm-event-card {
@@ -342,7 +349,7 @@
 
         .wm-dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
             gap: 1rem;
         }
 
@@ -437,6 +444,22 @@
             margin: 0;
             color: #746d66;
             line-height: 1.55;
+        }
+
+        .wm-dashboard-footer {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            min-height: 1.55rem;
+            margin-top: 0.1rem;
+            padding: 0 0.55rem;
+            border-radius: 999px;
+            background: rgba(181, 76, 61, 0.08);
+            color: #9f4336;
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
         }
 
         .wm-dashboard-action {
@@ -679,12 +702,451 @@
             border: 1px solid #ece5dd;
         }
 
+        .wm-checklist-summary {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .wm-checklist-stat {
+            padding: 1.15rem 1.2rem;
+        }
+
+        .wm-checklist-stat-label {
+            margin: 0;
+            color: #8b847d;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        .wm-checklist-stat-value {
+            margin: 0.55rem 0 0;
+            color: #2d2a26;
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .wm-checklist-stat-meta {
+            margin: 0.55rem 0 0;
+            color: #746d66;
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        .wm-checklist-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 0.7rem;
+        }
+
+        .wm-checklist-filter {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.8rem 1rem;
+            border-radius: 999px;
+            border: 1px solid #e7dfd5;
+            background: rgba(255, 255, 255, 0.92);
+            color: #5f5953;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .wm-checklist-board {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1.25rem;
+            align-items: start;
+        }
+
+        .wm-checklist-section {
+            padding: 1.25rem 1.35rem;
+        }
+
+        .wm-checklist-section-head {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.15rem;
+        }
+
+        .wm-checklist-avatar {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 4.2rem;
+            height: 4.2rem;
+            border-radius: 999px;
+            border: 3px solid #d7d1ca;
+            background: #f8f5f1;
+            color: #bbb4ad;
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+        }
+
+        .wm-checklist-section-title {
+            margin: 0;
+            color: #111;
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .wm-checklist-section-subtitle {
+            margin: 0.25rem 0 0;
+            color: #6f6963;
+            font-size: 0.95rem;
+            font-style: italic;
+        }
+
+        .wm-checklist-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .wm-checklist-row {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 0.9rem;
+            align-items: start;
+            padding: 0.35rem 0;
+            position: relative;
+        }
+
+        .wm-checklist-row.is-completed {
+            opacity: 0.54;
+        }
+
+        .wm-checklist-row.is-expanded {
+            z-index: 45;
+        }
+
+        .wm-checklist-toggle {
+            margin-top: 0.45rem;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.45rem;
+            border: 2px solid #d4cec5;
+            background: #fffdf9;
+            accent-color: #c8bf7a;
+        }
+
+        .wm-checklist-main {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-width: 0;
+        }
+
+        .wm-checklist-summary-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 0.75rem;
+            align-items: center;
+            min-height: 2.6rem;
+            width: 100%;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .wm-checklist-summary-copy,
+        .wm-checklist-editor,
+        .wm-checklist-schedule {
+            display: grid;
+            gap: 0.5rem;
+            min-width: 0;
+        }
+
+        .wm-checklist-summary-title {
+            color: #4f4943;
+            font-size: 0.98rem;
+            line-height: 1.45;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .wm-checklist-summary-details {
+            color: #9a9289;
+            font-size: 0.82rem;
+            line-height: 1.35;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .wm-checklist-title-input,
+        .wm-checklist-details-input,
+        .wm-checklist-response-input {
+            width: 100%;
+            border: 0;
+            border-bottom: 1px solid transparent;
+            background: transparent;
+            color: #4f4943;
+            padding: 0.1rem 0;
+            outline: none;
+        }
+
+        .wm-checklist-details-input,
+        .wm-checklist-response-input {
+            min-height: 3.4rem;
+            resize: vertical;
+            font-size: 0.9rem;
+            line-height: 1.45;
+            color: #877e75;
+        }
+
+        .wm-checklist-response-box {
+            display: grid;
+            gap: 0.35rem;
+            padding: 0.65rem 0.75rem;
+            border: 1px solid #ece5dd;
+            border-radius: 0.85rem;
+            background: #fffdf9;
+        }
+
+        .wm-checklist-response-label,
+        .wm-checklist-fill-toggle,
+        .wm-checklist-supplier-label {
+            color: #7a7168;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .wm-checklist-fill-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            width: fit-content;
+        }
+
+        .wm-checklist-supplier-field {
+            display: grid;
+            gap: 0.35rem;
+            max-width: 24rem;
+        }
+
+        .wm-checklist-schedule-toggle,
+        .wm-checklist-meta,
+        .wm-checklist-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+        }
+
+        .wm-checklist-schedule-chip {
+            display: inline-flex;
+            align-items: center;
+            min-height: 2rem;
+            padding: 0 0.85rem;
+            border-radius: 999px;
+            border: 1px solid #e2d8ca;
+            background: #fbf8f4;
+            color: #6c645d;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .wm-checklist-schedule-chip.is-active {
+            border-color: #c9a96a;
+            background: #fffaf2;
+            color: #8f6d29;
+        }
+
+        .wm-checklist-schedule-grid {
+            display: grid;
+            grid-template-columns: 6rem 9rem;
+            gap: 0.65rem;
+            align-items: center;
+        }
+
+        .wm-checklist-schedule-input,
+        .wm-checklist-schedule-select,
+        .wm-checklist-supplier-select {
+            width: 100%;
+            min-height: 2.55rem;
+            border: 1px solid #ddd2c5;
+            border-radius: 0.85rem;
+            background: #fff;
+            padding: 0 0.85rem;
+            color: #4f4943;
+        }
+
+        .wm-checklist-schedule-date {
+            width: min(14rem, 100%);
+        }
+
+        .wm-checklist-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 1.7rem;
+            padding: 0 0.65rem;
+            border-radius: 999px;
+            background: #f6f1e8;
+            color: #665f57;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .wm-checklist-side {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.55rem;
+            min-width: 8.5rem;
+            padding-top: 0.4rem;
+        }
+
+        .wm-checklist-time {
+            color: #6f6963;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .wm-checklist-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border: 0;
+            border-radius: 999px;
+            background: #f6f1e8;
+            color: #a16c63;
+            cursor: pointer;
+        }
+
+        .wm-checklist-divider {
+            height: 1px;
+            background: #ece4da;
+            margin: 0.1rem 0;
+        }
+
+        .wm-checklist-empty {
+            color: #a29a92;
+            font-size: 1rem;
+            font-style: italic;
+            padding: 0.3rem 0;
+        }
+
+        .wm-checklist-add-row {
+            margin-bottom: 0.95rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid #ece4da;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .wm-checklist-add-button {
+            border: 0;
+            background: transparent;
+            color: #b38b43;
+            font-size: 0.92rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .wm-checklist-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+            background: rgba(39, 32, 24, 0.18);
+        }
+
+        .wm-checklist-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            z-index: 50;
+            width: min(31rem, calc(100vw - 2rem));
+            transform: translate(-50%, -50%);
+            border: 2px solid #d93025;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 24px 60px rgba(24, 18, 14, 0.18);
+            padding: 1.65rem;
+        }
+
+        .wm-checklist-modal-copy {
+            margin: 0;
+            color: #d93025;
+            font-size: 1.1rem;
+            line-height: 1.55;
+            text-align: center;
+        }
+
+        .wm-checklist-modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 0.9rem;
+            margin-top: 1.35rem;
+        }
+
+        .wm-checklist-modal-button {
+            min-width: 8.6rem;
+            min-height: 3rem;
+            border: 1px solid #ddd2c5;
+            background: #fff;
+            color: #6f6963;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .wm-checklist-modal-button.is-danger {
+            border-color: #d93025;
+            color: #d93025;
+        }
+
+        .wm-commission-summary {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.85rem;
+        }
+
+        .wm-commission-payment-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+            gap: 0.75rem;
+            align-items: end;
+        }
+
+        .wm-field[readonly] {
+            background: #f5f0e9;
+            color: #6a625a;
+        }
+
         @media (max-width: 1100px) {
             .wm-top-kpis,
             .wm-dashboard-grid,
             .wm-two-col,
             .wm-three-col,
             .wm-inline-grid,
+            .wm-checklist-summary,
+            .wm-checklist-board,
+            .wm-commission-summary,
+            .wm-commission-payment-grid,
             .wm-gallery-grid {
                 grid-template-columns: 1fr;
             }
@@ -730,6 +1192,9 @@
                         <span class="wm-dashboard-label">{{ $card['label'] }}</span>
                         <span class="wm-dashboard-value">{{ $card['value'] }}</span>
                         <span class="wm-dashboard-meta">{{ $card['meta'] }}</span>
+                        @if (filled($card['footer'] ?? null))
+                            <span class="wm-dashboard-footer">{{ $card['footer'] }}</span>
+                        @endif
                     </span>
                     <span class="wm-dashboard-action" aria-hidden="true">
                         <x-heroicon-o-arrow-right />
@@ -1174,21 +1639,396 @@
         @endif
 
         @if ($this->activeWorkspaceTab === 'checklist')
-        <section id="checklist" class="wm-section wm-card wm-panel">
-            <div class="wm-section-head">
-                <div>
-                    <h3 class="wm-section-title">Checklist</h3>
-                    <p class="wm-section-subtitle">Operational reminders and future milestone placeholders for this supplier.</p>
+        <section id="checklist" class="wm-section wm-form">
+            <section class="wm-checklist-summary">
+                @if (! $isCustomer)
+                    <article class="wm-card wm-checklist-stat">
+                        <p class="wm-checklist-stat-label">Sections</p>
+                        <p class="wm-checklist-stat-value">{{ $checklistSummary['sections'] }}</p>
+                        <p class="wm-checklist-stat-meta">Planner, client and supplier task boards.</p>
+                    </article>
+                @endif
+                <article class="wm-card wm-checklist-stat">
+                    <p class="wm-checklist-stat-label">Total tasks</p>
+                    <p class="wm-checklist-stat-value">{{ $checklistSummary['total'] }}</p>
+                    <p class="wm-checklist-stat-meta">Tasks linked to {{ $summary['supplier'] }}.</p>
+                </article>
+                <article class="wm-card wm-checklist-stat">
+                    <p class="wm-checklist-stat-label">Completed</p>
+                    <p class="wm-checklist-stat-value">{{ $checklistSummary['completed'] }}</p>
+                    <p class="wm-checklist-stat-meta">{{ $checklistSummary['open'] }} still open.</p>
+                </article>
+                <article class="wm-card wm-checklist-stat">
+                    <p class="wm-checklist-stat-label">Due soon</p>
+                    <p class="wm-checklist-stat-value">{{ $checklistSummary['due_soon'] }}</p>
+                    <p class="wm-checklist-stat-meta">Open tasks due in the next 30 days.</p>
+                </article>
+            </section>
+
+            <div class="wm-checklist-toolbar">
+                <label class="wm-checklist-filter">
+                    <input type="checkbox" wire:model.live="hideCompleted">
+                    <span>Hide completed</span>
+                </label>
+            </div>
+
+            <section class="wm-checklist-board">
+                @foreach ($checklistSections as $section)
+                    <article class="wm-card wm-checklist-section">
+                        <div class="wm-checklist-section-head">
+                            <div class="wm-checklist-avatar">{{ $section['avatar'] }}</div>
+
+                            <div>
+                                <h3 class="wm-checklist-section-title">{{ $section['title'] }}</h3>
+                                <p class="wm-checklist-section-subtitle">{{ $section['subtitle'] }}</p>
+                            </div>
+                        </div>
+
+                        @if (! $isCustomer)
+                            <div class="wm-checklist-add-row">
+                                @if (str_starts_with($section['key'], 'supplier-'))
+                                    <button type="button" class="wm-checklist-add-button" wire:click="addChecklistItem('supplier', {{ $this->proposalRecord->supplier_id ?: 'null' }})">
+                                        + Add task
+                                    </button>
+                                @elseif ($section['key'] === 'client')
+                                    <button type="button" class="wm-checklist-add-button" wire:click="addChecklistItem('client', {{ $this->proposalRecord->supplier_id ?: 'null' }})">
+                                        + Add task
+                                    </button>
+                                @else
+                                    <button type="button" class="wm-checklist-add-button" wire:click="addChecklistItem('admin', {{ $this->proposalRecord->supplier_id ?: 'null' }})">
+                                        + Add task
+                                    </button>
+                                @endif
+                            </div>
+                        @endif
+
+                        @if ($section['items']->isEmpty())
+                            <div class="wm-checklist-empty">
+                                {{ $this->hideCompleted && ($section['total_count'] ?? 0) > 0 ? 'All tasks in this section are completed.' : 'No tasks currently assigned.' }}
+                            </div>
+                        @else
+                            <div class="wm-checklist-items">
+                                @foreach ($section['items'] as $item)
+                                    @php
+                                        $isExpanded = $expandedChecklistItemId === $item->id;
+                                        $timeLabel = $item->due_date
+                                            ? $item->due_date->format('M j, Y')
+                                            : ($item->anticipation ?: 'No timeframe');
+                                        $titleLabel = trim((string) ($checklistForms[$item->id]['title'] ?? $item->title ?? ''));
+                                        $responseLabel = trim((string) ($checklistForms[$item->id]['response'] ?? $item->response ?? ''));
+                                    @endphp
+
+                                    <div class="wm-checklist-row {{ $item->completed ? 'is-completed' : '' }} {{ $isExpanded ? 'is-expanded' : '' }}" wire:key="supplier-checklist-item-{{ $item->id }}">
+                                        <input
+                                            type="checkbox"
+                                            class="wm-checklist-toggle"
+                                            @checked($item->completed)
+                                            x-on:click.stop
+                                            x-on:change="$wire.toggleChecklistCompleted({{ $item->id }}, $event.target.checked)"
+                                        >
+
+                                        <div
+                                            class="wm-checklist-main"
+                                            @if ($isExpanded)
+                                                x-data="{ mode: @js($checklistForms[$item->id]['due_date_mode'] ?? 'relative') }"
+                                                x-on:mousedown.window="if (! $el.contains($event.target) && ! $event.target.closest('[data-checklist-delete-modal]')) { $wire.collapseChecklistItem() }"
+                                            @endif
+                                        >
+                                            @if (! $isExpanded)
+                                                <button type="button" class="wm-checklist-summary-row" wire:click="expandChecklistItem({{ $item->id }})">
+                                                    <span class="wm-checklist-summary-copy">
+                                                        <span class="wm-checklist-summary-title">{{ $titleLabel !== '' ? $titleLabel : '(Unnamed Task)' }}</span>
+                                                        @if (filled($checklistForms[$item->id]['details'] ?? $item->details))
+                                                            <span class="wm-checklist-summary-details">{{ trim((string) ($checklistForms[$item->id]['details'] ?? $item->details)) }}</span>
+                                                        @endif
+                                                        @if ($item->to_be_filled)
+                                                            <span class="wm-checklist-summary-details">
+                                                                {{ $responseLabel !== '' ? $responseLabel : 'Response required' }}
+                                                            </span>
+                                                        @endif
+                                                    </span>
+                                                    <span class="wm-checklist-time">{{ $timeLabel }}</span>
+                                                </button>
+                                            @else
+                                                <div class="wm-checklist-editor">
+                                                    @if ($isCustomer)
+                                                        <div class="wm-checklist-summary-title">{{ $titleLabel !== '' ? $titleLabel : '(Unnamed Task)' }}</div>
+                                                    @else
+                                                        <input
+                                                            type="text"
+                                                            class="wm-checklist-title-input"
+                                                            placeholder="Enter a task description"
+                                                            wire:model.live.debounce.400ms="checklistForms.{{ $item->id }}.title"
+                                                        >
+                                                    @endif
+
+                                                    @if ($isCustomer)
+                                                        @if (filled($checklistForms[$item->id]['details'] ?? $item->details))
+                                                            <div class="wm-checklist-summary-details">{{ trim((string) ($checklistForms[$item->id]['details'] ?? $item->details)) }}</div>
+                                                        @endif
+                                                    @else
+                                                        <textarea
+                                                            class="wm-checklist-details-input"
+                                                            rows="3"
+                                                            placeholder="details"
+                                                            wire:model.live.debounce.400ms="checklistForms.{{ $item->id }}.details"
+                                                        ></textarea>
+                                                    @endif
+
+                                                    @if (! $isCustomer)
+                                                        <label class="wm-checklist-fill-toggle">
+                                                            <input type="checkbox" wire:model.live="checklistForms.{{ $item->id }}.to_be_filled">
+                                                            <span>Requires response</span>
+                                                        </label>
+
+                                                        <label class="wm-checklist-supplier-field">
+                                                            <span class="wm-checklist-supplier-label">Supplier</span>
+                                                            <select class="wm-checklist-supplier-select" wire:model.live="checklistForms.{{ $item->id }}.supplier_id">
+                                                                <option value="">No supplier</option>
+                                                                @foreach ($supplierOptions as $supplierId => $supplierName)
+                                                                    <option value="{{ $supplierId }}">{{ $supplierName }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </label>
+                                                    @endif
+
+                                                    @if ($item->to_be_filled || (bool) ($checklistForms[$item->id]['to_be_filled'] ?? false))
+                                                        <div class="wm-checklist-response-box">
+                                                            <label class="wm-checklist-response-label" for="supplier-checklist-response-{{ $item->id }}">Response</label>
+                                                            <textarea
+                                                                id="supplier-checklist-response-{{ $item->id }}"
+                                                                class="wm-checklist-response-input"
+                                                                rows="3"
+                                                                placeholder="Write the response"
+                                                                wire:model.live.debounce.400ms="checklistForms.{{ $item->id }}.response"
+                                                            ></textarea>
+                                                        </div>
+                                                    @endif
+
+                                                    @if (! $isCustomer)
+                                                        <div class="wm-checklist-schedule">
+                                                            <div class="wm-checklist-schedule-toggle">
+                                                                <button
+                                                                    type="button"
+                                                                    class="wm-checklist-schedule-chip"
+                                                                    x-bind:class="{ 'is-active': mode === 'relative' }"
+                                                                    x-on:mousedown.stop.prevent="mode = 'relative'; $wire.set('checklistForms.{{ $item->id }}.due_date_mode', 'relative')"
+                                                                    x-on:click.stop.prevent
+                                                                >
+                                                                    Relative
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    class="wm-checklist-schedule-chip"
+                                                                    x-bind:class="{ 'is-active': mode === 'exact' }"
+                                                                    x-on:mousedown.stop.prevent="mode = 'exact'; $wire.set('checklistForms.{{ $item->id }}.due_date_mode', 'exact')"
+                                                                    x-on:click.stop.prevent
+                                                                >
+                                                                    Exact date
+                                                                </button>
+                                                            </div>
+
+                                                            <div class="wm-checklist-schedule-date" x-cloak x-show="mode === 'exact'">
+                                                                <input type="date" class="wm-checklist-schedule-input" wire:model.live.debounce.400ms="checklistForms.{{ $item->id }}.exact_due_date">
+                                                            </div>
+
+                                                            <div class="wm-checklist-schedule-grid" x-cloak x-show="mode === 'relative'">
+                                                                <input
+                                                                    type="number"
+                                                                    min="1"
+                                                                    class="wm-checklist-schedule-input"
+                                                                    placeholder="3"
+                                                                    wire:model.live.debounce.400ms="checklistForms.{{ $item->id }}.anticipation_value"
+                                                                >
+                                                                <select class="wm-checklist-schedule-select" wire:model.live.debounce.400ms="checklistForms.{{ $item->id }}.anticipation_unit">
+                                                                    <option value="days">Days</option>
+                                                                    <option value="weeks">Weeks</option>
+                                                                    <option value="months">Months</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    @endif
+
+                                                    <div class="wm-checklist-meta">
+                                                        <span class="wm-checklist-pill">{{ $item->checklist?->title ?? 'Checklist' }}</span>
+                                                        @if ($item->supplier)
+                                                            <span class="wm-checklist-pill">{{ $item->supplier->name }}</span>
+                                                        @endif
+                                                        @if ($item->completed_at)
+                                                            <span class="wm-checklist-pill">Completed {{ $item->completed_at->format('d/m H:i') }}</span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        </div>
+
+                                        <div class="wm-checklist-side">
+                                            @if ($isExpanded && ! $isCustomer)
+                                                <div class="wm-checklist-actions">
+                                                    <button
+                                                        type="button"
+                                                        class="wm-checklist-action"
+                                                        x-on:mousedown.stop
+                                                        wire:click.stop="promptDeleteChecklistItem({{ $item->id }})"
+                                                        title="Delete task"
+                                                    >
+                                                        <x-heroicon-o-trash />
+                                                    </button>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                    @if (! $loop->last)
+                                        <div class="wm-checklist-divider"></div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        @endif
+                    </article>
+                @endforeach
+            </section>
+
+            @if ($confirmDeleteChecklistItemId)
+                <div class="wm-checklist-modal-backdrop" data-checklist-delete-modal wire:click="cancelDeleteChecklistItem"></div>
+                <div
+                    class="wm-checklist-modal"
+                    data-checklist-delete-modal
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="supplier-checklist-delete-title"
+                    x-on:mousedown.stop
+                    x-on:click.stop
+                >
+                    <p id="supplier-checklist-delete-title" class="wm-checklist-modal-copy">
+                        Deleting this item will permanently remove it from the project's checklist.
+                    </p>
+
+                    <div class="wm-checklist-modal-actions">
+                        <button type="button" class="wm-checklist-modal-button" wire:click.stop="cancelDeleteChecklistItem">
+                            Cancel
+                        </button>
+                        <button type="button" class="wm-checklist-modal-button is-danger" wire:click.stop="confirmDeleteChecklistItem">
+                            Delete item
+                        </button>
+                    </div>
+                </div>
+            @endif
+        </section>
+        @endif
+
+        @if (! $isCustomer && $this->activeWorkspaceTab === 'commissions')
+        <section id="commissions" class="wm-section wm-two-col">
+            <div class="wm-card wm-panel">
+                <div class="wm-section-head">
+                    <div>
+                        <h3 class="wm-section-title">Commissions</h3>
+                        <p class="wm-section-subtitle">Set the real commission for this event and track commission invoice payments.</p>
+                    </div>
+                </div>
+
+                <div class="wm-form">
+                    <div class="wm-commission-summary">
+                        <div class="wm-item">
+                            <p class="wm-item-meta">Mode</p>
+                            <p class="wm-item-title">{{ $commissionSummary['mode_label'] }}</p>
+                        </div>
+                        <div class="wm-item">
+                            <p class="wm-item-meta">Commission</p>
+                            <p class="wm-item-title">EUR {{ number_format($commissionSummary['amount'], 2, ',', '.') }}</p>
+                        </div>
+                        <div class="wm-item">
+                            <p class="wm-item-meta">Paid</p>
+                            <p class="wm-item-title">EUR {{ number_format((float) ($this->commissionForm['commission_total_amount_payed'] ?? 0), 2, ',', '.') }}</p>
+                        </div>
+                        <div class="wm-item">
+                            <p class="wm-item-meta">Balance</p>
+                            <p class="wm-item-title">
+                                EUR {{ number_format(max(0, (float) ($this->commissionForm['commission_amount'] ?? 0) - (float) ($this->commissionForm['commission_total_amount_payed'] ?? 0)), 2, ',', '.') }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="wm-label">Commission mode</label>
+                        <div class="wm-radio-group">
+                            @foreach (\App\Models\CategoryBudgetSupplier::COMMISSION_MODE_OPTIONS as $value => $label)
+                                <label class="wm-radio-option">
+                                    <input type="radio" wire:model.live="commissionForm.commission_mode" value="{{ $value }}">
+                                    <span>{{ $label }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    @if (($this->commissionForm['commission_mode'] ?? null) === \App\Models\CategoryBudgetSupplier::COMMISSION_MODE_PERCENTAGE)
+                        <div class="wm-inline-grid">
+                            <div>
+                                <label class="wm-label" for="commission-percentage">Commission percentage</label>
+                                <input id="commission-percentage" type="number" min="0" max="100" step="0.01" class="wm-field" wire:model.live="commissionForm.commission_percentage">
+                            </div>
+                            <div>
+                                <label class="wm-label" for="commission-amount-percentage">Commission amount</label>
+                                <input id="commission-amount-percentage" type="number" step="0.01" class="wm-field" wire:model="commissionForm.commission_amount" readonly>
+                            </div>
+                        </div>
+                    @elseif (($this->commissionForm['commission_mode'] ?? null) === \App\Models\CategoryBudgetSupplier::COMMISSION_MODE_FIXED)
+                        <div class="wm-inline-grid">
+                            <div>
+                                <label class="wm-label" for="commission-amount-fixed">Commission amount</label>
+                                <input id="commission-amount-fixed" type="number" min="0" step="0.01" class="wm-field" wire:model.live="commissionForm.commission_amount">
+                            </div>
+                        </div>
+                    @else
+                        <div class="wm-empty">No commission is expected for this supplier on this event.</div>
+                    @endif
+
+                    <div class="wm-actions">
+                        <x-filament::button color="primary" wire:click="saveCommission">Save commissions</x-filament::button>
+                    </div>
                 </div>
             </div>
 
-            <div class="wm-checklist-grid">
-                @foreach ($checklistItems as $item)
-                    <div class="wm-checklist-item">
-                        <p class="wm-item-title">{{ $item['title'] }}</p>
-                        <p class="wm-item-copy">{{ $item['detail'] }}</p>
+            <div class="wm-card wm-panel">
+                <div class="wm-section-head">
+                    <div>
+                        <h3 class="wm-section-title">Commission payments</h3>
+                        <p class="wm-section-subtitle">Each paid date contributes to the total commission paid.</p>
                     </div>
-                @endforeach
+                </div>
+
+                <div class="wm-form">
+                    @forelse (($this->commissionForm['commission_payments_json'] ?? []) as $index => $payment)
+                        <div class="wm-item">
+                            <div class="wm-commission-payment-grid">
+                                <div>
+                                    <label class="wm-label" for="commission-invoice-date-{{ $index }}">Invoice date</label>
+                                    <input id="commission-invoice-date-{{ $index }}" type="date" class="wm-field" wire:model="commissionForm.commission_payments_json.{{ $index }}.invoice_date">
+                                </div>
+                                <div>
+                                    <label class="wm-label" for="commission-due-date-{{ $index }}">Due date</label>
+                                    <input id="commission-due-date-{{ $index }}" type="date" class="wm-field" wire:model="commissionForm.commission_payments_json.{{ $index }}.due_date">
+                                </div>
+                                <div>
+                                    <label class="wm-label" for="commission-payment-amount-{{ $index }}">Amount</label>
+                                    <input id="commission-payment-amount-{{ $index }}" type="number" min="0" step="0.01" class="wm-field" wire:model.live="commissionForm.commission_payments_json.{{ $index }}.amount">
+                                </div>
+                                <div>
+                                    <label class="wm-label" for="commission-paid-at-{{ $index }}">Paid at</label>
+                                    <input id="commission-paid-at-{{ $index }}" type="date" class="wm-field" wire:model.live="commissionForm.commission_payments_json.{{ $index }}.paid_at">
+                                </div>
+                                <button type="button" class="wm-link" wire:click="removeCommissionPayment({{ $index }})">Delete</button>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="wm-empty">No commission payments annotated yet.</div>
+                    @endforelse
+
+                    <div class="wm-actions">
+                        <x-filament::button color="gray" wire:click="addCommissionPayment">Add payment</x-filament::button>
+                        <x-filament::button color="primary" wire:click="saveCommission">Save commissions</x-filament::button>
+                    </div>
+                </div>
             </div>
         </section>
         @endif

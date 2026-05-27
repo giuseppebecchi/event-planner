@@ -66,6 +66,8 @@ class Supplier extends Model
         'contact_person',
         'style_description',
         'price_range',
+        'default_commission_enabled',
+        'default_commission_percentage',
         'internal_notes',
         'address_line_1',
         'address_line_2',
@@ -162,6 +164,8 @@ class Supplier extends Model
         'loc_accessible' => 'boolean',
         'loc_rental_fee' => 'decimal:2',
         'loc_booking_deposit' => 'decimal:2',
+        'default_commission_enabled' => 'boolean',
+        'default_commission_percentage' => 'decimal:2',
     ];
 
     public function category(): BelongsTo

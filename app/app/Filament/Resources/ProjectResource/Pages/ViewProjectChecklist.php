@@ -14,6 +14,7 @@ use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 
 class ViewProjectChecklist extends Page
 {
@@ -174,11 +175,15 @@ class ViewProjectChecklist extends Page
         validator($data, [
             'title' => ['nullable', 'string'],
             'details' => ['nullable', 'string'],
+            'to_be_filled' => ['nullable', 'boolean'],
+            'supplier_id' => ['nullable', 'integer', Rule::in(array_keys($this->getSupplierOptions()))],
         ])->validate();
 
         $item->forceFill([
             'title' => trim((string) ($data['title'] ?? '')),
             'details' => filled($data['details'] ?? null) ? trim((string) $data['details']) : null,
+            'to_be_filled' => (bool) ($data['to_be_filled'] ?? false),
+            'supplier_id' => filled($data['supplier_id'] ?? null) ? (int) $data['supplier_id'] : null,
         ])->save();
 
         $this->syncChecklistForm($item->fresh());
@@ -186,7 +191,13 @@ class ViewProjectChecklist extends Page
 
     public function updatedChecklistForms(mixed $value, string $name): void
     {
-        if (! preg_match('/^(\d+)\.(title|details|anticipation_value|anticipation_unit|exact_due_date)$/', $name, $matches)) {
+        if (! preg_match('/^(\d+)\.(title|details|to_be_filled|supplier_id|response|anticipation_value|anticipation_unit|exact_due_date)$/', $name, $matches)) {
+            return;
+        }
+
+        if ($matches[2] === 'response') {
+            $this->saveChecklistResponse((int) $matches[1]);
+
             return;
         }
 
@@ -194,7 +205,7 @@ class ViewProjectChecklist extends Page
             return;
         }
 
-        if (in_array($matches[2], ['title', 'details'], true)) {
+        if (in_array($matches[2], ['title', 'details', 'to_be_filled', 'supplier_id'], true)) {
             $this->saveChecklistItem((int) $matches[1]);
 
             return;
@@ -203,11 +214,43 @@ class ViewProjectChecklist extends Page
         $this->saveChecklistSchedule((int) $matches[1]);
     }
 
+    public function saveChecklistResponse(int $itemId): void
+    {
+        $item = $this->findChecklistItem($itemId);
+        $data = $this->checklistForms[$itemId] ?? [];
+
+        validator($data, [
+            'response' => ['nullable', 'string'],
+        ])->validate();
+
+        $item->forceFill([
+            'response' => filled($data['response'] ?? null) ? trim((string) $data['response']) : null,
+        ])->save();
+
+        $this->syncChecklistForm($item->fresh());
+    }
+
     public function toggleChecklistCompleted(int $itemId, bool $completed): void
     {
         $item = $this->findChecklistItem($itemId);
+        $data = $this->checklistForms[$itemId] ?? [];
+        $response = filled($data['response'] ?? null)
+            ? trim((string) $data['response'])
+            : null;
+
+        if ($completed && $item->to_be_filled && blank($response)) {
+            Notification::make()
+                ->title('A response is required before completing this task')
+                ->warning()
+                ->send();
+
+            $this->syncChecklistForm($item->fresh());
+
+            return;
+        }
 
         $item->forceFill([
+            'response' => $item->to_be_filled ? $response : $item->response,
             'completed' => $completed,
             'completed_at' => $completed ? now() : null,
         ])->save();
@@ -239,7 +282,9 @@ class ViewProjectChecklist extends Page
             'order' => $nextOrder > 0 ? $nextOrder : 1,
             'title' => '',
             'details' => null,
+            'response' => null,
             'default' => false,
+            'to_be_filled' => false,
             'anticipation' => null,
             'assigned_to' => $assignedTo,
             'due_date' => null,
@@ -377,6 +422,19 @@ class ViewProjectChecklist extends Page
             ->values();
     }
 
+    public function getSupplierOptions(): array
+    {
+        return $this->getRecord()
+            ->loadMissing('categoryBudgetSuppliers.supplier')
+            ->categoryBudgetSuppliers
+            ->map(fn ($proposal) => $proposal->supplier)
+            ->filter()
+            ->unique('id')
+            ->sortBy('name')
+            ->mapWithKeys(fn ($supplier): array => [$supplier->id => $supplier->name])
+            ->all();
+    }
+
     protected function findChecklistItem(int $itemId): ProjectChecklistOption
     {
         /** @var ProjectChecklistOption $item */
@@ -418,7 +476,10 @@ class ViewProjectChecklist extends Page
         return [
             'title' => $item->title ?? '',
             'details' => $item->details ?? '',
+            'response' => $item->response ?? '',
+            'supplier_id' => $item->supplier_id ?? '',
             'completed' => (bool) $item->completed,
+            'to_be_filled' => (bool) $item->to_be_filled,
             'due_date_mode' => $item->anticipation ? 'relative' : 'exact',
             'anticipation_value' => $anticipationValue,
             'anticipation_unit' => $anticipationUnit ?? 'weeks',

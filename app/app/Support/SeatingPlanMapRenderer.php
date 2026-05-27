@@ -119,13 +119,17 @@ class SeatingPlanMapRenderer
         $width = (float) $table->primary_dimension;
         $height = $table->secondary_dimension !== null ? (float) $table->secondary_dimension : $width;
         $isRound = in_array($table->table_type, ['round', 'oval'], true);
+        $isChairRow = $table->table_type === 'chair_row';
         $assignments = $this->normalizedAssignments($table);
         $content = [];
 
         $content[] = '<g transform="translate(' . (float) $table->center_x . ',' . (float) $table->center_y . ') rotate(' . (float) $table->rotation . ')">';
-        $content[] = $isRound
-            ? '<ellipse class="table" cx="0" cy="0" rx="' . ($width / 2) . '" ry="' . ($height / 2) . '"/>'
-            : '<rect class="table" x="' . (-$width / 2) . '" y="' . (-$height / 2) . '" width="' . $width . '" height="' . $height . '" rx="7"/>';
+
+        if (! $isChairRow) {
+            $content[] = $isRound
+                ? '<ellipse class="table" cx="0" cy="0" rx="' . ($width / 2) . '" ry="' . ($height / 2) . '"/>'
+                : '<rect class="table" x="' . (-$width / 2) . '" y="' . (-$height / 2) . '" width="' . $width . '" height="' . $height . '" rx="7"/>';
+        }
 
         foreach ($this->seats($table) as $seat) {
             $guest = $people->get($assignments[$seat['number']] ?? null);
@@ -151,7 +155,7 @@ class SeatingPlanMapRenderer
             }
         }
 
-        $content[] = '<text class="table-label" x="0" y="0">' . e($table->name) . '</text>';
+        $content[] = '<text class="table-label" x="0" y="' . ($isChairRow ? 34 : 0) . '">' . e($table->name) . '</text>';
         $content[] = '</g>';
 
         return implode('', $content);
@@ -164,6 +168,23 @@ class SeatingPlanMapRenderer
         $height = $table->secondary_dimension !== null ? (float) $table->secondary_dimension : $width;
         $seatGap = 18;
         $chairInset = 7;
+
+        if ($table->table_type === 'chair_row') {
+            $count = (int) ($table->seats_total ?? 0);
+            $spacing = ProjectTable::CHAIR_ROW_SPACING;
+            $startX = - (($count - 1) * $spacing) / 2;
+
+            for ($index = 0; $index < $count; $index++) {
+                $seats[] = [
+                    'number' => $index + 1,
+                    'x' => $startX + ($index * $spacing),
+                    'y' => 0,
+                    'rotation' => 180,
+                ];
+            }
+
+            return $seats;
+        }
 
         if (in_array($table->table_type, ['round', 'oval'], true)) {
             $count = (int) ($table->seats_total ?? 0);

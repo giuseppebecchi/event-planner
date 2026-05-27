@@ -3,6 +3,7 @@
         $record = $this->getRecord();
         $summary = $this->getChecklistSummary();
         $sections = $this->getChecklistSections();
+        $supplierOptions = $this->getSupplierOptions();
         $isCustomer = auth()->user()?->isCustomer();
     @endphp
 
@@ -455,7 +456,8 @@
         }
 
         .wm-checklist-title-input,
-        .wm-checklist-details-input {
+        .wm-checklist-details-input,
+        .wm-checklist-response-input {
             width: 100%;
             border: 0;
             border-bottom: 1px solid transparent;
@@ -471,21 +473,55 @@
         }
 
         .wm-checklist-item.is-completed .wm-checklist-title-input,
-        .wm-checklist-item.is-completed .wm-checklist-details-input {
+        .wm-checklist-item.is-completed .wm-checklist-details-input,
+        .wm-checklist-item.is-completed .wm-checklist-response-input {
             color: #9c948c;
         }
 
         .wm-checklist-title-input:focus,
-        .wm-checklist-details-input:focus {
+        .wm-checklist-details-input:focus,
+        .wm-checklist-response-input:focus {
             border-bottom-color: #c9a96a;
         }
 
-        .wm-checklist-details-input {
+        .wm-checklist-details-input,
+        .wm-checklist-response-input {
             min-height: 3.4rem;
             resize: vertical;
             font-size: 0.9rem;
             line-height: 1.45;
             color: #877e75;
+        }
+
+        .wm-checklist-response-box {
+            display: grid;
+            gap: 0.35rem;
+            padding: 0.65rem 0.75rem;
+            border: 1px solid #ece5dd;
+            border-radius: 0.85rem;
+            background: #fffdf9;
+        }
+
+        .wm-checklist-response-label,
+        .wm-checklist-fill-toggle {
+            color: #7a7168;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .wm-checklist-fill-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            width: fit-content;
+        }
+
+        .wm-checklist-fill-toggle input {
+            width: 1rem;
+            height: 1rem;
+            accent-color: #7a8f7b;
         }
 
         .wm-checklist-meta {
@@ -504,6 +540,20 @@
             display: grid;
             gap: 0.65rem;
             padding-top: 0.15rem;
+        }
+
+        .wm-checklist-supplier-field {
+            display: grid;
+            gap: 0.35rem;
+            max-width: 24rem;
+        }
+
+        .wm-checklist-supplier-label {
+            color: #7a7168;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
         }
 
         .wm-checklist-schedule-toggle {
@@ -543,7 +593,8 @@
         }
 
         .wm-checklist-schedule-input,
-        .wm-checklist-schedule-select {
+        .wm-checklist-schedule-select,
+        .wm-checklist-supplier-select {
             width: 100%;
             min-height: 2.55rem;
             border: 1px solid #ddd2c5;
@@ -816,6 +867,7 @@
                                         ? $item->due_date->format('M j, Y')
                                         : ($item->anticipation ?: 'No timeframe');
                                     $titleLabel = trim((string) ($checklistForms[$item->id]['title'] ?? $item->title ?? ''));
+                                    $responseLabel = trim((string) ($checklistForms[$item->id]['response'] ?? $item->response ?? ''));
                                 @endphp
 
                                 <div class="wm-checklist-item {{ $item->completed ? 'is-completed' : '' }} {{ $isExpanded ? 'is-expanded' : '' }}" wire:key="checklist-item-{{ $item->id }}">
@@ -845,6 +897,11 @@
                                                     @if (filled($checklistForms[$item->id]['details'] ?? $item->details))
                                                         <span class="wm-checklist-summary-details">{{ trim((string) ($checklistForms[$item->id]['details'] ?? $item->details)) }}</span>
                                                     @endif
+                                                    @if ($item->to_be_filled)
+                                                        <span class="wm-checklist-summary-details">
+                                                            {{ $responseLabel !== '' ? $responseLabel : 'Response required' }}
+                                                        </span>
+                                                    @endif
                                                 </span>
                                                 <span class="wm-checklist-time">{{ $timeLabel }}</span>
                                             </button>
@@ -872,6 +929,44 @@
                                                         placeholder="details"
                                                         wire:model.live.debounce.400ms="checklistForms.{{ $item->id }}.details"
                                                     ></textarea>
+                                                @endif
+
+                                                @if (! $isCustomer)
+                                                    <label class="wm-checklist-fill-toggle">
+                                                        <input
+                                                            type="checkbox"
+                                                            wire:model.live="checklistForms.{{ $item->id }}.to_be_filled"
+                                                        >
+                                                        <span>Requires response</span>
+                                                    </label>
+                                                @endif
+
+                                                @if (! $isCustomer)
+                                                    <label class="wm-checklist-supplier-field">
+                                                        <span class="wm-checklist-supplier-label">Supplier</span>
+                                                        <select
+                                                            class="wm-checklist-supplier-select"
+                                                            wire:model.live="checklistForms.{{ $item->id }}.supplier_id"
+                                                        >
+                                                            <option value="">No supplier</option>
+                                                            @foreach ($supplierOptions as $supplierId => $supplierName)
+                                                                <option value="{{ $supplierId }}">{{ $supplierName }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </label>
+                                                @endif
+
+                                                @if ($item->to_be_filled || (bool) ($checklistForms[$item->id]['to_be_filled'] ?? false))
+                                                    <div class="wm-checklist-response-box">
+                                                        <label class="wm-checklist-response-label" for="checklist-response-{{ $item->id }}">Response</label>
+                                                        <textarea
+                                                            id="checklist-response-{{ $item->id }}"
+                                                            class="wm-checklist-response-input"
+                                                            rows="3"
+                                                            placeholder="Write the response"
+                                                            wire:model.live.debounce.400ms="checklistForms.{{ $item->id }}.response"
+                                                        ></textarea>
+                                                    </div>
                                                 @endif
 
                                                 @if (! $isCustomer)
@@ -927,6 +1022,9 @@
 
                                                 <div class="wm-checklist-meta">
                                                     <span class="wm-checklist-pill">{{ $item->checklist?->title ?? 'Checklist' }}</span>
+                                                    @if ($item->supplier)
+                                                        <span class="wm-checklist-pill">{{ $item->supplier->name }}</span>
+                                                    @endif
                                                     @if ($item->completed_at)
                                                         <span class="wm-checklist-pill">Completed {{ $item->completed_at->format('d/m H:i') }}</span>
                                                     @endif

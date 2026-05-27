@@ -12,7 +12,12 @@ class ProjectTable extends Model
         'oval' => 'Oval',
         'rectangular' => 'Rectangular',
         'square' => 'Square',
+        'chair_row' => 'Chair row',
     ];
+
+    public const CHAIR_ROW_SPACING = 26;
+    public const CHAIR_ROW_SIDE_PADDING = 20;
+    public const CHAIR_ROW_HEIGHT = 24;
 
     protected $fillable = [
         'project_seating_plan_id',
@@ -48,13 +53,18 @@ class ProjectTable extends Model
 
     public function seatCount(): int
     {
-        if (in_array($this->table_type, ['round', 'oval'], true)) {
+        if (in_array($this->table_type, ['round', 'oval', 'chair_row'], true)) {
             return (int) ($this->seats_total ?? 0);
         }
 
         return collect($this->seats_by_side_json ?? [])
             ->only(['top', 'right', 'bottom', 'left'])
             ->sum(fn ($count): int => (int) $count);
+    }
+
+    public static function chairRowWidth(int $seats): float
+    {
+        return max(44, ($seats * self::CHAIR_ROW_SPACING) + (self::CHAIR_ROW_SIDE_PADDING * 2));
     }
 
     public function assignedCount(): int

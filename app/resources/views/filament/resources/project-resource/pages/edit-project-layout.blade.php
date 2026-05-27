@@ -31,6 +31,7 @@
         .wm-seat-table-glow { fill: #d9b86f; opacity: 0; filter: drop-shadow(0 0 18px rgba(201,169,106,.62)); pointer-events: none; }
         .wm-seat-table.is-selected .wm-seat-table-glow { opacity: .35; }
         .wm-seat-table.is-selected .wm-seat-table-shape { fill: #fff4d8; stroke: #c9a96a; stroke-width: 4; filter: drop-shadow(0 14px 18px rgba(201,169,106,.28)); }
+        .wm-seat-hit-area { fill: transparent; stroke: transparent; pointer-events: all; }
         .wm-seat-label { fill: #2d2a26; font-size: 13px; font-weight: 900; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
         .wm-seat-chair { pointer-events: none; }
         .wm-seat-chair-seat { fill: #fffaf2; stroke: #9d8451; stroke-width: 1.4; }
@@ -73,6 +74,7 @@
     <div
         class="wm-seat-editor"
         x-data="seatingEditor({
+            planId: @js($plan->id),
             tables: @js($initialTables),
             backgroundUrl: @js($backgroundUrl),
             viewport: @js($this->getViewportState()),
@@ -84,7 +86,7 @@
             <header class="wm-seat-topbar">
                 <div class="wm-seat-title">
                     <h1>{{ $plan->name }}</h1>
-                    <p>{{ \App\Models\ProjectSeatingPlan::PLAN_TYPE_OPTIONS[$plan->plan_type] ?? ($plan->plan_type ?: 'Layout') }} · <span x-text="tables.length"></span> tables</p>
+                    <p>{{ \App\Models\ProjectSeatingPlan::PLAN_TYPE_OPTIONS[$plan->plan_type] ?? ($plan->plan_type ?: 'Layout') }} · <span x-text="tables.length"></span> seating items</p>
                 </div>
                 <div class="wm-seat-actions">
                     <a class="wm-seat-button" href="{{ $layoutsUrl }}">Back</a>
@@ -134,6 +136,18 @@
                                 x-on:pointerdown.stop="startDrag($event, tableById({{ $table['id'] }}))"
                                 x-on:click.stop="select({{ $table['id'] }})"
                             >
+                                <rect
+                                    class="wm-seat-hit-area"
+                                    x="{{ -($table['primary_dimension'] / 2) - 18 }}"
+                                    y="-28"
+                                    width="{{ $table['primary_dimension'] + 36 }}"
+                                    height="74"
+                                    rx="18"
+                                    x-show="isChairRow(tableById({{ $table['id'] }}))"
+                                    x-bind:x="-(tableById({{ $table['id'] }}).primary_dimension / 2) - 18"
+                                    x-bind:width="tableById({{ $table['id'] }}).primary_dimension + 36"
+                                    @if ($table['table_type'] !== 'chair_row') style="display: none;" @endif
+                                ></rect>
                                 <ellipse
                                     class="wm-seat-table-glow"
                                     cx="0"
@@ -152,12 +166,12 @@
                                     width="{{ $table['primary_dimension'] + 36 }}"
                                     height="{{ $table['secondary_dimension'] + 36 }}"
                                     rx="18"
-                                    x-show="! isRound(tableById({{ $table['id'] }}))"
+                                    x-show="isBoxTable(tableById({{ $table['id'] }}))"
                                     x-bind:x="-(tableById({{ $table['id'] }}).primary_dimension / 2) - 18"
                                     x-bind:y="-(tableById({{ $table['id'] }}).secondary_dimension / 2) - 18"
                                     x-bind:width="tableById({{ $table['id'] }}).primary_dimension + 36"
                                     x-bind:height="tableById({{ $table['id'] }}).secondary_dimension + 36"
-                                    @if (in_array($table['table_type'], ['round', 'oval'], true)) style="display: none;" @endif
+                                    @if (in_array($table['table_type'], ['round', 'oval', 'chair_row'], true)) style="display: none;" @endif
                                 ></rect>
                                 <ellipse
                                     class="wm-seat-table-shape"
@@ -177,12 +191,12 @@
                                     width="{{ $table['primary_dimension'] }}"
                                     height="{{ $table['secondary_dimension'] }}"
                                     rx="7"
-                                    x-show="! isRound(tableById({{ $table['id'] }}))"
+                                    x-show="isBoxTable(tableById({{ $table['id'] }}))"
                                     x-bind:x="-tableById({{ $table['id'] }}).primary_dimension / 2"
                                     x-bind:y="-tableById({{ $table['id'] }}).secondary_dimension / 2"
                                     x-bind:width="tableById({{ $table['id'] }}).primary_dimension"
                                     x-bind:height="tableById({{ $table['id'] }}).secondary_dimension"
-                                    @if (in_array($table['table_type'], ['round', 'oval'], true)) style="display: none;" @endif
+                                    @if (in_array($table['table_type'], ['round', 'oval', 'chair_row'], true)) style="display: none;" @endif
                                 ></rect>
 
                                 @for ($seatIndex = 0; $seatIndex < 160; $seatIndex++)
@@ -199,7 +213,13 @@
                                     </g>
                                 @endfor
 
-                                <text class="wm-seat-label" x="0" y="0" x-text="tableById({{ $table['id'] }}).name">{{ $table['name'] }}</text>
+                                <text
+                                    class="wm-seat-label"
+                                    x="0"
+                                    y="0"
+                                    x-bind:y="isChairRow(tableById({{ $table['id'] }})) ? 34 : 0"
+                                    x-text="tableById({{ $table['id'] }}).name"
+                                >{{ $table['name'] }}</text>
 
                                 <g
                                     x-show="selectedId === {{ $table['id'] }}"
@@ -240,23 +260,23 @@
             <section class="wm-seat-panel">
                 <h2>Tables</h2>
                 <button type="button" class="wm-seat-button is-primary" x-on:click="openAddTablesModal">
-                    Add Table(s)
+                    Add seating
                 </button>
-                <p class="wm-seat-muted">New tables are placed at the bottom right of the plan, side by side.</p>
+                <p class="wm-seat-muted">New tables and chair rows are placed at the bottom right of the plan, side by side.</p>
             </section>
 
             <section class="wm-seat-panel" x-show="! selectedTable()">
-                <h2>Table info</h2>
-                <p class="wm-seat-muted">Select a table in the plan to edit name, shape, size, rotation and seats.</p>
+                <h2>Seating info</h2>
+                <p class="wm-seat-muted">Select a table or chair row in the plan to edit its settings.</p>
             </section>
 
             <template x-if="selectedTable()">
                 <section class="wm-seat-panel">
-                    <h2>Table info</h2>
+                    <h2>Seating info</h2>
                     <div class="wm-seat-info-head">
                         <p class="wm-seat-info-value" x-text="selectedTable().name"></p>
                         <div class="wm-seat-icon-actions" aria-label="Table actions">
-                            <button type="button" class="wm-seat-icon-button" title="Duplicate table" x-on:click="duplicateSelectedTable">
+                            <button type="button" class="wm-seat-icon-button" title="Duplicate seating item" x-on:click="duplicateSelectedTable">
                                 <svg viewBox="0 0 24 24" aria-hidden="true">
                                     <rect x="8" y="8" width="11" height="11" rx="2"></rect>
                                     <path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"></path>
@@ -264,7 +284,7 @@
                                     <path d="M11.5 13.5h4"></path>
                                 </svg>
                             </button>
-                            <button type="button" class="wm-seat-icon-button is-danger" title="Delete table" x-on:click="openDeleteTableModal">
+                            <button type="button" class="wm-seat-icon-button is-danger" title="Delete seating item" x-on:click="openDeleteTableModal">
                                 <svg viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M3 6h18"></path>
                                     <path d="M8 6V4h8v2"></path>
@@ -286,9 +306,10 @@
                             <option value="oval">Oval</option>
                             <option value="square">Square</option>
                             <option value="rectangular">Rectangular</option>
+                            <option value="chair_row">Chair row</option>
                         </select>
                     </div>
-                    <div class="wm-seat-prop-grid">
+                    <div class="wm-seat-prop-grid" x-show="! isChairRow(selectedTable())">
                         <div class="wm-seat-field">
                             <label>Width</label>
                             <input class="wm-seat-input" type="number" min="20" max="600" x-model.number="selectedTable().primary_dimension" x-on:input.debounce.700ms="scheduleSave()">
@@ -305,7 +326,14 @@
                         </template>
                     </div>
 
-                    <template x-if="! isRound(selectedTable())">
+                    <template x-if="isChairRow(selectedTable())">
+                        <div class="wm-seat-field">
+                            <label>Seats</label>
+                            <input class="wm-seat-input" type="number" min="0" max="80" x-model.number="selectedTable().seats_total" x-on:input.debounce.700ms="normalizeSelectedSeats(); scheduleSave()">
+                        </div>
+                    </template>
+
+                    <template x-if="! isRound(selectedTable()) && ! isChairRow(selectedTable())">
                         <div class="wm-seat-prop-grid">
                             <div class="wm-seat-field">
                                 <label>Top seats</label>
@@ -334,14 +362,15 @@
                 <div class="wm-seat-modal-backdrop" x-on:click="showAddTablesModal = false"></div>
                 <div class="wm-seat-modal" role="dialog" aria-modal="true" x-cloak>
                     <div class="wm-seat-modal-head">
-                        <h2>Add Table(s)</h2>
+                        <h2>Add seating</h2>
                         <button type="button" class="wm-seat-button is-tool" x-on:click="showAddTablesModal = false">x</button>
                     </div>
                     <div class="wm-seat-field">
                         <label>Type</label>
                         <select class="wm-seat-select" x-model="addForm.type">
                             <option value="round">Round tables</option>
-                            <option value="square">Square tables</option>
+                            <option value="rectangular">Rectangular tables</option>
+                            <option value="chair_row">Chair rows</option>
                         </select>
                     </div>
                     <div class="wm-seat-prop-grid">
@@ -356,7 +385,7 @@
                     </div>
                     <div class="wm-seat-modal-actions">
                         <button type="button" class="wm-seat-button" x-on:click="showAddTablesModal = false">Cancel</button>
-                        <button type="button" class="wm-seat-button is-primary" x-on:click="addTablesFromModal">Add tables</button>
+                        <button type="button" class="wm-seat-button is-primary" x-on:click="addTablesFromModal">Add</button>
                     </div>
                 </div>
             </div>
@@ -367,7 +396,7 @@
                 <div class="wm-seat-modal-backdrop" x-on:click="showDeleteTableModal = false"></div>
                 <div class="wm-seat-modal" role="dialog" aria-modal="true" x-cloak>
                     <div class="wm-seat-modal-head">
-                        <h2>Delete table</h2>
+                        <h2>Delete seating item</h2>
                         <button type="button" class="wm-seat-button is-tool" x-on:click="showDeleteTableModal = false">x</button>
                     </div>
                     <p class="wm-seat-muted">
@@ -385,6 +414,7 @@
     @script
     <script>
         window.seatingEditor = (config) => ({
+                planId: config.planId,
                 tables: config.tables || [],
                 backgroundUrl: config.backgroundUrl,
                 selectedId: (config.tables || [])[0]?.id || null,
@@ -405,6 +435,14 @@
                 gridRows: Array.from({ length: 19 }, (_, index) => index * 50),
 
                 init() {
+                    const pendingSelection = window.localStorage.getItem(this.selectionStorageKey());
+
+                    if (pendingSelection && this.tableById(Number(pendingSelection))) {
+                        this.selectedId = Number(pendingSelection);
+                    }
+
+                    window.localStorage.removeItem(this.selectionStorageKey());
+
                     window.addEventListener('seating-background-updated', (event) => {
                         this.backgroundUrl = event.detail.url ?? event.detail[0]?.url ?? null;
                         this.schedulePreviewSave(500);
@@ -417,6 +455,9 @@
                 },
                 tableById(id) {
                     return this.tables.find((table) => table.id === id) || null;
+                },
+                selectionStorageKey() {
+                    return `seating-editor-selected-${this.planId}`;
                 },
                 tableTransform(id) {
                     const table = this.tableById(id);
@@ -445,11 +486,25 @@
                 isRound(table) {
                     return table && ['round', 'oval'].includes(table.table_type);
                 },
+                isChairRow(table) {
+                    return table?.table_type === 'chair_row';
+                },
+                isBoxTable(table) {
+                    return table && ! this.isRound(table) && ! this.isChairRow(table);
+                },
+                chairRowWidth(seats) {
+                    return Math.max(44, (Number(seats || 0) * 26) + 40);
+                },
                 normalizeSelectedSeats() {
                     const table = this.selectedTable();
                     if (! table) return;
 
-                    if (this.isRound(table)) {
+                    if (this.isChairRow(table)) {
+                        table.seats_total = Number(table.seats_total || 8);
+                        table.primary_dimension = this.chairRowWidth(table.seats_total);
+                        table.secondary_dimension = 24;
+                        table.seats_by_side_json = table.seats_by_side_json || { top: 0, right: 0, bottom: 0, left: 0 };
+                    } else if (this.isRound(table)) {
                         table.seats_total = Number(table.seats_total || 8);
                         table.seats_by_side_json = table.seats_by_side_json || { top: 0, right: 0, bottom: 0, left: 0 };
                     } else {
@@ -536,6 +591,24 @@
                     const height = Number(table.secondary_dimension || width);
                     const seatGap = 18;
                     const chairInset = 7;
+
+                    if (this.isChairRow(table)) {
+                        table.primary_dimension = this.chairRowWidth(table.seats_total);
+                        table.secondary_dimension = 24;
+                        const count = Number(table.seats_total || 0);
+                        const spacing = 26;
+                        const startX = -((count - 1) * spacing) / 2;
+
+                        for (let index = 0; index < count; index++) {
+                            seats.push({
+                                x: startX + (index * spacing),
+                                y: 0,
+                                rotation: 180,
+                            });
+                        }
+
+                        return seats;
+                    }
 
                     if (this.isRound(table)) {
                         const count = Number(table.seats_total || 0);
@@ -629,7 +702,12 @@
                     const table = this.selectedTable();
                     if (! table) return;
 
-                    await this.$wire.duplicateTable(table.id);
+                    const newTableId = await this.$wire.duplicateTable(table.id);
+
+                    if (newTableId) {
+                        window.localStorage.setItem(this.selectionStorageKey(), String(newTableId));
+                    }
+
                     window.location.reload();
                 },
                 scheduleSave(delay = 700) {
@@ -638,6 +716,12 @@
                     this.saveTimer = setTimeout(() => this.save(), delay);
                 },
                 async save() {
+                    this.tables.forEach((table) => {
+                        if (this.isChairRow(table)) {
+                            table.primary_dimension = this.chairRowWidth(table.seats_total);
+                            table.secondary_dimension = 24;
+                        }
+                    });
                     await this.$wire.saveTables(JSON.parse(JSON.stringify(this.tables)));
                     this.schedulePreviewSave(100);
                     this.saveStatus = 'Saved';

@@ -12,6 +12,16 @@ class CategoryBudgetSupplier extends Model
     public const STATUS_RECEIVED = 'received';
     public const STATUS_CONFIRMED = 'confirmed';
 
+    public const COMMISSION_MODE_NONE = 'NONE';
+    public const COMMISSION_MODE_FIXED = 'FIXED';
+    public const COMMISSION_MODE_PERCENTAGE = 'PERCENTAGE';
+
+    public const COMMISSION_MODE_OPTIONS = [
+        self::COMMISSION_MODE_NONE => 'None',
+        self::COMMISSION_MODE_FIXED => 'Fixed amount',
+        self::COMMISSION_MODE_PERCENTAGE => 'Percentage',
+    ];
+
     public const AVAILABILITY_STATUS_OPTIONS = [
         'pending' => 'Pending',
         'available' => 'Available',
@@ -53,6 +63,11 @@ class CategoryBudgetSupplier extends Model
         'planner_notes',
         'scouting_status',
         'proposed_amount',
+        'commission_mode',
+        'commission_percentage',
+        'commission_amount',
+        'commission_total_amount_payed',
+        'commission_payments_json',
         'proposal_summary',
         'proposal_status',
         'confirmed_at',
@@ -66,6 +81,10 @@ class CategoryBudgetSupplier extends Model
         'proposed_dates' => 'array',
         'location_available_dates' => 'array',
         'proposed_amount' => 'decimal:2',
+        'commission_percentage' => 'decimal:2',
+        'commission_amount' => 'decimal:2',
+        'commission_total_amount_payed' => 'decimal:2',
+        'commission_payments_json' => 'array',
     ];
 
     protected static function booted(): void
@@ -83,6 +102,9 @@ class CategoryBudgetSupplier extends Model
 
             $proposal->project_id = $budget->project_id;
             $proposal->category_id = $budget->category_id;
+
+            $proposal->applyDefaultCommissionIfNeeded();
+            $proposal->normalizeCommissionFields();
         });
 
         static::saved(function (CategoryBudgetSupplier $proposal): void {
@@ -153,5 +175,85 @@ class CategoryBudgetSupplier extends Model
             'availability_status' => $this->availability_status === 'pending' ? 'available' : $this->availability_status,
             'confirmed_at' => $this->confirmed_at ?? now(),
         ])->save();
+    }
+
+    public function commissionBaseAmount(): float
+    {
+        return (float) ($this->proposed_amount ?? 0);
+    }
+
+    public function calculatedCommissionAmount(): float
+    {
+        if ($this->commission_mode !== self::COMMISSION_MODE_PERCENTAGE) {
+            return (float) ($this->commission_amount ?? 0);
+        }
+
+        return round($this->commissionBaseAmount() * ((float) ($this->commission_percentage ?? 0) / 100), 2);
+    }
+
+    public function normalizeCommissionFields(): void
+    {
+        if (! array_key_exists((string) $this->commission_mode, self::COMMISSION_MODE_OPTIONS)) {
+            $this->commission_mode = self::COMMISSION_MODE_NONE;
+        }
+
+        if ($this->commission_mode === self::COMMISSION_MODE_PERCENTAGE) {
+            $this->commission_percentage = $this->commission_percentage !== null
+                ? max(0, min(100, (float) $this->commission_percentage))
+                : 0;
+            $this->commission_amount = $this->calculatedCommissionAmount();
+        } elseif ($this->commission_mode === self::COMMISSION_MODE_FIXED) {
+            $this->commission_percentage = null;
+            $this->commission_amount = max(0, (float) ($this->commission_amount ?? 0));
+        } else {
+            $this->commission_percentage = null;
+            $this->commission_amount = 0;
+        }
+
+        $this->commission_payments_json = $this->normalizedCommissionPayments();
+        $this->commission_total_amount_payed = $this->calculateCommissionPaidTotal($this->commission_payments_json);
+    }
+
+    public function normalizedCommissionPayments(): array
+    {
+        return collect($this->commission_payments_json ?? [])
+            ->filter(fn ($payment): bool => is_array($payment))
+            ->map(fn (array $payment): array => [
+                'invoice_date' => filled($payment['invoice_date'] ?? null) ? (string) $payment['invoice_date'] : null,
+                'due_date' => filled($payment['due_date'] ?? null) ? (string) $payment['due_date'] : null,
+                'amount' => round(max(0, (float) ($payment['amount'] ?? 0)), 2),
+                'paid_at' => filled($payment['paid_at'] ?? null) ? (string) $payment['paid_at'] : null,
+            ])
+            ->values()
+            ->all();
+    }
+
+    public static function calculateCommissionPaidTotal(?array $payments): float
+    {
+        return round(collect($payments ?? [])
+            ->filter(fn (array $payment): bool => filled($payment['paid_at'] ?? null))
+            ->sum(fn (array $payment): float => (float) ($payment['amount'] ?? 0)), 2);
+    }
+
+    protected function applyDefaultCommissionIfNeeded(): void
+    {
+        if ($this->exists || ! $this->supplier_id) {
+            return;
+        }
+
+        if (filled($this->commission_mode) && $this->commission_mode !== self::COMMISSION_MODE_NONE) {
+            return;
+        }
+
+        $supplier = $this->relationLoaded('supplier')
+            ? $this->supplier
+            : Supplier::query()->find($this->supplier_id);
+
+        if (! $supplier?->default_commission_enabled) {
+            return;
+        }
+
+        $this->commission_mode = self::COMMISSION_MODE_PERCENTAGE;
+        $this->commission_percentage = (float) ($supplier->default_commission_percentage ?? 0);
     }
 }

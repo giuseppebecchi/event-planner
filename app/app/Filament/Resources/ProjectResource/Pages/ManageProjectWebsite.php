@@ -113,6 +113,12 @@ class ManageProjectWebsite extends Page
             ],
         ];
 
+        foreach ($this->tabs() as $key => $label) {
+            if ($key !== 'home' && ! (bool) ($this->website[$key]['enabled'] ?? false)) {
+                $checks[$key] = [];
+            }
+        }
+
         $warnings = collect($checks)->map(fn (array $items): array => collect($items)
             ->filter(fn (bool $ok): bool => ! $ok)
             ->keys()
@@ -159,7 +165,7 @@ class ManageProjectWebsite extends Page
         $website = array_replace_recursive($defaults, $website);
 
         foreach ($this->tabs() as $section => $label) {
-            $website[$section]['enabled'] = (bool) ($website[$section]['enabled'] ?? true);
+            $website[$section]['enabled'] = (bool) ($website[$section]['enabled'] ?? ($defaults[$section]['enabled'] ?? false));
         }
 
         foreach (['schedule.items', 'travel.hotels', 'travel.transportation', 'wedding_party.people', 'gallery.images', 'things_to_do.items', 'faqs.items', 'events.items'] as $path) {

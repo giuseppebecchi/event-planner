@@ -352,6 +352,17 @@ class LocationResource extends Resource
                                         ->numeric()
                                         ->prefix('EUR')
                                         ->step('0.01'),
+                                    Components\Toggle::make('default_commission_enabled')
+                                        ->label('Default commission enabled')
+                                        ->live(),
+                                    Components\TextInput::make('default_commission_percentage')
+                                        ->label('Default commission percentage')
+                                        ->numeric()
+                                        ->step('0.01')
+                                        ->minValue(0)
+                                        ->maxValue(100)
+                                        ->suffix('%')
+                                        ->visible(fn (callable $get): bool => (bool) $get('default_commission_enabled')),
                                     Components\Textarea::make('loc_extra_costs')
                                         ->label('Recurring extra costs')
                                         ->rows(4),

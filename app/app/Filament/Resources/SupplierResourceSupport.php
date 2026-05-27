@@ -60,6 +60,22 @@ class SupplierResourceSupport
                         ->columnSpanFull(),
                 ]),
 
+            Section::make('Default commissions')
+                ->columns(3)
+                ->schema([
+                    Components\Toggle::make('default_commission_enabled')
+                        ->label('Default commission enabled')
+                        ->live(),
+                    Components\TextInput::make('default_commission_percentage')
+                        ->label('Default commission percentage')
+                        ->numeric()
+                        ->step('0.01')
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->suffix('%')
+                        ->visible(fn (callable $get): bool => (bool) $get('default_commission_enabled')),
+                ]),
+
             Section::make('Notes')
                 ->schema([
                     Components\Textarea::make('internal_notes')

@@ -75,6 +75,11 @@ class ChecklistResource extends Resource
                                 ->default(false)
                                 ->columnSpan(1)
                                 ->live(),
+                            Components\Toggle::make('to_be_filled')
+                                ->label('To be filled')
+                                ->default(false)
+                                ->columnSpan(1)
+                                ->helperText('Requires a written response instead of only a checkbox.'),
                             Components\TextInput::make('anticipation')
                                 ->placeholder('e.g. 3 days, 4 weeks, 9 months')
                                 ->columnSpan(2)
@@ -91,7 +96,7 @@ class ChecklistResource extends Resource
                                 ->required()
                                 ->default('none'),
                         ])
-                        ->columns(9)
+                        ->columns(10)
                         ->defaultItems(0)
                         ->reorderableWithButtons()
                         ->required(),
