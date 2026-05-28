@@ -63,6 +63,7 @@ class CategoryBudgetSupplier extends Model
         'planner_notes',
         'scouting_status',
         'proposed_amount',
+        'cost_items_json',
         'commission_mode',
         'commission_percentage',
         'commission_amount',
@@ -81,6 +82,7 @@ class CategoryBudgetSupplier extends Model
         'proposed_dates' => 'array',
         'location_available_dates' => 'array',
         'proposed_amount' => 'decimal:2',
+        'cost_items_json' => 'array',
         'commission_percentage' => 'decimal:2',
         'commission_amount' => 'decimal:2',
         'commission_total_amount_payed' => 'decimal:2',
@@ -156,6 +158,7 @@ class CategoryBudgetSupplier extends Model
         return filled($this->responded_at)
             || filled($this->response_text)
             || filled($this->proposed_amount)
+            || collect($this->cost_items_json ?? [])->contains(fn ($item): bool => is_array($item) && filled($item['label'] ?? null))
             || filled($this->proposal_summary)
             || filled($this->costs_and_conditions)
             || ($this->relationLoaded('projectDocuments')

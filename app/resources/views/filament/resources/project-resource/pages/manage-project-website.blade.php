@@ -7,6 +7,8 @@
         $warnings = $this->sectionWarnings();
         $publicUrl = $this->publicWebsiteUrl();
         $rsvpUrl = $this->firstRsvpUrl();
+        $palettes = $this->colorPalettes();
+        $fontPresets = $this->fontPresets();
     @endphp
 
     <style>
@@ -70,6 +72,15 @@
         .wm-website-field label { display: block; margin-bottom: .35rem; color: #5e5852; font-size: .72rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
         .wm-website-input, .wm-website-textarea, .wm-website-select { width: 100%; min-height: 2.8rem; border-radius: .8rem; border: 1px solid #ddd2c5; background: #fff; padding: .72rem .85rem; color: #2d2a26; }
         .wm-website-textarea { min-height: 6.5rem; resize: vertical; }
+        .wm-palette-grid { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .75rem; }
+        .wm-palette-option { display: grid; gap: .65rem; padding: .8rem; border: 1px solid #e6ddd4; border-radius: .85rem; background: #fffdf9; color: #2d2a26; text-align: left; cursor: pointer; }
+        .wm-palette-option.is-active { border-color: #2d7a39; box-shadow: 0 0 0 2px rgba(45,122,57,.12); }
+        .wm-palette-name { font-size: .72rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+        .wm-palette-swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: .28rem; }
+        .wm-palette-swatch { height: 1.4rem; border-radius: 999px; border: 1px solid rgba(45,42,38,.12); }
+        .wm-upload-row { display: flex; flex-wrap: wrap; align-items: center; gap: .7rem; }
+        .wm-upload-input { min-height: 2.8rem; max-width: 100%; border: 1px dashed #d4c7ba; border-radius: .8rem; background: #fff; padding: .55rem .7rem; color: #4b4540; }
+        .wm-website-thumb { width: 100%; max-width: 12rem; aspect-ratio: 16 / 10; display: grid; place-items: center; border: 1px solid #e5d8cb; border-radius: .75rem; background: #f7efe6; color: #8b8178; object-fit: cover; font-size: .78rem; font-weight: 800; }
         .wm-website-repeat { display: grid; gap: .8rem; }
         .wm-website-repeat-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-top: .2rem; }
         .wm-website-repeat-title { margin: 0; color: #2d2a26; font-size: .85rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
@@ -118,24 +129,27 @@
 
             <section class="wm-website-card wm-website-panel">
                 <div class="wm-website-grid">
-                    <div class="wm-website-field">
-                        <label>Accent color</label>
-                        <input class="wm-website-input" type="color" wire:model.live="website.settings.accent_color">
-                    </div>
-                    <div class="wm-website-field">
-                        <label>Background color</label>
-                        <input class="wm-website-input" type="color" wire:model.live="website.settings.background_color">
-                    </div>
-                    <div class="wm-website-field">
-                        <label>Text color</label>
-                        <input class="wm-website-input" type="color" wire:model.live="website.settings.text_color">
+                    <div class="wm-website-field is-full">
+                        <label>Color palette</label>
+                        <div class="wm-palette-grid">
+                            @foreach ($palettes as $key => $palette)
+                                <button type="button" wire:click="setPalette('{{ $key }}')" class="wm-palette-option {{ ($website['settings']['palette_preset'] ?? null) === $key ? 'is-active' : '' }}">
+                                    <span class="wm-palette-name">{{ $palette['name'] }}</span>
+                                    <span class="wm-palette-swatches">
+                                        @foreach ($palette['swatches'] as $swatch)
+                                            <span class="wm-palette-swatch" style="background: {{ $swatch }}"></span>
+                                        @endforeach
+                                    </span>
+                                </button>
+                            @endforeach
+                        </div>
                     </div>
                     <div class="wm-website-field">
                         <label>Font preset</label>
                         <select class="wm-website-select" wire:model="website.settings.font_preset">
-                            <option value="classic">Classic editorial</option>
-                            <option value="modern">Modern serif</option>
-                            <option value="minimal">Minimal clean</option>
+                            @foreach ($fontPresets as $key => $label)
+                                <option value="{{ $key }}">{{ $label }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="wm-website-field">
@@ -186,7 +200,17 @@
                             @include('filament.resources.project-resource.pages.partials.website-field', ['path' => 'website.home.eyebrow', 'label' => 'Hero phrase'])
                             @include('filament.resources.project-resource.pages.partials.website-field', ['path' => 'website.home.date', 'label' => 'Event date'])
                             @include('filament.resources.project-resource.pages.partials.website-field', ['path' => 'website.home.location', 'label' => 'Location'])
-                            @include('filament.resources.project-resource.pages.partials.website-field', ['path' => 'website.home.hero_image', 'label' => 'Hero image URL', 'full' => true])
+                            <div class="wm-website-field is-full">
+                                <label>Hero slider upload</label>
+                                <div class="wm-upload-row">
+                                    <input class="wm-upload-input" type="file" wire:model="heroImageUploads" multiple accept="image/*">
+                                    <x-filament::button type="button" color="gray" wire:click="uploadHeroImages" wire:loading.attr="disabled" wire:target="heroImageUploads,uploadHeroImages">
+                                        Add images
+                                    </x-filament::button>
+                                </div>
+                                @error('heroImageUploads.*') <p class="wm-website-warning">{{ $message }}</p> @enderror
+                            </div>
+                            @include('filament.resources.project-resource.pages.partials.website-list', ['section' => 'home', 'list' => 'hero_images', 'title' => 'Hero slider images'])
                             @include('filament.resources.project-resource.pages.partials.website-field', ['path' => 'website.home.subtitle', 'label' => 'Intro text', 'textarea' => true, 'full' => true])
                             @include('filament.resources.project-resource.pages.partials.website-field', ['path' => 'website.home.intro_title', 'label' => 'Story title'])
                             @include('filament.resources.project-resource.pages.partials.website-field', ['path' => 'website.home.intro_image', 'label' => 'Story image URL'])

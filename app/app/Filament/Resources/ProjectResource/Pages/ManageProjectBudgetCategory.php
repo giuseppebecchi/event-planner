@@ -59,6 +59,7 @@ class ManageProjectBudgetCategory extends Page
         'responded_at' => '',
         'availability_status' => 'available',
         'proposed_amount' => '',
+        'cost_items_json' => [],
         'proposal_summary' => '',
         'response_text' => '',
         'costs_and_conditions' => '',
@@ -226,6 +227,7 @@ class ManageProjectBudgetCategory extends Page
             'responded_at' => ($proposal->responded_at ?? now())->format('Y-m-d\TH:i'),
             'availability_status' => (string) ($proposal->availability_status ?? 'available'),
             'proposed_amount' => $proposal->proposed_amount !== null ? (string) $proposal->proposed_amount : '',
+            'cost_items_json' => $this->normalizeCostItems($proposal->cost_items_json ?? []),
             'proposal_summary' => (string) ($proposal->proposal_summary ?? ''),
             'response_text' => (string) ($proposal->response_text ?? ''),
             'costs_and_conditions' => (string) ($proposal->costs_and_conditions ?? ''),
@@ -246,6 +248,7 @@ class ManageProjectBudgetCategory extends Page
             'responded_at' => '',
             'availability_status' => 'available',
             'proposed_amount' => '',
+            'cost_items_json' => [],
             'proposal_summary' => '',
             'response_text' => '',
             'costs_and_conditions' => '',
@@ -292,6 +295,9 @@ class ManageProjectBudgetCategory extends Page
                 'form.responded_at' => ['required', 'date'],
                 'form.availability_status' => ['required', 'string'],
                 'form.proposed_amount' => ['nullable', 'numeric'],
+                'form.cost_items_json' => ['array'],
+                'form.cost_items_json.*.label' => ['nullable', 'string', 'max:180'],
+                'form.cost_items_json.*.amount' => ['nullable', 'numeric'],
                 'form.proposal_summary' => ['nullable', 'string'],
                 'form.response_text' => ['nullable', 'string'],
                 'form.costs_and_conditions' => ['nullable', 'string'],
@@ -312,6 +318,7 @@ class ManageProjectBudgetCategory extends Page
             'availability_status' => $data['form']['availability_status'],
             'response_text' => $data['form']['response_text'],
             'proposed_amount' => $data['form']['proposed_amount'] !== '' ? $data['form']['proposed_amount'] : null,
+            'cost_items_json' => $this->normalizeCostItems($data['form']['cost_items_json'] ?? []),
             'proposal_summary' => $data['form']['proposal_summary'],
             'costs_and_conditions' => $data['form']['costs_and_conditions'],
             'proposed_dates' => $this->explodeInlineList($data['form']['proposed_dates']),
@@ -361,6 +368,18 @@ class ManageProjectBudgetCategory extends Page
             ->title('Response saved')
             ->success()
             ->send();
+    }
+
+    public function addResponseCostItem(): void
+    {
+        $this->responseForm['cost_items_json'] ??= [];
+        $this->responseForm['cost_items_json'][] = ['label' => '', 'amount' => ''];
+    }
+
+    public function removeResponseCostItem(int $index): void
+    {
+        unset($this->responseForm['cost_items_json'][$index]);
+        $this->responseForm['cost_items_json'] = array_values($this->responseForm['cost_items_json'] ?? []);
     }
 
     public function openAcceptProposalModal(int $proposalId): void
@@ -428,6 +447,68 @@ class ManageProjectBudgetCategory extends Page
                 ($proposal->proposal_status === CategoryBudgetSupplier::STATUS_CONFIRMED ? 3 : ($proposal->hasResponse() ? 2 : 1)) * 1000000000000
             ) + (optional($proposal->updated_at)->timestamp ?? 0))
             ->values();
+    }
+
+    public function getCostItemSuggestions(): array
+    {
+        return $this->categoryBudgetRecord
+            ->loadMissing('supplierProposals')
+            ->supplierProposals
+            ->reject(fn (CategoryBudgetSupplier $proposal): bool => $this->responseProposalId !== null && (int) $proposal->id === (int) $this->responseProposalId)
+            ->flatMap(fn (CategoryBudgetSupplier $proposal): array => $proposal->cost_items_json ?? [])
+            ->map(fn ($item): string => trim((string) ($item['label'] ?? '')))
+            ->filter()
+            ->unique(fn (string $label): string => mb_strtolower($label))
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    public function getProposalComparison(): array
+    {
+        $proposals = $this->categoryBudgetRecord
+            ->loadMissing('supplierProposals.supplier')
+            ->supplierProposals
+            ->filter(fn (CategoryBudgetSupplier $proposal): bool => collect($proposal->cost_items_json ?? [])->contains(fn ($item): bool => is_array($item) && filled($item['label'] ?? null)))
+            ->values();
+
+        $rows = $proposals
+            ->flatMap(fn (CategoryBudgetSupplier $proposal): array => $proposal->cost_items_json ?? [])
+            ->map(fn ($item): string => trim((string) ($item['label'] ?? '')))
+            ->filter()
+            ->unique(fn (string $label): string => mb_strtolower($label))
+            ->sort()
+            ->values()
+            ->map(function (string $label) use ($proposals): array {
+                $key = mb_strtolower($label);
+
+                return [
+                    'label' => $label,
+                    'amounts' => $proposals
+                        ->mapWithKeys(function (CategoryBudgetSupplier $proposal) use ($key): array {
+                            $item = collect($proposal->cost_items_json ?? [])
+                                ->first(fn ($item): bool => mb_strtolower(trim((string) ($item['label'] ?? ''))) === $key);
+
+                            return [$proposal->id => $item['amount'] ?? null];
+                        })
+                        ->all(),
+                ];
+            })
+            ->all();
+
+        return [
+            'enabled' => $proposals->isNotEmpty(),
+            'proposals' => $proposals,
+            'rows' => $rows,
+        ];
+    }
+
+    public function comparisonPdfUrl(): string
+    {
+        return route('admin.projects.budget.comparison.pdf', [
+            'project' => $this->getRecord(),
+            'categoryBudget' => $this->categoryBudgetRecord,
+        ]);
     }
 
     public function getSupplierResults(): Collection
@@ -619,6 +700,19 @@ class ManageProjectBudgetCategory extends Page
         return collect(preg_split('/[\n,]+/', (string) $value) ?: [])
             ->map(fn (string $item): string => trim($item))
             ->filter()
+            ->values()
+            ->all();
+    }
+
+    protected function normalizeCostItems(array $items): array
+    {
+        return collect($items)
+            ->filter(fn ($item): bool => is_array($item))
+            ->map(fn (array $item): array => [
+                'label' => trim((string) ($item['label'] ?? '')),
+                'amount' => filled($item['amount'] ?? null) ? round((float) $item['amount'], 2) : null,
+            ])
+            ->filter(fn (array $item): bool => filled($item['label']) || $item['amount'] !== null)
             ->values()
             ->all();
     }

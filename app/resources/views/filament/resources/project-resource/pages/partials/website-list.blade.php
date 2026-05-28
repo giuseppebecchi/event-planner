@@ -19,6 +19,23 @@
                 @if ($section === 'faqs')
                     @include('filament.resources.project-resource.pages.partials.website-field', ['path' => "website.$section.$list.$index.question", 'label' => 'Question'])
                     @include('filament.resources.project-resource.pages.partials.website-field', ['path' => "website.$section.$list.$index.answer", 'label' => 'Answer', 'textarea' => true, 'full' => true])
+                @elseif ($list === 'hero_images')
+                    @php
+                        $heroPreviewUrl = trim((string) ($item['url'] ?? ''));
+
+                        if ($heroPreviewUrl !== '' && ! str_starts_with($heroPreviewUrl, 'http://') && ! str_starts_with($heroPreviewUrl, 'https://') && ! str_starts_with($heroPreviewUrl, '/')) {
+                            $heroPreviewUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($heroPreviewUrl);
+                        }
+                    @endphp
+                    <div class="wm-website-field">
+                        <label>Image</label>
+                        @if ($heroPreviewUrl !== '')
+                            <img class="wm-website-thumb" src="{{ $heroPreviewUrl }}" alt="{{ $item['caption'] ?? '' }}">
+                        @else
+                            <div class="wm-website-thumb is-empty">No image</div>
+                        @endif
+                    </div>
+                    @include('filament.resources.project-resource.pages.partials.website-field', ['path' => "website.$section.$list.$index.caption", 'label' => 'Text over image'])
                 @elseif ($list === 'images')
                     @include('filament.resources.project-resource.pages.partials.website-field', ['path' => "website.$section.$list.$index.url", 'label' => 'Image URL'])
                     @include('filament.resources.project-resource.pages.partials.website-field', ['path' => "website.$section.$list.$index.caption", 'label' => 'Caption'])

@@ -10,11 +10,13 @@ use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
+use Livewire\WithFileUploads;
 
 class ManageProjectWebsite extends Page
 {
     use InteractsWithRecord;
     use InteractsWithProjectDateEditor;
+    use WithFileUploads;
 
     protected static string $resource = ProjectResource::class;
 
@@ -27,6 +29,8 @@ class ManageProjectWebsite extends Page
     public array $website = [];
 
     public string $activeTab = 'home';
+
+    public array $heroImageUploads = [];
 
     public function mount(int|string $record): void
     {
@@ -87,12 +91,100 @@ class ManageProjectWebsite extends Page
         return $guest?->publicRsvpUrl();
     }
 
+    public function colorPalettes(): array
+    {
+        return [
+            'champagne_rose' => [
+                'name' => 'Champagne Rose',
+                'accent_color' => '#b9838f',
+                'background_color' => '#fbf6f1',
+                'text_color' => '#3f3434',
+                'swatches' => ['#fbf6f1', '#e8c7bd', '#b9838f', '#80656b', '#3f3434'],
+            ],
+            'tuscan_garden' => [
+                'name' => 'Tuscan Garden',
+                'accent_color' => '#8f7049',
+                'background_color' => '#f7f3ea',
+                'text_color' => '#34362b',
+                'swatches' => ['#f7f3ea', '#d8c7a3', '#8f7049', '#667255', '#34362b'],
+            ],
+            'lake_como' => [
+                'name' => 'Lake Como',
+                'accent_color' => '#5d8893',
+                'background_color' => '#f4f7f5',
+                'text_color' => '#27363a',
+                'swatches' => ['#f4f7f5', '#c9d8d5', '#5d8893', '#b8a57a', '#27363a'],
+            ],
+            'black_tie' => [
+                'name' => 'Black Tie',
+                'accent_color' => '#c2a36b',
+                'background_color' => '#f8f5ee',
+                'text_color' => '#252323',
+                'swatches' => ['#f8f5ee', '#d8c7a3', '#c2a36b', '#58534c', '#252323'],
+            ],
+            'lavender_sage' => [
+                'name' => 'Lavender Sage',
+                'accent_color' => '#8d7d9c',
+                'background_color' => '#f8f6f2',
+                'text_color' => '#33362f',
+                'swatches' => ['#f8f6f2', '#d8d8c8', '#a9b394', '#8d7d9c', '#33362f'],
+            ],
+        ];
+    }
+
+    public function fontPresets(): array
+    {
+        return [
+            'allura' => 'Allura',
+            'parisienne' => 'Parisienne',
+            'great_vibes' => 'Great Vibes',
+        ];
+    }
+
+    public function setPalette(string $palette): void
+    {
+        $palettes = $this->colorPalettes();
+
+        if (! isset($palettes[$palette])) {
+            return;
+        }
+
+        $this->website['settings']['palette_preset'] = $palette;
+        $this->website['settings']['accent_color'] = $palettes[$palette]['accent_color'];
+        $this->website['settings']['background_color'] = $palettes[$palette]['background_color'];
+        $this->website['settings']['text_color'] = $palettes[$palette]['text_color'];
+    }
+
+    public function uploadHeroImages(): void
+    {
+        $this->validate([
+            'heroImageUploads' => ['required', 'array', 'min:1'],
+            'heroImageUploads.*' => ['image', 'max:8192'],
+        ]);
+
+        $this->website['home']['hero_images'] ??= [];
+
+        foreach ($this->heroImageUploads as $upload) {
+            $this->website['home']['hero_images'][] = [
+                'url' => '/storage/' . $upload->store('projects/website/hero', 'public'),
+                'caption' => '',
+            ];
+        }
+
+        $this->heroImageUploads = [];
+
+        Notification::make()
+            ->title('Hero images added')
+            ->success()
+            ->send();
+    }
+
     public function sectionWarnings(?string $section = null): array
     {
         $checks = [
             'home' => [
                 'Title' => $this->filled('home.title'),
-                'Hero image' => $this->filled('home.hero_image'),
+                'Hero image' => count(array_filter($this->website['home']['hero_images'] ?? [], fn ($item) => filled($item['url'] ?? null))) > 0 || $this->filled('home.hero_image'),
                 'Date' => $this->filled('home.date'),
                 'Location' => $this->filled('home.location'),
             ],
@@ -162,13 +254,29 @@ class ManageProjectWebsite extends Page
     protected function normalizeWebsite(array $website): array
     {
         $defaults = Project::defaultWebsiteConfiguration($this->getRecord());
+        $providedHeroImages = array_key_exists('hero_images', $website['home'] ?? []);
+        $providedHeroImageItems = $providedHeroImages ? ($website['home']['hero_images'] ?? []) : [];
         $website = array_replace_recursive($defaults, $website);
 
         foreach ($this->tabs() as $section => $label) {
             $website[$section]['enabled'] = (bool) ($website[$section]['enabled'] ?? ($defaults[$section]['enabled'] ?? false));
         }
 
-        foreach (['schedule.items', 'travel.hotels', 'travel.transportation', 'wedding_party.people', 'gallery.images', 'things_to_do.items', 'faqs.items', 'events.items'] as $path) {
+        if ($providedHeroImages) {
+            $website['home']['hero_images'] = array_values(array_filter($providedHeroImageItems, fn ($item): bool => is_array($item) && filled($item['url'] ?? null)));
+            $website['home']['hero_image'] = $website['home']['hero_images'][0]['url'] ?? '';
+        } elseif (empty($website['home']['hero_images']) && filled($website['home']['hero_image'] ?? null)) {
+            $website['home']['hero_images'] = [['url' => $website['home']['hero_image'], 'caption' => '']];
+        } elseif (filled($website['home']['hero_image'] ?? null)) {
+            $heroImage = $website['home']['hero_image'];
+            $hasLegacyHeroImage = collect($website['home']['hero_images'] ?? [])->contains(fn ($item): bool => ($item['url'] ?? null) === $heroImage);
+
+            if (! $hasLegacyHeroImage) {
+                array_unshift($website['home']['hero_images'], ['url' => $heroImage, 'caption' => '']);
+            }
+        }
+
+        foreach (['home.hero_images', 'schedule.items', 'travel.hotels', 'travel.transportation', 'wedding_party.people', 'gallery.images', 'things_to_do.items', 'faqs.items', 'events.items'] as $path) {
             [$section, $list] = explode('.', $path);
             $website[$section][$list] = array_values(array_filter($website[$section][$list] ?? [], fn ($item): bool => is_array($item) && collect($item)->filter(fn ($value) => filled($value))->isNotEmpty()));
         }
@@ -188,6 +296,7 @@ class ManageProjectWebsite extends Page
             'transportation' => ['title' => '', 'type' => 'Transfer', 'description' => '', 'url' => ''],
             'people' => ['name' => '', 'role' => '', 'image' => '', 'bio' => ''],
             'images' => ['url' => '', 'caption' => ''],
+            'hero_images' => ['url' => '', 'caption' => ''],
             default => ['question' => '', 'answer' => ''],
         };
     }

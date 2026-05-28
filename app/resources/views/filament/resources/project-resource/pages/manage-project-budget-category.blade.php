@@ -8,6 +8,9 @@
         $isLocationCategory = $this->isLocationCategory();
         $canExportPresentationPdf = $this->canExportPresentationPdf();
         $presentationExportCount = $this->getPresentationExportCount();
+        $costItemSuggestions = $this->getCostItemSuggestions();
+        $comparison = $this->getProposalComparison();
+        $money = fn ($amount) => $amount !== null && $amount !== '' ? 'EUR ' . number_format((float) $amount, 2, ',', '.') : '—';
     @endphp
 
     <style>
@@ -624,12 +627,69 @@
             color: #746d66;
         }
 
+        .wm-cost-items {
+            display: grid;
+            gap: 0.65rem;
+        }
+
+        .wm-cost-item-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(8rem, 0.35fr) auto;
+            gap: 0.6rem;
+            align-items: center;
+        }
+
+        .wm-cost-remove {
+            min-height: 2.9rem;
+        }
+
+        .wm-comparison-wrap {
+            overflow-x: auto;
+            border: 1px solid #c7d7bd;
+            border-radius: 0.9rem;
+            background: #e5efdd;
+        }
+
+        .wm-comparison-table {
+            width: 100%;
+            min-width: 48rem;
+            border-collapse: collapse;
+            color: #172014;
+        }
+
+        .wm-comparison-table th,
+        .wm-comparison-table td {
+            border: 1px solid #283625;
+            padding: 0.45rem 0.55rem;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .wm-comparison-table th {
+            background: #c6ddb8;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 1.05rem;
+        }
+
+        .wm-comparison-table th:first-child,
+        .wm-comparison-table td:first-child {
+            text-align: left;
+            min-width: 18rem;
+        }
+
+        .wm-comparison-total td {
+            background: #c6ddb8;
+            font-weight: 800;
+            font-size: 1rem;
+        }
+
         @media (max-width: 1280px) {
             .wm-event-top-head,
             .wm-scout-search-form,
             .wm-scout-kpis,
             .wm-scout-data-grid,
-            .wm-scout-inline-grid {
+            .wm-scout-inline-grid,
+            .wm-cost-item-row {
                 grid-template-columns: 1fr;
             }
         }
@@ -786,6 +846,17 @@
                             </div>
 
                             <div class="wm-scout-copy">
+                                @if (collect($proposal->cost_items_json ?? [])->isNotEmpty())
+                                    <div class="wm-scout-copy-block">
+                                        <strong>Cost breakdown</strong>
+                                        <p>
+                                            @foreach ($proposal->cost_items_json ?? [] as $item)
+                                                {{ $item['label'] ?? '' }}: {{ $money($item['amount'] ?? null) }}{{ ! $loop->last ? "\n" : '' }}
+                                            @endforeach
+                                        </p>
+                                    </div>
+                                @endif
+
                                 @if (filled($proposal->request_text))
                                     <div class="wm-scout-copy-block">
                                         <strong>Request</strong>
@@ -836,7 +907,7 @@
                                     icon="heroicon-m-pencil-square"
                                     wire:click="openRecordResponseModal({{ $proposal->id }})"
                                 >
-                                    Record response
+                                    Update quote / response
                                 </x-filament::button>
 
                                 @if ($proposal->hasResponse() && ! $isConfirmed)
@@ -913,6 +984,47 @@
                                                         <option value="{{ $value }}">{{ $label }}</option>
                                                     @endforeach
                                                 </select>
+                                            </div>
+                                        </div>
+
+                                        <div style="margin-top: 0.75rem;">
+                                            <div class="wm-scout-card-head" style="margin-bottom: 0.6rem;">
+                                                <label class="wm-scout-label" style="margin: 0;">Cost breakdown</label>
+                                                <x-filament::button type="button" size="sm" color="gray" icon="heroicon-m-plus" wire:click="addResponseCostItem">
+                                                    Add item
+                                                </x-filament::button>
+                                            </div>
+
+                                            <datalist id="cost-item-suggestions-{{ $proposal->id }}">
+                                                @foreach ($costItemSuggestions as $suggestion)
+                                                    <option value="{{ $suggestion }}"></option>
+                                                @endforeach
+                                            </datalist>
+
+                                            <div class="wm-cost-items">
+                                                @forelse (($responseForm['cost_items_json'] ?? []) as $costItemIndex => $costItem)
+                                                    <div class="wm-cost-item-row" wire:key="cost-item-{{ $proposal->id }}-{{ $costItemIndex }}">
+                                                        <input
+                                                            type="text"
+                                                            class="wm-scout-field"
+                                                            list="cost-item-suggestions-{{ $proposal->id }}"
+                                                            placeholder="Item"
+                                                            wire:model="responseForm.cost_items_json.{{ $costItemIndex }}.label"
+                                                        >
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            class="wm-scout-field"
+                                                            placeholder="Amount"
+                                                            wire:model="responseForm.cost_items_json.{{ $costItemIndex }}.amount"
+                                                        >
+                                                        <x-filament::button type="button" color="danger" size="sm" class="wm-cost-remove" wire:click="removeResponseCostItem({{ $costItemIndex }})">
+                                                            Remove
+                                                        </x-filament::button>
+                                                    </div>
+                                                @empty
+                                                    <div class="wm-scout-empty">No cost items added yet.</div>
+                                                @endforelse
                                             </div>
                                         </div>
 
@@ -1035,6 +1147,57 @@
                 </div>
             @endif
         </section>
+
+        @if ($comparison['enabled'])
+            <section class="wm-event-card wm-scout-request-list">
+                <div class="wm-scout-section-head">
+                    <div>
+                        <p class="wm-scout-section-kicker">Comparison</p>
+                        <h3 class="wm-scout-section-title">Quote cost breakdown comparison</h3>
+                    </div>
+                    <div class="wm-scout-section-actions">
+                        <a href="{{ $this->comparisonPdfUrl() }}" class="wm-scout-export-button" target="_blank">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path>
+                                <path d="M14 2v6h6"></path>
+                                <path d="M12 18v-6"></path>
+                                <path d="m9 15 3 3 3-3"></path>
+                            </svg>
+                            Export comparison PDF
+                        </a>
+                    </div>
+                </div>
+
+                <div class="wm-comparison-wrap">
+                    <table class="wm-comparison-table">
+                        <thead>
+                            <tr>
+                                <th>{{ $summary['label'] }}</th>
+                                @foreach ($comparison['proposals'] as $proposal)
+                                    <th>{{ $proposal->supplier?->name ?? 'Supplier' }}</th>
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($comparison['rows'] as $row)
+                                <tr>
+                                    <td>{{ $row['label'] }}</td>
+                                    @foreach ($comparison['proposals'] as $proposal)
+                                        <td>{{ $money($row['amounts'][$proposal->id] ?? null) }}</td>
+                                    @endforeach
+                                </tr>
+                            @endforeach
+                            <tr class="wm-comparison-total">
+                                <td>Quote total</td>
+                                @foreach ($comparison['proposals'] as $proposal)
+                                    <td>{{ $money($proposal->proposed_amount) }}</td>
+                                @endforeach
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        @endif
 
         <section class="wm-event-card wm-scout-search">
             <div class="wm-scout-section-head">

@@ -375,10 +375,11 @@ class Project extends Model
         return [
             'settings' => [
                 'published' => true,
-                'accent_color' => '#b08c8f',
-                'background_color' => '#fbf7f4',
-                'text_color' => '#4d4141',
-                'font_preset' => 'classic',
+                'palette_preset' => 'champagne_rose',
+                'accent_color' => '#b9838f',
+                'background_color' => '#fbf6f1',
+                'text_color' => '#3f3434',
+                'font_preset' => 'allura',
                 'signature' => $partners,
                 'footer_text' => 'With love, ' . ($partners ?: 'the couple'),
             ],
@@ -390,6 +391,7 @@ class Project extends Model
                 'date' => $date,
                 'location' => $location,
                 'hero_image' => $project?->cover_image_path ? '/storage/' . $project->cover_image_path : '',
+                'hero_images' => $project?->cover_image_path ? [['url' => '/storage/' . $project->cover_image_path, 'caption' => '']] : [],
                 'intro_title' => $partners,
                 'intro_text' => '',
                 'intro_image' => '',
