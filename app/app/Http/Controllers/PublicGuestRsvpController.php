@@ -18,15 +18,40 @@ class PublicGuestRsvpController extends Controller
             'fields' => $guest->project->rsvpConfigurationFields(),
             'response' => $guest->rsvp_response ?? [],
             'subjects' => $this->guestResponseSubjects($guest),
+            'rsvpLocked' => (bool) $guest->project->rsvp_submissions_locked,
         ]);
     }
 
     public function submit(Request $request, string $token)
     {
         $guest = $this->findGuest($token);
+
+        if ($guest->project->rsvp_submissions_locked) {
+            return redirect()
+                ->route('public.rsvp.show', ['token' => $guest->rsvp_token])
+                ->with('status', 'RSVP changes are currently closed. Please contact your wedding planner for updates.');
+        }
+
         $fields = collect($guest->project->rsvpConfigurationFields());
+        $presenceData = $request->validate([
+            'presence_confirmed' => ['required', 'boolean'],
+        ]);
+        $presenceConfirmed = (bool) $presenceData['presence_confirmed'];
+
+        if (! $presenceConfirmed) {
+            $guest->forceFill([
+                'presence_confirmed' => false,
+                'rsvp_response' => [],
+                'rsvp_completed_at' => now(),
+            ])->save();
+
+            return redirect()
+                ->route('public.rsvp.show', ['token' => $guest->rsvp_token])
+                ->with('status', 'RSVP saved. Thank you.');
+        }
 
         $rules = [
+            'presence_confirmed' => ['required', 'boolean'],
             'primary_first_name' => ['required', 'string', 'max:255'],
             'primary_last_name' => ['required', 'string', 'max:255'],
             'partner_first_name' => ['nullable', 'string', 'max:255'],
@@ -45,6 +70,7 @@ class PublicGuestRsvpController extends Controller
             'additional_guests.*.role' => ['nullable', 'string', 'max:255'],
             'additional_guests.*.type' => ['nullable', 'string', 'max:50'],
             'additional_guests.*.age' => ['nullable', 'integer', 'min:0', 'max:18'],
+            'additional_guests.*.high_chair' => ['nullable', 'boolean'],
             'rsvp_response' => ['array'],
         ];
 
@@ -120,6 +146,7 @@ class PublicGuestRsvpController extends Controller
             'country' => $this->nullableString($data['country'] ?? null),
             'additional_guests' => $this->normalizeAdditionalGuests($data['additional_guests'] ?? []),
             'rsvp_response' => $responses,
+            'presence_confirmed' => true,
             'rsvp_completed_at' => now(),
         ])->save();
 
@@ -147,6 +174,10 @@ class PublicGuestRsvpController extends Controller
                 'age' => ($guest['type'] ?? null) === 'Child' && ($guest['age'] ?? '') !== ''
                     ? (int) $guest['age']
                     : '',
+                'high_chair' => ($guest['type'] ?? null) === 'Child'
+                    && ($guest['age'] ?? '') !== ''
+                    && (int) $guest['age'] <= 3
+                    && (bool) ($guest['high_chair'] ?? false),
                 'gender' => trim((string) ($guest['gender'] ?? '')),
             ])
             ->filter(fn (array $guest): bool => collect($guest)->filter()->isNotEmpty())

@@ -21,6 +21,7 @@ class Project extends Model
     protected $fillable = [
         'lead_id',
         'name',
+        'alias',
         'partner_one_name',
         'partner_two_name',
         'reference_email',
@@ -42,6 +43,7 @@ class Project extends Model
         'logistics_notes',
         'cover_image_path',
         'rsvp_configuration',
+        'rsvp_submissions_locked',
         'website_json',
     ];
 
@@ -50,11 +52,18 @@ class Project extends Model
         'event_end_date' => 'date',
         'budget_amount' => 'decimal:2',
         'rsvp_configuration' => 'array',
+        'rsvp_submissions_locked' => 'boolean',
         'website_json' => 'array',
     ];
 
     protected static function booted(): void
     {
+        static::creating(function (Project $project): void {
+            if (blank($project->alias)) {
+                $project->alias = static::generateUniqueAlias($project->name);
+            }
+        });
+
         static::created(function (Project $project): void {
             $project->syncChecklistOptionsFromTemplates();
         });
@@ -364,6 +373,23 @@ class Project extends Model
     public function websiteConfiguration(): array
     {
         return array_replace_recursive(static::defaultWebsiteConfiguration($this), is_array($this->website_json) ? $this->website_json : []);
+    }
+
+    public static function generateUniqueAlias(string $name, ?int $ignoreProjectId = null): string
+    {
+        $baseAlias = Str::slug($name) ?: 'event';
+        $alias = $baseAlias;
+        $suffix = 2;
+
+        while (static::query()
+            ->when($ignoreProjectId, fn ($query) => $query->whereKeyNot($ignoreProjectId))
+            ->where('alias', $alias)
+            ->exists()) {
+            $alias = $baseAlias . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $alias;
     }
 
     public static function defaultWebsiteConfiguration(?Project $project = null): array

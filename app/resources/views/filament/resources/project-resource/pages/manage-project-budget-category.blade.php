@@ -921,7 +921,7 @@
                                     </x-filament::button>
                                 @elseif ($isConfirmed)
                                     <a
-                                        href="{{ \App\Filament\Resources\ProjectResource::getUrl('budget-manage', ['record' => $record, 'categoryBudget' => $budget]) }}"
+                                        href="{{ \App\Filament\Resources\ProjectResource::getUrl('supplier-manage', ['record' => $record, 'proposal' => $proposal->id]) }}"
                                         class="wm-scout-attachment"
                                     >
                                         Manage

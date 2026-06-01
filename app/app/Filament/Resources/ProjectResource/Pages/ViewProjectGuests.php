@@ -50,6 +50,8 @@ class ViewProjectGuests extends Page
 
     public ?int $confirmDeleteGuestId = null;
 
+    public ?int $confirmCancelParticipationGuestId = null;
+
     public array $guestForm = [];
 
     public array $importOptions = [
@@ -173,6 +175,25 @@ class ViewProjectGuests extends Page
         $this->resetGuestForm();
     }
 
+    public function toggleRsvpSubmissionsLocked(): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        $record = $this->getRecord();
+        $record->forceFill([
+            'rsvp_submissions_locked' => ! (bool) $record->rsvp_submissions_locked,
+        ])->save();
+
+        $this->record = $record->refresh();
+
+        Notification::make()
+            ->title($record->rsvp_submissions_locked ? 'RSVP submissions locked' : 'RSVP submissions reopened')
+            ->success()
+            ->send();
+    }
+
     public function addAdditionalGuest(): void
     {
         $this->guestForm['additional_guests'][] = [
@@ -216,6 +237,7 @@ class ViewProjectGuests extends Page
             'additional_guests.*.role' => ['nullable', 'string', 'max:255'],
             'additional_guests.*.type' => ['nullable', 'string', 'max:50'],
             'additional_guests.*.age' => ['nullable', 'integer', 'min:0', 'max:18'],
+            'additional_guests.*.high_chair' => ['nullable', 'boolean'],
             'additional_guests.*.gender' => ['nullable', 'string', 'max:20'],
             'formal_addressing' => ['nullable', 'string', 'max:255'],
             'address_line_1' => ['nullable', 'string', 'max:255'],
@@ -405,6 +427,45 @@ class ViewProjectGuests extends Page
         $this->confirmDeleteGuestId = null;
     }
 
+    public function promptCancelParticipation(int $guestId): void
+    {
+        $guest = $this->findGuest($guestId);
+
+        if (! $guest->rsvp_completed_at || ! $guest->presence_confirmed) {
+            return;
+        }
+
+        $this->confirmCancelParticipationGuestId = $guest->id;
+    }
+
+    public function cancelCancelParticipation(): void
+    {
+        $this->confirmCancelParticipationGuestId = null;
+    }
+
+    public function confirmCancelParticipation(): void
+    {
+        if (! $this->confirmCancelParticipationGuestId) {
+            return;
+        }
+
+        $this->findGuest($this->confirmCancelParticipationGuestId)
+            ->forceFill([
+                'presence_confirmed' => false,
+                'rsvp_response' => [],
+                'rsvp_completed_at' => now(),
+            ])
+            ->save();
+
+        $this->confirmCancelParticipationGuestId = null;
+        $this->getRecord()->unsetRelation('guests');
+
+        Notification::make()
+            ->title('Participation cancelled')
+            ->success()
+            ->send();
+    }
+
     public function confirmDeleteGuest(): void
     {
         if (! $this->confirmDeleteGuestId) {
@@ -489,15 +550,27 @@ class ViewProjectGuests extends Page
 
     protected function normalizeGuestPayload(array $data): array
     {
+        $existingAdditionalGuests = $this->editingGuestId
+            ? ($this->findGuest($this->editingGuestId)->additional_guests ?? [])
+            : [];
+
         $additionalGuests = collect($data['additional_guests'] ?? [])
-            ->map(fn (array $guest): array => [
-                'first_name' => trim((string) ($guest['first_name'] ?? '')),
-                'last_name' => trim((string) ($guest['last_name'] ?? '')),
-                'role' => trim((string) ($guest['role'] ?? '')),
-                'type' => trim((string) ($guest['type'] ?? '')),
-                'age' => ($guest['age'] ?? '') !== '' ? (string) $guest['age'] : '',
-                'gender' => trim((string) ($guest['gender'] ?? '')),
-            ])
+            ->map(function (array $guest, int $index) use ($existingAdditionalGuests): array {
+                $age = ($guest['age'] ?? '') !== '' ? (string) $guest['age'] : '';
+
+                return [
+                    'first_name' => trim((string) ($guest['first_name'] ?? '')),
+                    'last_name' => trim((string) ($guest['last_name'] ?? '')),
+                    'role' => trim((string) ($guest['role'] ?? '')),
+                    'type' => trim((string) ($guest['type'] ?? '')),
+                    'age' => $age,
+                    'high_chair' => ($guest['type'] ?? null) === 'Child'
+                        && $age !== ''
+                        && (int) $age <= 3
+                        && (bool) ($guest['high_chair'] ?? ($existingAdditionalGuests[$index]['high_chair'] ?? false)),
+                    'gender' => trim((string) ($guest['gender'] ?? '')),
+                ];
+            })
             ->filter(fn (array $guest): bool => collect($guest)->filter()->isNotEmpty())
             ->values()
             ->all();

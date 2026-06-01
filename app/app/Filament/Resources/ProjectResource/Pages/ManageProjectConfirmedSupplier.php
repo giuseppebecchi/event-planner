@@ -77,6 +77,7 @@ class ManageProjectConfirmedSupplier extends Page
     public array $commissionForm = [
         'commission_mode' => CategoryBudgetSupplier::COMMISSION_MODE_NONE,
         'commission_percentage' => '',
+        'commission_base_amount' => '',
         'commission_amount' => '',
         'commission_total_amount_payed' => 0,
         'commission_payments_json' => [],
@@ -110,10 +111,21 @@ class ManageProjectConfirmedSupplier extends Page
 
     public function mount(int|string $record, int|string $categoryBudget): void
     {
+        $this->mountSupplierWorkspace($record, $categoryBudget, request()->integer('proposal') ?: null);
+    }
+
+    protected function mountSupplierWorkspace(int|string $record, int|string|null $categoryBudget, int|string|null $proposal = null): void
+    {
         $this->record = $this->resolveRecord($record);
 
-        $this->categoryBudgetRecord = $this->resolveCategoryBudget($categoryBudget);
-        $this->proposalRecord = $this->resolveConfirmedProposal(request()->integer('proposal') ?: null);
+        if ($categoryBudget !== null) {
+            $this->categoryBudgetRecord = $this->resolveCategoryBudget($categoryBudget);
+            $this->proposalRecord = $this->resolveConfirmedProposal($proposal ? (int) $proposal : null);
+        } else {
+            $this->proposalRecord = $this->resolveOperationalProposal((int) $proposal);
+            $this->categoryBudgetRecord = $this->resolveCategoryBudget($this->proposalRecord->category_budget_id);
+        }
+
         $this->communicationForm['communication_at'] = now()->format('Y-m-d\TH:i');
 
         if ($this->getRecord()->projectChecklistOptions()->doesntExist()) {
@@ -378,6 +390,8 @@ class ManageProjectConfirmedSupplier extends Page
             'invoice_date' => '',
             'due_date' => '',
             'amount' => '',
+            'payment_type_id' => '',
+            'note' => '',
             'paid_at' => '',
         ];
 
@@ -420,6 +434,11 @@ class ManageProjectConfirmedSupplier extends Page
                     'min:0',
                     'max:100',
                 ],
+                'form.commission_base_amount' => [
+                    'nullable',
+                    'numeric',
+                    'min:0',
+                ],
                 'form.commission_amount' => [
                     Rule::requiredIf(($this->commissionForm['commission_mode'] ?? null) === CategoryBudgetSupplier::COMMISSION_MODE_FIXED),
                     'nullable',
@@ -430,6 +449,8 @@ class ManageProjectConfirmedSupplier extends Page
                 'form.commission_payments_json.*.invoice_date' => ['nullable', 'date'],
                 'form.commission_payments_json.*.due_date' => ['nullable', 'date'],
                 'form.commission_payments_json.*.amount' => ['nullable', 'numeric', 'min:0'],
+                'form.commission_payments_json.*.payment_type_id' => ['nullable', 'integer', Rule::in(array_map('intval', array_keys($this->getPaymentModeOptions())))],
+                'form.commission_payments_json.*.note' => ['nullable', 'string', 'max:2000'],
                 'form.commission_payments_json.*.paid_at' => ['nullable', 'date'],
             ]
         )->validate();
@@ -438,11 +459,15 @@ class ManageProjectConfirmedSupplier extends Page
             ->filter(fn (array $payment): bool => filled($payment['invoice_date'] ?? null)
                 || filled($payment['due_date'] ?? null)
                 || filled($payment['amount'] ?? null)
+                || filled($payment['payment_type_id'] ?? null)
+                || filled($payment['note'] ?? null)
                 || filled($payment['paid_at'] ?? null))
             ->map(fn (array $payment): array => [
                 'invoice_date' => filled($payment['invoice_date'] ?? null) ? $payment['invoice_date'] : null,
                 'due_date' => filled($payment['due_date'] ?? null) ? $payment['due_date'] : null,
                 'amount' => round(max(0, (float) ($payment['amount'] ?? 0)), 2),
+                'payment_type_id' => filled($payment['payment_type_id'] ?? null) ? (int) $payment['payment_type_id'] : null,
+                'note' => filled($payment['note'] ?? null) ? trim((string) $payment['note']) : null,
                 'paid_at' => filled($payment['paid_at'] ?? null) ? $payment['paid_at'] : null,
             ])
             ->values()
@@ -452,6 +477,9 @@ class ManageProjectConfirmedSupplier extends Page
             'commission_mode' => $data['form']['commission_mode'],
             'commission_percentage' => $data['form']['commission_mode'] === CategoryBudgetSupplier::COMMISSION_MODE_PERCENTAGE
                 ? $data['form']['commission_percentage']
+                : null,
+            'commission_base_amount' => $data['form']['commission_mode'] === CategoryBudgetSupplier::COMMISSION_MODE_PERCENTAGE && filled($data['form']['commission_base_amount'] ?? null)
+                ? $data['form']['commission_base_amount']
                 : null,
             'commission_amount' => $data['form']['commission_amount'] ?? 0,
             'commission_payments_json' => $payments,
@@ -1197,6 +1225,19 @@ class ManageProjectConfirmedSupplier extends Page
         return $proposal;
     }
 
+    protected function resolveOperationalProposal(int $proposalId): CategoryBudgetSupplier
+    {
+        $proposal = CategoryBudgetSupplier::query()
+            ->where('project_id', $this->getRecord()->getKey())
+            ->where('proposal_status', CategoryBudgetSupplier::STATUS_CONFIRMED)
+            ->whereKey($proposalId)
+            ->first();
+
+        abort_if(! $proposal, 404);
+
+        return $proposal;
+    }
+
     protected function refreshContext(): void
     {
         $this->categoryBudgetRecord = $this->resolveCategoryBudget($this->categoryBudgetRecord->getKey());
@@ -1209,6 +1250,7 @@ class ManageProjectConfirmedSupplier extends Page
         $this->commissionForm = [
             'commission_mode' => $this->proposalRecord->commission_mode ?? CategoryBudgetSupplier::COMMISSION_MODE_NONE,
             'commission_percentage' => $this->proposalRecord->commission_percentage !== null ? (string) $this->proposalRecord->commission_percentage : '',
+            'commission_base_amount' => $this->proposalRecord->commission_base_amount !== null ? (string) $this->proposalRecord->commission_base_amount : '',
             'commission_amount' => $this->proposalRecord->commission_amount !== null ? (string) $this->proposalRecord->commission_amount : '',
             'commission_total_amount_payed' => (float) ($this->proposalRecord->commission_total_amount_payed ?? 0),
             'commission_payments_json' => collect($this->proposalRecord->commission_payments_json ?? [])
@@ -1216,6 +1258,8 @@ class ManageProjectConfirmedSupplier extends Page
                     'invoice_date' => $payment['invoice_date'] ?? '',
                     'due_date' => $payment['due_date'] ?? '',
                     'amount' => isset($payment['amount']) ? (string) $payment['amount'] : '',
+                    'payment_type_id' => isset($payment['payment_type_id']) ? (string) $payment['payment_type_id'] : '',
+                    'note' => $payment['note'] ?? '',
                     'paid_at' => $payment['paid_at'] ?? '',
                 ])
                 ->values()
@@ -1339,12 +1383,17 @@ class ManageProjectConfirmedSupplier extends Page
 
         if ($mode === CategoryBudgetSupplier::COMMISSION_MODE_PERCENTAGE) {
             $percentage = max(0, min(100, (float) ($this->commissionForm['commission_percentage'] ?? 0)));
-            $this->commissionForm['commission_amount'] = (string) round(((float) ($this->proposalRecord->proposed_amount ?? 0)) * ($percentage / 100), 2);
+            $baseAmount = filled($this->commissionForm['commission_base_amount'] ?? null)
+                ? max(0, (float) $this->commissionForm['commission_base_amount'])
+                : (float) ($this->proposalRecord->proposed_amount ?? 0);
+            $this->commissionForm['commission_amount'] = (string) round($baseAmount * ($percentage / 100), 2);
         } elseif ($mode === CategoryBudgetSupplier::COMMISSION_MODE_NONE) {
             $this->commissionForm['commission_percentage'] = '';
+            $this->commissionForm['commission_base_amount'] = '';
             $this->commissionForm['commission_amount'] = '0';
         } elseif ($mode === CategoryBudgetSupplier::COMMISSION_MODE_FIXED) {
             $this->commissionForm['commission_percentage'] = '';
+            $this->commissionForm['commission_base_amount'] = '';
         }
 
         $this->commissionForm['commission_total_amount_payed'] = CategoryBudgetSupplier::calculateCommissionPaidTotal(

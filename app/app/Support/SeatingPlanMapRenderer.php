@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\ProjectLayoutElement;
 use App\Models\ProjectSeatingPlan;
 use App\Models\ProjectTable;
 use Illuminate\Support\Collection;
@@ -15,7 +16,7 @@ class SeatingPlanMapRenderer
     public function render(ProjectSeatingPlan $plan, array|Collection $people = [], bool $showAssignments = false): string
     {
         $people = collect($people)->keyBy('key');
-        $plan->loadMissing('tables');
+        $plan->loadMissing(['tables', 'layoutElements']);
 
         $svg = [
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" width="1400" height="900">',
@@ -24,6 +25,8 @@ class SeatingPlanMapRenderer
                 .grid { stroke: rgba(121,112,102,.13); stroke-width: 1; }
                 .table { fill: #fffdf9; stroke: #7a8f7b; stroke-width: 2.5; }
                 .table-label { fill: #2d2a26; font-size: 13px; font-weight: 900; text-anchor: middle; dominant-baseline: middle; font-family: DejaVu Sans, Arial, sans-serif; }
+                .layout-element { stroke: #a88f62; stroke-width: 2; stroke-dasharray: 6 4; }
+                .layout-label { fill: #4b433b; font-size: 15px; font-weight: 900; text-anchor: middle; dominant-baseline: middle; font-family: DejaVu Sans, Arial, sans-serif; }
                 .chair-seat { fill: #fffaf2; stroke: #9d8451; stroke-width: 1.4; }
                 .chair-back { fill: #d8c298; stroke: #9d8451; stroke-width: 1.4; }
                 .chair.occupied .chair-seat { fill: #dfeedd; stroke: #5f8f62; }
@@ -44,6 +47,10 @@ class SeatingPlanMapRenderer
 
         for ($y = 0; $y <= 900; $y += 50) {
             $svg[] = '<line class="grid" x1="0" y1="' . $y . '" x2="1400" y2="' . $y . '"/>';
+        }
+
+        foreach ($plan->layoutElements as $element) {
+            $svg[] = $this->renderLayoutElement($element);
         }
 
         foreach ($plan->tables as $table) {
@@ -73,7 +80,7 @@ class SeatingPlanMapRenderer
     public function pdfMapData(ProjectSeatingPlan $plan, array|Collection $people = []): array
     {
         $people = collect($people)->keyBy('key');
-        $plan->loadMissing('tables');
+        $plan->loadMissing(['tables', 'layoutElements']);
 
         return [
             'width' => 1400 * self::PDF_SCALE,
@@ -88,6 +95,8 @@ class SeatingPlanMapRenderer
                 return [
                     'name' => $table->name,
                     'type' => $table->table_type,
+                    'curve_count' => (int) ($table->curve_count ?? 0),
+                    'curve_type' => $table->curve_type ?: ($table->table_type === 'chair_row' ? 'none' : 'medium'),
                     'x' => ((float) $table->center_x) * self::PDF_SCALE,
                     'y' => ((float) $table->center_y) * self::PDF_SCALE,
                     'width' => $width * self::PDF_SCALE,
@@ -114,21 +123,53 @@ class SeatingPlanMapRenderer
         ];
     }
 
+    protected function renderLayoutElement(ProjectLayoutElement $element): string
+    {
+        $width = max(20, (float) $element->width);
+        $height = max(20, (float) $element->height);
+        $fill = $element->background_color ?: 'transparent';
+        $label = e((string) $element->label);
+        $content = [];
+
+        $content[] = '<g transform="translate(' . (float) $element->center_x . ',' . (float) $element->center_y . ') rotate(' . (float) $element->rotation . ')">';
+
+        if ($element->element_type === 'space') {
+            if ($element->shape === 'circle') {
+                $content[] = '<ellipse class="layout-element" cx="0" cy="0" rx="' . ($width / 2) . '" ry="' . ($height / 2) . '" fill="' . e($fill) . '"/>';
+            } else {
+                $content[] = '<rect class="layout-element" x="' . (-$width / 2) . '" y="' . (-$height / 2) . '" width="' . $width . '" height="' . $height . '" rx="8" fill="' . e($fill) . '"/>';
+            }
+        }
+
+        if ($label !== '') {
+            $content[] = '<text class="layout-label" x="0" y="0">' . $label . '</text>';
+        }
+
+        $content[] = '</g>';
+
+        return implode('', $content);
+    }
+
     protected function renderTable(ProjectTable $table, Collection $people, bool $showAssignments): string
     {
         $width = (float) $table->primary_dimension;
         $height = $table->secondary_dimension !== null ? (float) $table->secondary_dimension : $width;
         $isRound = in_array($table->table_type, ['round', 'oval'], true);
         $isChairRow = $table->table_type === 'chair_row';
+        $isLongTable = $table->table_type === 'long_table';
         $assignments = $this->normalizedAssignments($table);
         $content = [];
 
         $content[] = '<g transform="translate(' . (float) $table->center_x . ',' . (float) $table->center_y . ') rotate(' . (float) $table->rotation . ')">';
 
         if (! $isChairRow) {
-            $content[] = $isRound
-                ? '<ellipse class="table" cx="0" cy="0" rx="' . ($width / 2) . '" ry="' . ($height / 2) . '"/>'
-                : '<rect class="table" x="' . (-$width / 2) . '" y="' . (-$height / 2) . '" width="' . $width . '" height="' . $height . '" rx="7"/>';
+            if ($isRound) {
+                $content[] = '<ellipse class="table" cx="0" cy="0" rx="' . ($width / 2) . '" ry="' . ($height / 2) . '"/>';
+            } elseif ($isLongTable) {
+                $content[] = '<path class="table" d="' . $this->longTablePath($table) . '"/>';
+            } else {
+                $content[] = '<rect class="table" x="' . (-$width / 2) . '" y="' . (-$height / 2) . '" width="' . $width . '" height="' . $height . '" rx="7"/>';
+            }
         }
 
         foreach ($this->seats($table) as $seat) {
@@ -170,20 +211,7 @@ class SeatingPlanMapRenderer
         $chairInset = 7;
 
         if ($table->table_type === 'chair_row') {
-            $count = (int) ($table->seats_total ?? 0);
-            $spacing = ProjectTable::CHAIR_ROW_SPACING;
-            $startX = - (($count - 1) * $spacing) / 2;
-
-            for ($index = 0; $index < $count; $index++) {
-                $seats[] = [
-                    'number' => $index + 1,
-                    'x' => $startX + ($index * $spacing),
-                    'y' => 0,
-                    'rotation' => 180,
-                ];
-            }
-
-            return $seats;
+            return $this->chairRowSeats($table);
         }
 
         if (in_array($table->table_type, ['round', 'oval'], true)) {
@@ -204,6 +232,10 @@ class SeatingPlanMapRenderer
             return $seats;
         }
 
+        if ($table->table_type === 'long_table') {
+            return $this->longTableSeats($table, $seatGap, $chairInset);
+        }
+
         $number = 1;
         $bySide = $table->seats_by_side_json ?? ['top' => 0, 'right' => 0, 'bottom' => 0, 'left' => 0];
 
@@ -218,6 +250,172 @@ class SeatingPlanMapRenderer
                     'bottom' => ['number' => $number++, 'x' => -$width / 2 + $width * $ratio, 'y' => $height / 2 + $seatGap - $chairInset, 'rotation' => 180],
                     'left' => ['number' => $number++, 'x' => -$width / 2 - $seatGap + $chairInset, 'y' => -$height / 2 + $height * $ratio, 'rotation' => 270],
                 };
+            }
+        }
+
+        return $seats;
+    }
+
+    protected function longTablePath(ProjectTable $table, float $inflate = 0): string
+    {
+        $length = max(100, (float) $table->primary_dimension) + ($inflate * 2);
+        $width = ProjectTable::LONG_TABLE_WIDTH + ($inflate * 2);
+        $halfWidth = $width / 2;
+        $curves = max(0, min(4, (int) ($table->curve_count ?? 0)));
+        $steps = max(18, max(1, $curves) * 14);
+        $top = [];
+        $bottom = [];
+
+        for ($index = 0; $index <= $steps; $index++) {
+            $progress = $index / $steps;
+            $center = $this->longTableCurvePoint($table, $progress, $length, $inflate);
+
+            $top[] = [
+                $center['x'] - ($center['normal_x'] * $halfWidth),
+                $center['y'] - ($center['normal_y'] * $halfWidth),
+            ];
+            $bottom[] = [
+                $center['x'] + ($center['normal_x'] * $halfWidth),
+                $center['y'] + ($center['normal_y'] * $halfWidth),
+            ];
+        }
+
+        $points = array_merge($top, array_reverse($bottom));
+
+        return collect($points)
+            ->map(fn (array $point, int $index): string => ($index === 0 ? 'M' : 'L') . ' ' . round($point[0], 1) . ' ' . round($point[1], 1))
+            ->implode(' ') . ' Z';
+    }
+
+    protected function chairRowSeats(ProjectTable $table): array
+    {
+        $seats = [];
+        $count = (int) ($table->seats_total ?? 0);
+        $spacing = ProjectTable::CHAIR_ROW_SPACING;
+        $startX = - (($count - 1) * $spacing) / 2;
+        $curveType = $table->curve_type ?: 'none';
+
+        if ($curveType === 'none' || $count <= 1) {
+            for ($index = 0; $index < $count; $index++) {
+                $seats[] = [
+                    'number' => $index + 1,
+                    'x' => $startX + ($index * $spacing),
+                    'y' => 0,
+                    'rotation' => 180,
+                ];
+            }
+
+            return $seats;
+        }
+
+        $chord = max($spacing, ($count - 1) * $spacing);
+        $sagitta = ($curveType === 'high' ? 30 : 12);
+        $radius = (($chord * $chord) / (8 * $sagitta)) + ($sagitta / 2);
+        $centerY = $sagitta - $radius;
+        $halfAngle = asin(min(0.98, ($chord / 2) / $radius));
+
+        for ($index = 0; $index < $count; $index++) {
+            $ratio = $count === 1 ? 0.5 : $index / ($count - 1);
+            $angle = -$halfAngle + ($halfAngle * 2 * $ratio);
+            $x = sin($angle) * $radius;
+            $y = cos($angle) * $radius - $radius + $sagitta;
+            $rotation = (atan2($centerY - $y, -$x) * 180 / M_PI) - 90;
+
+            $seats[] = [
+                'number' => $index + 1,
+                'x' => $x,
+                'y' => $y,
+                'rotation' => $rotation,
+            ];
+        }
+
+        return $seats;
+    }
+
+    protected function curveAmplitude(ProjectTable $table, float $inflate = 0): float
+    {
+        if ((int) ($table->curve_count ?? 0) === 0) {
+            return 0;
+        }
+
+        $width = ProjectTable::LONG_TABLE_WIDTH + ($inflate * 2);
+        $factor = match ($table->curve_type) {
+            'subtle' => 0.34,
+            'strong' => 1.12,
+            default => 0.72,
+        };
+
+        return max(14, $width * $factor);
+    }
+
+    protected function longTableCurvePoint(ProjectTable $table, float $progress, ?float $length = null, float $inflate = 0): array
+    {
+        $length = $length ?? max(100, (float) $table->primary_dimension);
+        $curves = max(0, min(4, (int) ($table->curve_count ?? 0)));
+        $amplitude = $this->curveAmplitude($table, $inflate);
+        $x = -($length / 2) + ($length * $progress);
+        $angle = $progress * max(1, $curves) * M_PI;
+        $y = $curves > 0 ? sin($angle) * $amplitude : 0;
+        $slope = $curves > 0 ? cos($angle) * $amplitude * $curves * M_PI / $length : 0;
+        $normalLength = sqrt(($slope * $slope) + 1);
+        $normalX = -$slope / $normalLength;
+        $normalY = 1 / $normalLength;
+        $tangentLength = sqrt(1 + ($slope * $slope));
+
+        return [
+            'x' => $x,
+            'y' => $y,
+            'normal_x' => $normalX,
+            'normal_y' => $normalY,
+            'tangent_x' => 1 / $tangentLength,
+            'tangent_y' => $slope / $tangentLength,
+        ];
+    }
+
+    protected function longTableSeats(ProjectTable $table, float $seatGap, float $chairInset): array
+    {
+        $seats = [];
+        $number = 1;
+        $length = max(100, (float) $table->primary_dimension);
+        $halfWidth = ProjectTable::LONG_TABLE_WIDTH / 2;
+        $distance = $halfWidth + $seatGap - $chairInset;
+        $bySide = $table->seats_by_side_json ?? ['top' => 0, 'right' => 0, 'bottom' => 0, 'left' => 0];
+        $rotation = fn (float $x, float $y): float => (atan2($y, $x) * 180 / M_PI) + 90;
+
+        foreach (['top', 'bottom'] as $side) {
+            $count = (int) ($bySide[$side] ?? 0);
+
+            for ($index = 0; $index < $count; $index++) {
+                $point = $this->longTableCurvePoint($table, ($index + 1) / ($count + 1), $length);
+                $direction = $side === 'top' ? -1 : 1;
+                $outX = $point['normal_x'] * $direction;
+                $outY = $point['normal_y'] * $direction;
+
+                $seats[] = [
+                    'number' => $number++,
+                    'x' => $point['x'] + ($outX * $distance),
+                    'y' => $point['y'] + ($outY * $distance),
+                    'rotation' => $rotation($outX, $outY),
+                ];
+            }
+        }
+
+        foreach (['right', 'left'] as $side) {
+            $count = (int) ($bySide[$side] ?? 0);
+            $endpoint = $this->longTableCurvePoint($table, $side === 'right' ? 1 : 0, $length);
+            $outX = $endpoint['tangent_x'] * ($side === 'right' ? 1 : -1);
+            $outY = $endpoint['tangent_y'] * ($side === 'right' ? 1 : -1);
+
+            for ($index = 0; $index < $count; $index++) {
+                $ratio = ($index + 1) / ($count + 1);
+                $offset = -$halfWidth + (ProjectTable::LONG_TABLE_WIDTH * $ratio);
+
+                $seats[] = [
+                    'number' => $number++,
+                    'x' => $endpoint['x'] + ($endpoint['normal_x'] * $offset) + ($outX * ($seatGap - $chairInset)),
+                    'y' => $endpoint['y'] + ($endpoint['normal_y'] * $offset) + ($outY * ($seatGap - $chairInset)),
+                    'rotation' => $rotation($outX, $outY),
+                ];
             }
         }
 

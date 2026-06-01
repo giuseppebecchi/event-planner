@@ -45,6 +45,7 @@ class Guest extends Model
         'gift_received',
         'thank_you_sent',
         'rsvp_response',
+        'presence_confirmed',
         'rsvp_completed_at',
         'notes',
     ];
@@ -61,6 +62,7 @@ class Guest extends Model
         'gift_received' => 'integer',
         'thank_you_sent' => 'integer',
         'rsvp_response' => 'array',
+        'presence_confirmed' => 'boolean',
         'rsvp_completed_at' => 'datetime',
     ];
 
@@ -110,6 +112,7 @@ class Guest extends Model
             'type' => trim((string) ($guest['type'] ?? '')),
             'age' => ($guest['age'] ?? '') !== '' ? (string) $guest['age'] : '',
             'gender' => trim((string) ($guest['gender'] ?? '')),
+            'high_chair' => (bool) ($guest['high_chair'] ?? false),
         ]);
     }
 

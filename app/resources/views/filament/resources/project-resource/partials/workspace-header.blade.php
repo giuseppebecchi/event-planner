@@ -15,6 +15,7 @@
     $moodboardUrl = \App\Filament\Resources\ProjectResource::getUrl('moodboard', ['record' => $record]);
     $guestsUrl = \App\Filament\Resources\ProjectResource::getUrl('guests', ['record' => $record]);
     $budgetUrl = \App\Filament\Resources\ProjectResource::getUrl('budget', ['record' => $record]);
+    $suppliersUrl = \App\Filament\Resources\ProjectResource::getUrl('suppliers', ['record' => $record]);
     $infoUrl = \App\Filament\Resources\ProjectResource::getUrl('edit', ['record' => $record]);
     $isCustomer = auth()->user()?->isCustomer();
 @endphp
@@ -121,6 +122,7 @@
             <a href="{{ $infoUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'info' ? 'is-active' : '' }}">Edit info</a>
         @endif
         <a href="{{ $budgetUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'budget' ? 'is-active' : '' }}">Budget</a>
+        <a href="{{ $suppliersUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'suppliers' ? 'is-active' : '' }}">Suppliers</a>
         <a href="{{ $checklistUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'checklist' ? 'is-active' : '' }}">Checklist</a>
         @if (! $isCustomer)
             <a href="{{ $calendarUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'calendar' ? 'is-active' : '' }}">Calendar</a>

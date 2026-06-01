@@ -5,11 +5,6 @@
         $summary = $this->getGuestSummary();
         $statusColumns = [
             'invite_sent' => 'Invite Sent',
-            'ceremony' => 'Ceremony',
-            'reception' => 'Reception',
-            'out_of_town' => 'Out of Town',
-            'gift_received' => 'Gift',
-            'thank_you_sent' => 'Thank You',
         ];
         $isCustomer = auth()->user()?->isCustomer();
     @endphp
@@ -367,6 +362,11 @@
             letter-spacing: 0.08em;
             text-transform: uppercase;
             white-space: nowrap;
+            border: 0;
+        }
+
+        button.wm-guests-chip {
+            cursor: pointer;
         }
 
         .wm-guests-table td {
@@ -404,6 +404,27 @@
             letter-spacing: 0.05em;
             text-transform: uppercase;
             white-space: nowrap;
+        }
+
+        .wm-guests-chip.is-warning {
+            background: #fff4df;
+            color: #7a4f13;
+        }
+
+        .wm-guests-chip.is-positive {
+            background: rgba(68, 101, 69, 0.1);
+            color: #2f7a3a;
+        }
+
+        .wm-guests-chip.is-negative {
+            background: rgba(182, 57, 42, 0.1);
+            color: #b6392a;
+        }
+
+        .wm-guests-chip svg {
+            width: .95rem;
+            height: .95rem;
+            margin-right: .35rem;
         }
 
         .wm-guests-check {
@@ -669,6 +690,15 @@
                         <span>Import guest list</span>
                     </button>
                     @if (! $isCustomer)
+                        <button type="button" class="wm-guests-button {{ $record->rsvp_submissions_locked ? '' : 'is-secondary' }}" wire:click="toggleRsvpSubmissionsLocked">
+                            @if ($record->rsvp_submissions_locked)
+                                <x-heroicon-o-lock-open />
+                                <span>Reopen RSVP</span>
+                            @else
+                                <x-heroicon-o-lock-closed />
+                                <span>Lock RSVP</span>
+                            @endif
+                        </button>
                         <a href="{{ \App\Filament\Resources\ProjectResource::getUrl('guests-rsvp-configuration', ['record' => $record]) }}" class="wm-guests-button is-secondary">
                             <x-heroicon-o-adjustments-horizontal />
                             <span>RSVP form</span>
@@ -697,8 +727,18 @@
                         <p class="wm-guests-stat-label">Groups</p>
                         <p class="wm-guests-stat-value">{{ $summary['groups'] }}</p>
                     </div>
+                    <div class="wm-guests-stat">
+                        <p class="wm-guests-stat-label">RSVP edits</p>
+                        <p class="wm-guests-stat-value">{{ $record->rsvp_submissions_locked ? 'Locked' : 'Open' }}</p>
+                    </div>
                 </div>
             </section>
+
+            @if ($record->rsvp_submissions_locked)
+                <section class="wm-event-card wm-guests-toolbar">
+                    <span class="wm-guests-chip is-warning">Guest RSVP forms are read-only. Only wedding planners/admins can update responses now.</span>
+                </section>
+            @endif
 
             <section class="wm-event-card wm-guests-table-card">
                 @if ($guests->isEmpty())
@@ -712,8 +752,6 @@
                                 <tr>
                                     <th>RSVP #</th>
                                     <th>Names</th>
-                                    <th>Formal Addressing</th>
-                                    <th>Children/Add'l Guests</th>
                                     <th>List</th>
                                     @foreach ($statusColumns as $statusLabel)
                                         <th>{{ $statusLabel }}</th>
@@ -721,7 +759,6 @@
                                     <th>Group</th>
                                     <th>RSVP</th>
                                     <th>Public Link</th>
-                                    <th>Address</th>
                                     <th>Phone</th>
                                     <th>Email</th>
                                     <th></th>
@@ -735,8 +772,6 @@
                                             <div class="wm-guests-name">{{ $guest->displayName() }}</div>
                                             <div class="wm-guests-muted">{{ $guest->partySize() }} {{ $guest->partySize() === 1 ? 'person' : 'people' }}</div>
                                         </td>
-                                        <td>{{ $guest->formal_addressing ?: '—' }}</td>
-                                        <td>{{ $guest->additionalGuestNames() ?: '—' }}</td>
                                         <td><span class="wm-guests-chip">{{ $guest->guest_list ?: 'List' }}</span></td>
                                         @foreach ($statusColumns as $statusField => $statusLabel)
                                             @php $statusValue = (int) $guest->{$statusField}; @endphp
@@ -760,16 +795,20 @@
                                         <td>{{ $guest->group_name ?: '—' }}</td>
                                         <td>
                                             @if ($guest->rsvp_completed_at)
-                                                <span class="wm-guests-chip">Completed {{ $guest->rsvp_completed_at->format('d/m H:i') }}</span>
+                                                @if ($guest->presence_confirmed)
+                                                    <span class="wm-guests-chip is-positive"><x-heroicon-o-check-circle /> Yes · {{ $guest->rsvp_completed_at->format('d/m H:i') }}</span>
+                                                    <button type="button" class="wm-guests-chip is-negative" wire:click="promptCancelParticipation({{ $guest->id }})" title="Cancel participation">
+                                                        Cancel
+                                                    </button>
+                                                @else
+                                                    <span class="wm-guests-chip is-negative"><x-heroicon-o-x-circle /> No · {{ $guest->rsvp_completed_at->format('d/m H:i') }}</span>
+                                                @endif
                                             @else
                                                 <span class="wm-guests-muted">Not completed</span>
                                             @endif
                                         </td>
                                         <td>
                                             <a class="wm-guests-chip" href="{{ $guest->publicRsvpUrl() }}" target="_blank" rel="noopener">Open RSVP</a>
-                                        </td>
-                                        <td>
-                                            {{ collect([$guest->address_line_1, $guest->city, $guest->state, $guest->postal_code, $guest->country])->filter()->implode(', ') ?: '—' }}
                                         </td>
                                         <td>{{ $guest->phone ?: '—' }}</td>
                                         <td>{{ $guest->email ?: '—' }}</td>
@@ -1015,6 +1054,17 @@
                 <div class="wm-guests-modal-actions">
                     <x-filament::button color="gray" wire:click="cancelDeleteGuest">Cancel</x-filament::button>
                     <x-filament::button color="danger" wire:click="confirmDeleteGuest">Delete guest</x-filament::button>
+                </div>
+            </div>
+        @endif
+
+        @if ($confirmCancelParticipationGuestId)
+            <div class="wm-guests-modal-backdrop" wire:click="cancelCancelParticipation"></div>
+            <div class="wm-guests-modal is-compact" role="dialog" aria-modal="true" x-on:mousedown.stop x-on:click.stop>
+                <p>This will reset the RSVP and mark attendance as No.</p>
+                <div class="wm-guests-modal-actions">
+                    <x-filament::button color="gray" wire:click="cancelCancelParticipation">Cancel</x-filament::button>
+                    <x-filament::button color="danger" wire:click="confirmCancelParticipation">Confirm no attendance</x-filament::button>
                 </div>
             </div>
         @endif

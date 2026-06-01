@@ -12,12 +12,25 @@ class ProjectTable extends Model
         'oval' => 'Oval',
         'rectangular' => 'Rectangular',
         'square' => 'Square',
+        'long_table' => 'Long table',
         'chair_row' => 'Chair row',
     ];
 
     public const CHAIR_ROW_SPACING = 26;
     public const CHAIR_ROW_SIDE_PADDING = 20;
     public const CHAIR_ROW_HEIGHT = 24;
+    public const LONG_TABLE_DEFAULT_LENGTH = 800;
+    public const LONG_TABLE_WIDTH = 100;
+    public const LONG_TABLE_CURVE_TYPES = [
+        'subtle' => 'Subtle',
+        'medium' => 'Medium',
+        'strong' => 'Pronounced',
+    ];
+    public const CHAIR_ROW_CURVE_TYPES = [
+        'none' => 'None',
+        'medium' => 'Medium',
+        'high' => 'High',
+    ];
 
     protected $fillable = [
         'project_seating_plan_id',
@@ -30,6 +43,8 @@ class ProjectTable extends Model
         'secondary_dimension',
         'seats_total',
         'seats_by_side_json',
+        'curve_count',
+        'curve_type',
         'guest_assignments_json',
         'sort_order',
     ];
@@ -42,6 +57,7 @@ class ProjectTable extends Model
         'secondary_dimension' => 'decimal:2',
         'seats_total' => 'integer',
         'seats_by_side_json' => 'array',
+        'curve_count' => 'integer',
         'guest_assignments_json' => 'array',
         'sort_order' => 'integer',
     ];

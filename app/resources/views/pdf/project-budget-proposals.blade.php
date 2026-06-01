@@ -105,46 +105,94 @@
         .content-card {
             position: absolute;
             left: 15mm;
-            top: 18mm;
+            top: 14mm;
             width: 122mm;
-            min-height: 174mm;
-            padding: 9mm;
+            min-height: 181mm;
+            padding: 7mm 8mm;
             background: rgba(255, 255, 255, 0.94);
         }
         .section-title {
-            margin: 0 0 3mm;
+            margin: 0 0 2mm;
             color: #2e4a62;
-            font-size: 9px;
+            font-size: 8.5px;
             font-weight: 700;
             letter-spacing: 2px;
             text-transform: uppercase;
         }
         .summary {
-            margin: 0 0 6mm;
+            margin: 0 0 4mm;
             color: #4d4740;
+            font-size: 10.2px;
+            line-height: 1.35;
             white-space: pre-line;
         }
         .facts {
             width: 100%;
             border-collapse: collapse;
+            margin-bottom: 4mm;
         }
         .facts td {
-            padding: 2mm 0;
+            padding: 0.9mm 0;
             border-bottom: 1px solid #e8e0d7;
             vertical-align: top;
         }
         .facts td:first-child {
-            width: 31mm;
+            width: 40mm;
             color: #8b847d;
-            font-size: 8.5px;
+            font-size: 8px;
             font-weight: 700;
             letter-spacing: 1.5px;
             text-transform: uppercase;
         }
+        .facts tr.quote-item td:first-child {
+            color: #4d4740;
+            font-size: 10px;
+            font-weight: normal;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+        .facts tr.quote-item td:last-child {
+            width: 34mm;
+        }
+        .facts tr.total td {
+            font-weight: 700;
+        }
+        .facts tr.total td:first-child {
+            color: #2d2a26;
+        }
+        .facts tr.total td:last-child,
+        .facts tr.quote-item td:last-child {
+            text-align: right;
+            white-space: nowrap;
+        }
+        .compact-facts {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .compact-facts td {
+            width: 33.333%;
+            padding: 0 3mm 0.3mm 0;
+            border-bottom: 0;
+        }
+        .compact-label {
+            display: block;
+            margin-bottom: 0.1mm;
+            color: #5f5953;
+            font-size: 7.8px;
+            font-weight: normal;
+            letter-spacing: 0;
+            text-transform: none;
+            white-space: nowrap;
+        }
+        .compact-value {
+            display: block;
+            color: #2d2a26;
+            font-size: 9.4px;
+        }
         .gallery {
             position: absolute;
             right: 20mm;
-            top: 21mm;
+            top: 18mm;
             width: 118mm;
             height: 168mm;
         }
@@ -224,6 +272,24 @@
                 $supplier?->country,
             ])->filter()->implode(', ');
             $website = $supplier?->loc_website;
+            $hasRoomInfo = $supplier && (
+                (bool) $supplier->loc_has_rooms
+                || filled($supplier->loc_room_count)
+                || filled($supplier->loc_stay_guest_max)
+                || filled($supplier->loc_min_nights)
+            );
+            $roomDetails = collect([
+                ['label' => 'Room count', 'value' => filled($supplier?->loc_room_count) ? (string) $supplier->loc_room_count : null],
+                ['label' => 'Max overnight guests', 'value' => filled($supplier?->loc_stay_guest_max) ? (string) $supplier->loc_stay_guest_max : null],
+                ['label' => 'Minimum nights', 'value' => filled($supplier?->loc_min_nights) ? (string) $supplier->loc_min_nights : null],
+            ])->filter(fn (array $item): bool => filled($item['value']))->values();
+            $availableDates = collect($proposal->location_available_dates ?? [])
+                ->map(fn ($date): string => trim((string) $date))
+                ->filter()
+                ->values();
+            $costItems = collect($proposal->cost_items_json ?? [])
+                ->filter(fn ($item): bool => is_array($item) && (filled($item['label'] ?? null) || ($item['amount'] ?? null) !== null))
+                ->values();
         @endphp
 
         <section class="page">
@@ -244,10 +310,6 @@
 
                 <p class="section-title">Main information</p>
                 <table class="facts">
-                    <tr>
-                        <td>Quote</td>
-                        <td>{{ $money($proposal->proposed_amount) }}</td>
-                    </tr>
                     @if ($address)
                         <tr>
                             <td>Address</td>
@@ -284,12 +346,64 @@
                             <td>Up to {{ $supplier->loc_guest_max }} guests</td>
                         </tr>
                     @endif
+                    @if ($hasRoomInfo)
+                        <tr>
+                            <td>Rooms</td>
+                            <td>
+                                @if (! $supplier->loc_has_rooms)
+                                    Not available
+                                @elseif ($roomDetails->isNotEmpty())
+                                    <table class="compact-facts">
+                                        <tr>
+                                            @foreach ($roomDetails as $item)
+                                                <td>
+                                                    <span class="compact-label">{{ $item['label'] }}</span>
+                                                    <span class="compact-value">{{ $item['value'] }}</span>
+                                                </td>
+                                            @endforeach
+                                            @for ($i = $roomDetails->count(); $i < 3; $i++)
+                                                <td></td>
+                                            @endfor
+                                        </tr>
+                                    </table>
+                                @else
+                                    Available
+                                @endif
+                            </td>
+                        </tr>
+                    @endif
                     @if ($supplier?->loc_overview)
                         <tr>
                             <td>Overview</td>
                             <td>{{ $supplier->loc_overview }}</td>
                         </tr>
                     @endif
+                </table>
+
+                <p class="section-title">Quote</p>
+                <table class="facts">
+                    @if ($availableDates->isNotEmpty())
+                        <tr>
+                            <td>Location availability dates</td>
+                            <td>{{ $availableDates->implode(', ') }}</td>
+                        </tr>
+                    @endif
+                    @foreach ($costItems as $item)
+                        <tr class="quote-item">
+                            <td>{{ filled($item['label'] ?? null) ? $item['label'] : 'Cost item' }}</td>
+                            <td>{{ $money($item['amount'] ?? null) }}</td>
+                        </tr>
+                    @endforeach
+                    @if ($proposal->costs_and_conditions)
+                        <tr>
+                            <td>Costs and conditions</td>
+                            <td>{{ $proposal->costs_and_conditions }}</td>
+                        </tr>
+                    @endif
+                    <tr class="total">
+                        <td>Total</td>
+                        <td>{{ $money($proposal->proposed_amount) }}</td>
+                    </tr>
                 </table>
             </div>
 

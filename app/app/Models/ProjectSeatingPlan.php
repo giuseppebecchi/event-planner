@@ -46,4 +46,9 @@ class ProjectSeatingPlan extends Model
     {
         return $this->hasMany(ProjectTable::class)->orderBy('sort_order');
     }
+
+    public function layoutElements(): HasMany
+    {
+        return $this->hasMany(ProjectLayoutElement::class)->orderBy('sort_order');
+    }
 }

@@ -57,7 +57,8 @@
         .item-images { margin-top: 9px; font-size: 0; }
         .item-image { display: inline-block; width: 84px; height: 84px; margin: 0 8px 8px 0; overflow: hidden; background: #efe7dc; }
         .item-image img { width: 100%; height: 100%; object-fit: cover; }
-        .detail-card { padding: 0 8px 0 0; }
+        .detail-card { padding: 0 8px 0 0; page-break-inside: avoid; }
+        .detail-card + .detail-card { margin-top: 24px; }
         .detail-title { color: #1f1914; font-size: 22px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
         .detail-meta { margin-top: 10px; color: #6f665c; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
         .detail-html { margin-top: 26px; color: #302923; font-size: 12px; line-height: 1.78; }
@@ -135,19 +136,17 @@
         </div>
     </section>
 
-    <section class="page">
-        <div class="page-shell">
-            <aside class="left-rail {{ $leftRailImage ? 'has-image' : '' }}" @if ($leftRailImage) style="background-image: url('{{ $leftRailImage }}')" @endif>
-                <div class="left-rail-overlay"></div>
-                <div class="left-rail-copy">Timeline recap</div>
-            </aside>
+    @forelse ($days as $day)
+        <section class="page">
+            <div class="page-shell">
+                <aside class="left-rail {{ $leftRailImage ? 'has-image' : '' }}" @if ($leftRailImage) style="background-image: url('{{ $leftRailImage }}')" @endif>
+                    <div class="left-rail-overlay"></div>
+                    <div class="left-rail-copy">{{ $day['date']->format('F j, Y') }}</div>
+                </aside>
 
-            <div class="page-main">
-                <div class="corner-flower-bottom"></div>
-                <div class="section-band">Detailed timeline</div>
-                <p class="section-copy">Operational running order by day, with notes, suppliers and attachments.</p>
-
-                @forelse ($days as $day)
+                <div class="page-main">
+                    <div class="corner-flower-bottom"></div>
+                    <div class="section-band">Detailed timeline</div>
                     <section class="timeline-day">
                         <h2 class="timeline-day-title">{{ $day['date']->format('l, F j, Y') }}</h2>
                         <p class="timeline-day-meta">
@@ -221,49 +220,51 @@
                             <p class="empty" style="margin-top: 12px;">No timeline items for this day yet.</p>
                         @endforelse
                     </section>
-                @empty
-                    <p class="empty">No timeline days available for this project.</p>
-                @endforelse
-            </div>
-        </div>
-    </section>
 
-    @foreach ($extendedActivities as $activity)
+                    @if (! empty($day['extended_items']))
+                        <div class="section-band" style="margin-top: 20px;">Day details</div>
+
+                        @foreach ($day['extended_items'] as $activity)
+                            <div class="detail-card">
+                                <h2 class="detail-title">{{ $activity['title'] }}</h2>
+                                <p class="detail-meta">
+                                    @if ($activity['start_time'])
+                                        {{ $activity['start_time'] }}@if ($activity['end_time']) - {{ $activity['end_time'] }}@endif
+                                    @endif
+                                    @if ($activity['supplier_name'])
+                                        | {{ $activity['supplier_name'] }}
+                                    @endif
+                                    @if ($activity['location'])
+                                        | {{ $activity['location'] }}
+                                    @endif
+                                    @if ($activity['location_plan_b'])
+                                        | Plan B: {{ $activity['location_plan_b'] }}
+                                    @endif
+                                </p>
+
+                                <div class="detail-html">{!! $activity['extended_description'] !!}</div>
+                            </div>
+                        @endforeach
+                    @endif
+                </div>
+            </div>
+        </section>
+    @empty
         <section class="page">
             <div class="page-shell">
                 <aside class="left-rail {{ $leftRailImage ? 'has-image' : '' }}" @if ($leftRailImage) style="background-image: url('{{ $leftRailImage }}')" @endif>
                     <div class="left-rail-overlay"></div>
-                    <div class="left-rail-copy">{{ $activity['cover_activity_type'] ?: 'Activity details' }}</div>
+                    <div class="left-rail-copy">Timeline recap</div>
                 </aside>
 
                 <div class="page-main">
                     <div class="corner-flower-bottom"></div>
-                    <div class="section-band">{{ $activity['title'] }}</div>
-
-                    <div class="detail-card">
-                        <h2 class="detail-title">{{ $activity['title'] }}</h2>
-                        <p class="detail-meta">
-                            {{ $activity['date'] }}
-                            @if ($activity['start_time'])
-                                | {{ $activity['start_time'] }}@if ($activity['end_time']) - {{ $activity['end_time'] }}@endif
-                            @endif
-                            @if ($activity['supplier_name'])
-                                | {{ $activity['supplier_name'] }}
-                            @endif
-                            @if ($activity['location'])
-                                | {{ $activity['location'] }}
-                            @endif
-                            @if ($activity['location_plan_b'])
-                                | Plan B: {{ $activity['location_plan_b'] }}
-                            @endif
-                        </p>
-
-                        <div class="detail-html">{!! $activity['extended_description'] !!}</div>
-                    </div>
+                    <div class="section-band">Detailed timeline</div>
+                    <p class="empty">No timeline days available for this project.</p>
                 </div>
             </div>
         </section>
-    @endforeach
+    @endforelse
 
     <section class="page">
         <div class="page-shell">

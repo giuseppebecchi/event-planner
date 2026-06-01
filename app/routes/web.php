@@ -24,7 +24,7 @@ Route::get('/rsvp/{token}', [PublicGuestRsvpController::class, 'show'])
 Route::post('/rsvp/{token}', [PublicGuestRsvpController::class, 'submit'])
     ->name('public.rsvp.submit');
 
-Route::get('/event/{project}', PublicProjectWebsiteController::class)
+Route::get('/event/{projectAlias}', PublicProjectWebsiteController::class)
     ->name('public.project-website.show');
 
 Route::get('/admin/leads/{lead}/proposal.pdf', LeadProposalPdfController::class)

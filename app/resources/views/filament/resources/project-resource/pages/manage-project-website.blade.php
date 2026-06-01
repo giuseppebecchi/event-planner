@@ -101,6 +101,16 @@
                 <article class="wm-website-card wm-website-panel">
                     <h2 class="wm-website-title">Public website</h2>
                     <p class="wm-website-copy">Manage the guest-facing event website from one JSON configuration. RSVP stays connected to the existing guest RSVP system.</p>
+                    <div class="wm-website-grid">
+                        <div class="wm-website-field">
+                            <label>Event name</label>
+                            <input class="wm-website-input" wire:model.live.debounce.500ms="eventName">
+                        </div>
+                        <div class="wm-website-field">
+                            <label>Website alias</label>
+                            <input class="wm-website-input" wire:model.live.debounce.500ms="alias">
+                        </div>
+                    </div>
                     <div class="wm-website-url">
                         <code>{{ $publicUrl }}</code>
                         <x-filament::button tag="a" href="{{ $publicUrl }}" target="_blank">

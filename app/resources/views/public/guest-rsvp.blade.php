@@ -38,18 +38,25 @@
         .additional-type-age.is-child { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .additional-age-field { display: none; }
         .additional-type-age.is-child .additional-age-field { display: block; }
+        .additional-type-age .high-chair-field { display: none; }
+        .additional-type-age.needs-high-chair .high-chair-field { display: flex; }
         label span { display: block; margin-bottom: .35rem; color: #5e5852; font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
         .required-mark { display: inline; margin: 0 0 0 .2rem; color: #dc2626; }
         input, select, textarea { width: 100%; min-height: 2.8rem; box-sizing: border-box; border: 1px solid #ddd2c5; border-radius: 8px; background: #fff; padding: .7rem .85rem; color: #2d2a26; font: inherit; }
+        input:disabled, select:disabled, textarea:disabled { background: #f5f1eb; color: #7d746b; cursor: not-allowed; }
         textarea { min-height: 4.25rem; resize: vertical; }
         .check { display: flex; align-items: center; gap: .65rem; min-height: 2.8rem; }
         .check input { width: 1.1rem; min-height: 1.1rem; accent-color: #b9975b; }
+        .presence-options { display: flex; flex-wrap: wrap; gap: .7rem; }
+        .presence-option { display: inline-flex; align-items: center; gap: .55rem; min-height: 2.8rem; padding: 0 1rem; border: 1px solid #ddd2c5; border-radius: 999px; background: #fffdf9; font-weight: 800; }
+        .presence-option input { width: 1.05rem; min-height: 1.05rem; accent-color: #b9975b; }
         .help { margin: .3rem 0 0; color: #8d847b; font-size: .82rem; line-height: 1.45; }
         .per-guest { grid-column: 1 / -1; display: grid; gap: .75rem; padding: .85rem; border: 1px solid #eadfce; border-radius: 10px; background: #fffdf9; }
         .per-guest-title { margin: 0; font-weight: 800; color: #2d2a26; }
         .per-guest-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
         .button { display: inline-flex; align-items: center; justify-content: center; min-height: 3rem; padding: 0 1.2rem; border: 1px solid #b9975b; border-radius: 8px; background: #b9975b; color: #fff; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; }
         .notice { margin-bottom: 1rem; padding: .9rem 1rem; border-radius: 10px; background: #eaf5ea; color: #2f6f39; }
+        .notice.is-locked { background: #fff4df; color: #7a4f13; }
         @media (max-width: 760px) { .grid, .grid-4, .person-fields, .person-questions, .per-guest-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -87,8 +94,32 @@
             <div class="notice">{{ session('status') }}</div>
         @endif
 
+        @if ($rsvpLocked)
+            <div class="notice is-locked">RSVP changes are currently closed. Please contact your wedding planner for updates.</div>
+        @endif
+
         <form class="card" method="POST" action="{{ route('public.rsvp.submit', ['token' => $guest->rsvp_token]) }}">
             @csrf
+            <fieldset @disabled($rsvpLocked) style="border: 0; margin: 0; padding: 0;">
+            @php
+                $presenceValue = old('presence_confirmed', $guest->presence_confirmed === null ? '1' : ($guest->presence_confirmed ? '1' : '0'));
+            @endphp
+
+            <section class="section">
+                <h2>Confirm your attendance</h2>
+                <div class="presence-options">
+                    <label class="presence-option">
+                        <input type="radio" name="presence_confirmed" value="1" @checked((string) $presenceValue === '1') data-presence-radio>
+                        Yes
+                    </label>
+                    <label class="presence-option">
+                        <input type="radio" name="presence_confirmed" value="0" @checked((string) $presenceValue === '0') data-presence-radio>
+                        No
+                    </label>
+                </div>
+            </section>
+
+            <div data-rsvp-details>
 
             <section class="section">
                 <h2>Guests</h2>
@@ -126,8 +157,10 @@
                                     @php
                                         $additionalType = old("additional_guests.{$subject['index']}.type", $additional['type'] ?? '');
                                         $additionalAge = old("additional_guests.{$subject['index']}.age", $additional['age'] ?? '');
+                                        $needsHighChair = $additionalType === 'Child' && $additionalAge !== '' && (int) $additionalAge <= 3;
+                                        $additionalHighChair = old("additional_guests.{$subject['index']}.high_chair", ! empty($additional['high_chair']));
                                     @endphp
-                                    <div class="additional-type-age {{ $additionalType === 'Child' ? 'is-child' : '' }}" data-additional-type-age>
+                                    <div class="additional-type-age {{ $additionalType === 'Child' ? 'is-child' : '' }} {{ $needsHighChair ? 'needs-high-chair' : '' }}" data-additional-type-age>
                                         <label>
                                             <span>Type</span>
                                             <select name="additional_guests[{{ $subject['index'] }}][type]" data-additional-type-select>
@@ -145,6 +178,16 @@
                                                     <option value="{{ $age }}" @selected((string) $additionalAge === (string) $age)>{{ $age }}</option>
                                                 @endfor
                                             </select>
+                                        </label>
+                                        <label class="check high-chair-field">
+                                            <input
+                                                type="checkbox"
+                                                name="additional_guests[{{ $subject['index'] }}][high_chair]"
+                                                value="1"
+                                                data-high-chair-checkbox
+                                                @checked((bool) $additionalHighChair)
+                                            >
+                                            High chair needed
                                         </label>
                                     </div>
                                 @endif
@@ -231,24 +274,70 @@
             </section>
 
             <section class="section">
-                <button type="submit" class="button">Save RSVP</button>
+                @if ($rsvpLocked)
+                    <p class="help">This RSVP is read-only for guests. Only the wedding planner can make changes now.</p>
+                @else
+                    <button type="submit" class="button">Save RSVP</button>
+                @endif
             </section>
+            </div>
+            <section class="section" data-rsvp-decline-submit style="display: none;">
+                @if ($rsvpLocked)
+                    <p class="help">This RSVP is read-only for guests. Only the wedding planner can make changes now.</p>
+                @else
+                    <button type="submit" class="button">Save RSVP</button>
+                @endif
+            </section>
+            </fieldset>
         </form>
     </main>
     <script>
+        const syncPresenceDetails = () => {
+            const selectedPresence = document.querySelector('[data-presence-radio]:checked')?.value || '1';
+            const details = document.querySelector('[data-rsvp-details]');
+            const declineSubmit = document.querySelector('[data-rsvp-decline-submit]');
+            const showDetails = selectedPresence === '1';
+
+            if (details) {
+                details.style.display = showDetails ? '' : 'none';
+                details.querySelectorAll('input, select, textarea').forEach((field) => {
+                    field.disabled = ! showDetails;
+                });
+            }
+
+            if (declineSubmit) {
+                declineSubmit.style.display = showDetails ? 'none' : '';
+            }
+        };
+
+        document.querySelectorAll('[data-presence-radio]').forEach((field) => {
+            field.addEventListener('change', syncPresenceDetails);
+        });
+
+        syncPresenceDetails();
+
         document.querySelectorAll('[data-additional-type-age]').forEach((field) => {
             const typeSelect = field.querySelector('[data-additional-type-select]');
             const ageSelect = field.querySelector('[data-additional-age-select]');
+            const highChairCheckbox = field.querySelector('[data-high-chair-checkbox]');
             const syncAgeField = () => {
                 const isChild = typeSelect.value === 'Child';
+                const age = Number(ageSelect?.value ?? '');
+                const needsHighChair = isChild && ageSelect?.value !== '' && age >= 0 && age <= 3;
                 field.classList.toggle('is-child', isChild);
+                field.classList.toggle('needs-high-chair', needsHighChair);
 
                 if (! isChild && ageSelect) {
                     ageSelect.value = '';
                 }
+
+                if (! needsHighChair && highChairCheckbox) {
+                    highChairCheckbox.checked = false;
+                }
             };
 
             typeSelect.addEventListener('change', syncAgeField);
+            ageSelect?.addEventListener('change', syncAgeField);
             syncAgeField();
         });
     </script>

@@ -105,32 +105,39 @@ class ViewProjectTimeline extends Page
             'categoryBudgetSuppliers.category'
         );
         $days = $this->getTimelineDays()->map(function (array $day): array {
+            $items = $day['items']->map(function (ProjectTimeline $item): array {
+                return [
+                    'title' => $item->title,
+                    'date' => $item->timeline_date?->format('F j, Y'),
+                    'location' => $item->location,
+                    'supplier_name' => $item->supplier?->name,
+                    'start_time' => $item->start_time?->format('H:i'),
+                    'end_time' => $item->end_time?->format('H:i'),
+                    'sunset_time' => $item->sunset_time?->format('H:i'),
+                    'is_surprise' => (bool) $item->is_surprise,
+                    'cover_activity' => (bool) $item->cover_activity,
+                    'cover_activity_type' => $item->cover_activity_type,
+                    'description' => $item->description,
+                    'location_plan_b' => $item->location_plan_b,
+                    'has_extended_description' => (bool) $item->has_extended_description,
+                    'extended_description' => $item->extended_description,
+                    'notes' => $item->notes,
+                    'images' => collect($item->image_paths ?? [])
+                        ->map(fn (string $path): ?string => $this->imagePathToDataUri($path))
+                        ->filter()
+                        ->values()
+                        ->all(),
+                ];
+            })->all();
+
             return [
                 ...$day,
                 'daily_note_description' => $day['daily_note']?->description,
-                'items' => $day['items']->map(function (ProjectTimeline $item): array {
-                    return [
-                        'title' => $item->title,
-                        'location' => $item->location,
-                        'supplier_name' => $item->supplier?->name,
-                        'start_time' => $item->start_time?->format('H:i'),
-                        'end_time' => $item->end_time?->format('H:i'),
-                        'sunset_time' => $item->sunset_time?->format('H:i'),
-                        'is_surprise' => (bool) $item->is_surprise,
-                        'cover_activity' => (bool) $item->cover_activity,
-                        'cover_activity_type' => $item->cover_activity_type,
-                        'description' => $item->description,
-                        'location_plan_b' => $item->location_plan_b,
-                        'has_extended_description' => (bool) $item->has_extended_description,
-                        'extended_description' => $item->extended_description,
-                        'notes' => $item->notes,
-                        'images' => collect($item->image_paths ?? [])
-                            ->map(fn (string $path): ?string => $this->imagePathToDataUri($path))
-                            ->filter()
-                            ->values()
-                            ->all(),
-                    ];
-                })->all(),
+                'items' => $items,
+                'extended_items' => collect($items)
+                    ->filter(fn (array $item): bool => (bool) $item['has_extended_description'] && filled($item['extended_description']))
+                    ->values()
+                    ->all(),
             ];
         });
         $timelineItems = $project->projectTimelineItems
@@ -148,10 +155,6 @@ class ViewProjectTimeline extends Page
             ->map(fn (ProjectTimeline $item): array => $this->timelineItemPdfPayload($item) + [
                 'icon' => $this->coverActivityIconDataUri($item->cover_activity_type),
             ])
-            ->values();
-        $extendedActivities = $timelineItems
-            ->filter(fn (ProjectTimeline $item): bool => (bool) $item->has_extended_description && filled($item->extended_description))
-            ->map(fn (ProjectTimeline $item): array => $this->timelineItemPdfPayload($item))
             ->values();
         $confirmedSuppliers = $project->categoryBudgetSuppliers
             ->filter(fn (CategoryBudgetSupplier $proposal): bool => $proposal->proposal_status === CategoryBudgetSupplier::STATUS_CONFIRMED && $proposal->supplier)
@@ -175,7 +178,6 @@ class ViewProjectTimeline extends Page
             'project' => $project,
             'days' => $days,
             'coverActivities' => $coverActivities,
-            'extendedActivities' => $extendedActivities,
             'confirmedSuppliers' => $confirmedSuppliers,
             'dateRange' => $dateRange,
             'location' => $location,

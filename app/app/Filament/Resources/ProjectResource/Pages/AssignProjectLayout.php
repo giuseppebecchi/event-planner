@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\ProjectResource;
 use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDateEditor;
 use App\Models\Guest;
+use App\Models\ProjectLayoutElement;
 use App\Models\ProjectSeatingPlan;
 use App\Models\ProjectTable;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
@@ -35,7 +36,7 @@ class AssignProjectLayout extends Page
         $this->record = $this->resolveRecord($record);
         $this->currentSeatingPlan = $this->getRecord()
             ->seatingPlans()
-            ->with('tables')
+            ->with(['tables', 'layoutElements'])
             ->findOrFail($seatingPlan);
     }
 
@@ -80,8 +81,32 @@ class AssignProjectLayout extends Page
                 'secondary_dimension' => $table->secondary_dimension !== null ? (float) $table->secondary_dimension : (float) $table->primary_dimension,
                 'seats_total' => $table->seats_total,
                 'seats_by_side_json' => $table->seats_by_side_json ?? ['top' => 2, 'right' => 2, 'bottom' => 2, 'left' => 2],
+                'curve_count' => (int) ($table->curve_count ?? 0),
+                'curve_type' => $table->curve_type ?: ($table->table_type === 'chair_row' ? 'none' : 'medium'),
                 'guest_assignments_json' => $table->guest_assignments_json ?? [],
                 'sort_order' => $table->sort_order,
+            ])
+            ->values()
+            ->all();
+    }
+
+    public function getLayoutElements(): array
+    {
+        return $this->currentSeatingPlan
+            ->loadMissing('layoutElements')
+            ->layoutElements
+            ->map(fn (ProjectLayoutElement $element): array => [
+                'id' => $element->id,
+                'element_type' => $element->element_type,
+                'shape' => $element->shape ?: 'rectangle',
+                'label' => $element->label ?: '',
+                'center_x' => (float) $element->center_x,
+                'center_y' => (float) $element->center_y,
+                'rotation' => (float) $element->rotation,
+                'width' => (float) $element->width,
+                'height' => (float) $element->height,
+                'background_color' => $element->background_color ?: '#f3eadc',
+                'sort_order' => $element->sort_order,
             ])
             ->values()
             ->all();

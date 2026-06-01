@@ -7,7 +7,7 @@
     </div>
 
     @forelse (($website[$section][$list] ?? []) as $index => $item)
-        <div class="wm-website-item">
+        <div class="wm-website-item" wire:key="website-{{ $section }}-{{ $list }}-{{ $index }}-{{ md5((string) ($item['url'] ?? $item['name'] ?? $item['title'] ?? $item['question'] ?? $index)) }}">
             <div class="wm-website-item-head">
                 <span>{{ $title }} #{{ $index + 1 }}</span>
                 <x-filament::button size="sm" color="danger" wire:click="removeItem('{{ $section }}', '{{ $list }}', {{ $index }})">

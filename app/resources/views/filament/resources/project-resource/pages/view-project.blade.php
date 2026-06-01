@@ -9,6 +9,7 @@
 
     <style>
         .wm-event-dashboard {
+            position: relative;
             display: flex;
             flex-direction: column;
             gap: 1rem;
@@ -266,7 +267,7 @@
         }
 
         .wm-event-anchor {
-            position: relative;
+            position: absolute;
             top: -5.5rem;
             height: 0;
         }

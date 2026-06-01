@@ -1127,9 +1127,35 @@
 
         .wm-commission-payment-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
             gap: 0.75rem;
             align-items: end;
+        }
+
+        .wm-commission-payment-grid .is-wide {
+            grid-column: span 2;
+        }
+
+        .wm-commission-payment-grid .is-row-break {
+            grid-column-start: 1;
+        }
+
+        .wm-commission-delete-button {
+            width: 2.65rem;
+            height: 2.65rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(217, 48, 37, .24);
+            border-radius: .75rem;
+            background: rgba(217, 48, 37, .08);
+            color: #d93025;
+            cursor: pointer;
+        }
+
+        .wm-commission-delete-button svg {
+            width: 1rem;
+            height: 1rem;
         }
 
         .wm-field[readonly] {
@@ -1156,13 +1182,13 @@
     <div class="wm-supplier-manage-page">
         @include('filament.resources.project-resource.partials.workspace-header', [
             'record' => $record,
-            'activeSection' => 'budget',
+            'activeSection' => 'suppliers',
         ])
 
         <section class="wm-card wm-panel">
             <div class="wm-head">
                 <div>
-                    <a href="{{ \App\Filament\Resources\ProjectResource::getUrl('budget', ['record' => $record]) }}" class="wm-link">← Back to budget recap</a>
+                    <a href="{{ \App\Filament\Resources\ProjectResource::getUrl('suppliers', ['record' => $record]) }}" class="wm-link">← Back to suppliers</a>
                     <h2 class="wm-title" style="margin-top:.45rem;">{{ $summary['supplier'] }}</h2>
                     <p class="wm-copy">{{ $summary['category'] }} · confirmed supplier workspace for this project.</p>
                 </div>
@@ -1968,6 +1994,18 @@
                                 <input id="commission-percentage" type="number" min="0" max="100" step="0.01" class="wm-field" wire:model.live="commissionForm.commission_percentage">
                             </div>
                             <div>
+                                <label class="wm-label" for="commission-base-amount">Calculation base</label>
+                                <input
+                                    id="commission-base-amount"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    class="wm-field"
+                                    wire:model.live="commissionForm.commission_base_amount"
+                                    placeholder="{{ number_format((float) ($this->proposalRecord->proposed_amount ?? 0), 2, '.', '') }}"
+                                >
+                            </div>
+                            <div>
                                 <label class="wm-label" for="commission-amount-percentage">Commission amount</label>
                                 <input id="commission-amount-percentage" type="number" step="0.01" class="wm-field" wire:model="commissionForm.commission_amount" readonly>
                             </div>
@@ -2017,7 +2055,22 @@
                                     <label class="wm-label" for="commission-paid-at-{{ $index }}">Paid at</label>
                                     <input id="commission-paid-at-{{ $index }}" type="date" class="wm-field" wire:model.live="commissionForm.commission_payments_json.{{ $index }}.paid_at">
                                 </div>
-                                <button type="button" class="wm-link" wire:click="removeCommissionPayment({{ $index }})">Delete</button>
+                                <div class="is-row-break">
+                                    <label class="wm-label" for="commission-payment-type-{{ $index }}">Payment type</label>
+                                    <select id="commission-payment-type-{{ $index }}" class="wm-select" wire:model="commissionForm.commission_payments_json.{{ $index }}.payment_type_id">
+                                        <option value="">Select payment mode</option>
+                                        @foreach ($this->getPaymentModeOptions() as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="is-wide">
+                                    <label class="wm-label" for="commission-payment-note-{{ $index }}">Note</label>
+                                    <input id="commission-payment-note-{{ $index }}" type="text" class="wm-field" wire:model="commissionForm.commission_payments_json.{{ $index }}.note" placeholder="Internal note">
+                                </div>
+                                <button type="button" class="wm-commission-delete-button" wire:click="removeCommissionPayment({{ $index }})" title="Delete payment">
+                                    <x-heroicon-o-trash />
+                                </button>
                             </div>
                         </div>
                     @empty
@@ -2026,7 +2079,6 @@
 
                     <div class="wm-actions">
                         <x-filament::button color="gray" wire:click="addCommissionPayment">Add payment</x-filament::button>
-                        <x-filament::button color="primary" wire:click="saveCommission">Save commissions</x-filament::button>
                     </div>
                 </div>
             </div>

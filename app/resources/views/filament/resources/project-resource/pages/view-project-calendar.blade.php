@@ -668,7 +668,9 @@
             top: 50%;
             left: 50%;
             z-index: 50;
-            width: min(34rem, calc(100vw - 2rem));
+            width: min(46rem, calc(100vw - 2rem));
+            max-height: calc(100vh - 2rem);
+            overflow: auto;
             transform: translate(-50%, -50%);
             border-radius: 1.1rem;
             border: 1px solid #dfd3c4;
@@ -697,6 +699,15 @@
             color: #746d66;
             font-size: 0.88rem;
             line-height: 1.6;
+        }
+
+        .wm-calendar-detail-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.65rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee5dc;
         }
 
         .wm-calendar-detail-close {
@@ -1219,6 +1230,112 @@
                 @if (filled($selectedItem['program_html']))
                     <div class="wm-calendar-detail-program">{!! $selectedItem['program_html'] !!}</div>
                 @endif
+
+                @if ($selectedItem['kind'] === 'event' && ! auth()->user()?->isCustomer())
+                    <div class="wm-calendar-detail-actions">
+                        <x-filament::button color="gray" wire:click="editCalendarEvent({{ $selectedItem['id'] }})">
+                            Edit
+                        </x-filament::button>
+                    </div>
+                @endif
+            </div>
+        @endif
+
+        @if ($editingProjectEventId)
+            <div class="wm-calendar-detail-backdrop" wire:click="closeProjectEventEditor"></div>
+            <div class="wm-calendar-detail" role="dialog" aria-modal="true">
+                <div class="wm-calendar-detail-head">
+                    <div>
+                        <h3 class="wm-calendar-detail-title">Edit project event</h3>
+                        <p class="wm-calendar-detail-meta">Update event dates, timing, description and program.</p>
+                    </div>
+
+                    <button type="button" class="wm-calendar-detail-close" wire:click="closeProjectEventEditor">
+                        <x-heroicon-o-x-mark />
+                    </button>
+                </div>
+
+                <div class="wm-calendar-field" style="margin-top: 1rem;">
+                    <label for="calendar-edit-event-title">Title</label>
+                    <input id="calendar-edit-event-title" type="text" class="wm-calendar-input" wire:model="editEventForm.title">
+                    @error('editEventForm.title') <p class="wm-calendar-detail-text">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="wm-calendar-field" style="margin-top: 0.85rem;">
+                    <label for="calendar-edit-event-description">Description</label>
+                    <textarea id="calendar-edit-event-description" class="wm-calendar-textarea" rows="3" wire:model="editEventForm.description"></textarea>
+                </div>
+
+                <div class="wm-calendar-field-grid" style="margin-top: 0.85rem;">
+                    <label class="wm-calendar-toggle">
+                        <input type="checkbox" wire:model.live="editEventForm.is_multi_day">
+                        <span>Event spans multiple days</span>
+                    </label>
+
+                    <label class="wm-calendar-toggle">
+                        <input type="checkbox" wire:model.live="editEventForm.is_all_day">
+                        <span>All day</span>
+                    </label>
+                </div>
+
+                @if (! ($editEventForm['is_multi_day'] ?? false))
+                    <div class="wm-calendar-field-grid is-single" style="margin-top: 0.85rem;">
+                        <div class="wm-calendar-field">
+                            <label for="calendar-edit-start-date">Date</label>
+                            <input id="calendar-edit-start-date" type="date" class="wm-calendar-input" wire:model="editEventForm.start_date">
+                            @error('editEventForm.start_date') <p class="wm-calendar-detail-text">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                @else
+                    <div class="wm-calendar-field-grid" style="margin-top: 0.85rem;">
+                        <div class="wm-calendar-field">
+                            <label for="calendar-edit-start-date">Start date</label>
+                            <input id="calendar-edit-start-date" type="date" class="wm-calendar-input" wire:model="editEventForm.start_date">
+                            @error('editEventForm.start_date') <p class="wm-calendar-detail-text">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="wm-calendar-field">
+                            <label for="calendar-edit-end-date">End date</label>
+                            <input id="calendar-edit-end-date" type="date" class="wm-calendar-input" wire:model="editEventForm.end_date">
+                            @error('editEventForm.end_date') <p class="wm-calendar-detail-text">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                @endif
+
+                @if (! ($editEventForm['is_all_day'] ?? false))
+                    <div class="wm-calendar-field-grid" style="margin-top: 0.85rem;">
+                        <div class="wm-calendar-field">
+                            <label for="calendar-edit-start-time">Start time</label>
+                            <input id="calendar-edit-start-time" type="time" class="wm-calendar-input" wire:model="editEventForm.start_time">
+                            @error('editEventForm.start_time') <p class="wm-calendar-detail-text">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="wm-calendar-field">
+                            <label for="calendar-edit-end-time">End time</label>
+                            <input id="calendar-edit-end-time" type="time" class="wm-calendar-input" wire:model="editEventForm.end_time">
+                            @error('editEventForm.end_time') <p class="wm-calendar-detail-text">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                @endif
+
+                <label class="wm-calendar-toggle" style="margin-top: 0.85rem;">
+                    <input type="checkbox" wire:model.live="editEventForm.include_program">
+                    <span>Insert program</span>
+                </label>
+
+                @if ($editEventForm['include_program'] ?? false)
+                    <div class="wm-calendar-field" style="margin-top: 0.85rem;">
+                        <label for="calendar-edit-program-html">Program HTML</label>
+                        <textarea id="calendar-edit-program-html" class="wm-calendar-textarea" rows="8" wire:model="editEventForm.program_html"></textarea>
+                    </div>
+                @endif
+
+                <div class="wm-calendar-detail-actions">
+                    <x-filament::button color="gray" wire:click="closeProjectEventEditor">
+                        Cancel
+                    </x-filament::button>
+                    <x-filament::button wire:click="saveProjectEventChanges">
+                        Save changes
+                    </x-filament::button>
+                </div>
             </div>
         @endif
     </div>

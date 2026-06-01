@@ -33,6 +33,7 @@ class ViewProjectCalendar extends Page
     public string $visibleMonth = '';
     public ?string $selectedCalendarItemKind = null;
     public ?int $selectedCalendarItemId = null;
+    public ?int $editingProjectEventId = null;
 
     public array $monthPickerForm = [
         'month' => '',
@@ -40,6 +41,19 @@ class ViewProjectCalendar extends Page
     ];
 
     public array $eventForm = [
+        'title' => '',
+        'description' => '',
+        'is_multi_day' => false,
+        'is_all_day' => true,
+        'start_date' => '',
+        'end_date' => '',
+        'start_time' => '09:00',
+        'end_time' => '10:00',
+        'include_program' => false,
+        'program_html' => '',
+    ];
+
+    public array $editEventForm = [
         'title' => '',
         'description' => '',
         'is_multi_day' => false,
@@ -179,6 +193,25 @@ class ViewProjectCalendar extends Page
         $this->selectedCalendarItemId = null;
     }
 
+    public function editCalendarEvent(int $eventId): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        /** @var ProjectEvent $event */
+        $event = $this->getRecord()->projectEvents()->findOrFail($eventId);
+
+        $this->editingProjectEventId = $event->id;
+        $this->editEventForm = $this->projectEventFormPayload($event);
+        $this->closeCalendarItem();
+    }
+
+    public function closeProjectEventEditor(): void
+    {
+        $this->editingProjectEventId = null;
+    }
+
     public function saveProjectEvent(): void
     {
         $data = validator($this->eventForm, [
@@ -242,6 +275,41 @@ class ViewProjectCalendar extends Page
 
         Notification::make()
             ->title('Event created')
+            ->success()
+            ->send();
+    }
+
+    public function saveProjectEventChanges(): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        if (! $this->editingProjectEventId) {
+            return;
+        }
+
+        /** @var ProjectEvent $event */
+        $event = $this->getRecord()->projectEvents()->findOrFail($this->editingProjectEventId);
+        $payload = $this->projectEventPayloadFromForm($this->editEventForm);
+
+        $event->forceFill($payload)->save();
+        $event->refresh();
+
+        $this->getRecord()->refresh();
+        $this->getRecord()->loadMissing([
+            'projectChecklistOptions',
+            'payments.supplier',
+            'projectEvents',
+        ]);
+        $this->visibleMonth = $event->starts_at->copy()->startOfMonth()->format('Y-m');
+        $this->syncMonthPickerForm();
+        $this->selectedCalendarItemKind = 'event';
+        $this->selectedCalendarItemId = $event->id;
+        $this->editingProjectEventId = null;
+
+        Notification::make()
+            ->title('Event updated')
             ->success()
             ->send();
     }
@@ -440,6 +508,76 @@ class ViewProjectCalendar extends Page
             ->concat($paymentItems)
             ->concat($eventItems)
             ->values();
+    }
+
+    protected function projectEventFormPayload(ProjectEvent $event): array
+    {
+        $startsAt = $event->starts_at;
+        $endsAt = $event->ends_at ?: $event->starts_at;
+
+        return [
+            'title' => $event->title,
+            'description' => $event->description ?? '',
+            'is_multi_day' => ! $startsAt->isSameDay($endsAt),
+            'is_all_day' => (bool) $event->is_all_day,
+            'start_date' => $startsAt->format('Y-m-d'),
+            'end_date' => $endsAt->format('Y-m-d'),
+            'start_time' => $startsAt->format('H:i'),
+            'end_time' => $endsAt->format('H:i'),
+            'include_program' => filled($event->program_html),
+            'program_html' => $event->program_html ?? '',
+        ];
+    }
+
+    protected function projectEventPayloadFromForm(array $form): array
+    {
+        if (! (bool) ($form['is_multi_day'] ?? false)) {
+            $form['end_date'] = $form['start_date'] ?? null;
+        }
+
+        $data = validator($form, [
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'is_multi_day' => ['required', 'boolean'],
+            'is_all_day' => ['required', 'boolean'],
+            'start_date' => ['required', 'date'],
+            'end_date' => ['nullable', 'date', 'required_if:is_multi_day,true', 'after_or_equal:start_date'],
+            'start_time' => ['nullable', 'date_format:H:i', 'required_if:is_all_day,false'],
+            'end_time' => ['nullable', 'date_format:H:i', 'required_if:is_all_day,false'],
+            'include_program' => ['required', 'boolean'],
+            'program_html' => ['nullable', 'string'],
+        ])->validate();
+
+        $startDate = Carbon::parse($data['start_date']);
+        $endDate = $data['is_multi_day']
+            ? Carbon::parse($data['end_date'])
+            : Carbon::parse($data['start_date']);
+
+        if ($data['is_all_day']) {
+            $startsAt = $startDate->copy()->startOfDay();
+            $endsAt = $endDate->copy()->endOfDay();
+        } else {
+            [$startHour, $startMinute] = array_map('intval', explode(':', (string) $data['start_time']));
+            [$endHour, $endMinute] = array_map('intval', explode(':', (string) $data['end_time']));
+
+            $startsAt = $startDate->copy()->setTime($startHour, $startMinute);
+            $endsAt = $endDate->copy()->setTime($endHour, $endMinute);
+
+            if ($endsAt->lt($startsAt)) {
+                $endsAt = $startsAt->copy();
+            }
+        }
+
+        return [
+            'title' => trim((string) $data['title']),
+            'description' => filled($data['description'] ?? null) ? trim((string) $data['description']) : null,
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+            'is_all_day' => (bool) $data['is_all_day'],
+            'program_html' => ($data['include_program'] ?? false) && filled($data['program_html'] ?? null)
+                ? trim((string) $data['program_html'])
+                : null,
+        ];
     }
 
     protected function visibleMonthDate(): Carbon

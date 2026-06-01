@@ -14,6 +14,8 @@
         .stats td { padding: 13px 12px; border: 1px solid #e5d9cd; }
         .stat-label { color: #8b8279; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
         .stat-value { margin-top: 4px; font-size: 22px; font-weight: bold; }
+        .notes { margin: 26px auto 0; width: 620px; padding: 14px 16px; border: 1px solid #e5d9cd; background: #fffdf9; text-align: left; line-height: 1.45; }
+        .notes-title { margin-bottom: 7px; color: #8b8279; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
         .page { page-break-after: always; }
         .map-frame { border: 1px solid #e5d9cd; padding: 10px; background: #faf7f2; }
         .map-frame img { width: 100%; height: auto; display: block; }
@@ -55,6 +57,13 @@
                 </td>
             </tr>
         </table>
+
+        @if (filled($seatingPlan->notes))
+            <div class="notes">
+                <div class="notes-title">Notes</div>
+                {!! nl2br(e($seatingPlan->notes)) !!}
+            </div>
+        @endif
     </section>
 
     <section class="page">

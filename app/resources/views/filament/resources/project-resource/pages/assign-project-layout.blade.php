@@ -5,6 +5,7 @@
         $layoutsUrl = \App\Filament\Resources\ProjectResource::getUrl('layouts', ['record' => $record]);
         $editorUrl = \App\Filament\Resources\ProjectResource::getUrl('layout-edit', ['record' => $record, 'seatingPlan' => $plan]);
         $initialTables = $this->getEditorTables();
+        $initialElements = $this->getLayoutElements();
         $guests = $this->getAssignableGuests();
         $backgroundUrl = $this->getBackgroundImageUrl();
     @endphp
@@ -31,6 +32,8 @@
         .wm-seat-table-glow { fill: #d9b86f; opacity: 0; filter: drop-shadow(0 0 18px rgba(201,169,106,.62)); pointer-events: none; }
         .wm-seat-table.is-selected .wm-seat-table-glow { opacity: .35; }
         .wm-seat-table.is-selected .wm-seat-table-shape { fill: #fff4d8; stroke: #c9a96a; stroke-width: 4; filter: drop-shadow(0 14px 18px rgba(201,169,106,.28)); }
+        .wm-layout-element-shape { stroke: #a88f62; stroke-width: 2; stroke-dasharray: 6 4; filter: drop-shadow(0 8px 10px rgba(45,42,38,.08)); pointer-events: none; }
+        .wm-layout-label { fill: #4b433b; font-size: 15px; font-weight: 900; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
         .wm-seat-hit-area { fill: transparent; stroke: transparent; pointer-events: all; }
         .wm-seat-label { fill: #2d2a26; font-size: 13px; font-weight: 900; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
         .wm-seat-chair { cursor: pointer; }
@@ -67,6 +70,7 @@
         class="wm-seat-assigner"
         x-data="seatingAssigner({
             tables: @js($initialTables),
+            elements: @js($initialElements),
             guests: @js($guests),
             backgroundUrl: @js($backgroundUrl),
             viewport: @js($this->getViewportState()),
@@ -109,6 +113,44 @@
 
                         <image x-show="backgroundUrl" :href="backgroundUrl" x="0" y="0" width="1400" height="900" preserveAspectRatio="xMidYMid slice" opacity=".74"></image>
 
+                        @foreach ($initialElements as $element)
+                            <g
+                                transform="translate({{ $element['center_x'] }}, {{ $element['center_y'] }}) rotate({{ $element['rotation'] }})"
+                                x-bind:transform="elementTransform({{ $element['id'] }})"
+                            >
+                                <rect
+                                    class="wm-layout-element-shape"
+                                    x="{{ -$element['width'] / 2 }}"
+                                    y="{{ -$element['height'] / 2 }}"
+                                    width="{{ $element['width'] }}"
+                                    height="{{ $element['height'] }}"
+                                    rx="8"
+                                    fill="{{ $element['background_color'] }}"
+                                    x-show="elementById({{ $element['id'] }}).element_type === 'space' && elementById({{ $element['id'] }}).shape !== 'circle'"
+                                    x-bind:x="-elementById({{ $element['id'] }}).width / 2"
+                                    x-bind:y="-elementById({{ $element['id'] }}).height / 2"
+                                    x-bind:width="elementById({{ $element['id'] }}).width"
+                                    x-bind:height="elementById({{ $element['id'] }}).height"
+                                    x-bind:fill="elementById({{ $element['id'] }}).background_color || 'transparent'"
+                                    @if ($element['element_type'] !== 'space' || $element['shape'] === 'circle') style="display: none;" @endif
+                                ></rect>
+                                <ellipse
+                                    class="wm-layout-element-shape"
+                                    cx="0"
+                                    cy="0"
+                                    rx="{{ $element['width'] / 2 }}"
+                                    ry="{{ $element['height'] / 2 }}"
+                                    fill="{{ $element['background_color'] }}"
+                                    x-show="elementById({{ $element['id'] }}).element_type === 'space' && elementById({{ $element['id'] }}).shape === 'circle'"
+                                    x-bind:rx="elementById({{ $element['id'] }}).width / 2"
+                                    x-bind:ry="elementById({{ $element['id'] }}).height / 2"
+                                    x-bind:fill="elementById({{ $element['id'] }}).background_color || 'transparent'"
+                                    @if ($element['element_type'] !== 'space' || $element['shape'] !== 'circle') style="display: none;" @endif
+                                ></ellipse>
+                                <text class="wm-layout-label" x="0" y="0" x-text="elementById({{ $element['id'] }}).label">{{ $element['label'] }}</text>
+                            </g>
+                        @endforeach
+
                         @foreach ($initialTables as $table)
                             <g
                                 class="wm-seat-table"
@@ -143,8 +185,14 @@
                                     height="{{ $table['secondary_dimension'] + 36 }}"
                                     rx="18"
                                     x-show="isBoxTable(tableById({{ $table['id'] }}))"
-                                    @if (in_array($table['table_type'], ['round', 'oval', 'chair_row'], true)) style="display: none;" @endif
+                                    @if (in_array($table['table_type'], ['round', 'oval', 'long_table', 'chair_row'], true)) style="display: none;" @endif
                                 ></rect>
+                                <path
+                                    class="wm-seat-table-glow"
+                                    x-show="isLongTable(tableById({{ $table['id'] }}))"
+                                    x-bind:d="longTablePath(tableById({{ $table['id'] }}), 18)"
+                                    @if ($table['table_type'] !== 'long_table') style="display: none;" @endif
+                                ></path>
                                 <ellipse
                                     class="wm-seat-table-shape"
                                     cx="0"
@@ -162,8 +210,14 @@
                                     height="{{ $table['secondary_dimension'] }}"
                                     rx="7"
                                     x-show="isBoxTable(tableById({{ $table['id'] }}))"
-                                    @if (in_array($table['table_type'], ['round', 'oval', 'chair_row'], true)) style="display: none;" @endif
+                                    @if (in_array($table['table_type'], ['round', 'oval', 'long_table', 'chair_row'], true)) style="display: none;" @endif
                                 ></rect>
+                                <path
+                                    class="wm-seat-table-shape"
+                                    x-show="isLongTable(tableById({{ $table['id'] }}))"
+                                    x-bind:d="longTablePath(tableById({{ $table['id'] }}))"
+                                    @if ($table['table_type'] !== 'long_table') style="display: none;" @endif
+                                ></path>
 
                                 @for ($seatIndex = 0; $seatIndex < 160; $seatIndex++)
                                     <g
@@ -271,6 +325,7 @@
     <script>
         window.seatingAssigner = (config) => ({
                 tables: config.tables || [],
+                elements: config.elements || [],
                 guests: config.guests || [],
                 backgroundUrl: config.backgroundUrl,
                 selectedId: (config.tables || [])[0]?.id || null,
@@ -289,6 +344,15 @@
                 },
                 tableById(id) {
                     return this.tables.find((table) => table.id === id) || null;
+                },
+                elementById(id) {
+                    return this.elements.find((element) => element.id === id) || null;
+                },
+                elementTransform(id) {
+                    const element = this.elementById(id);
+                    if (! element) return 'translate(-9999, -9999)';
+
+                    return `translate(${element.center_x}, ${element.center_y}) rotate(${element.rotation})`;
                 },
                 guestByKey(key) {
                     return this.guests.find((guest) => guest.key === key) || null;
@@ -317,8 +381,63 @@
                 isChairRow(table) {
                     return table?.table_type === 'chair_row';
                 },
+                isLongTable(table) {
+                    return table?.table_type === 'long_table';
+                },
                 isBoxTable(table) {
-                    return table && ! this.isRound(table) && ! this.isChairRow(table);
+                    return table && ! this.isRound(table) && ! this.isLongTable(table) && ! this.isChairRow(table);
+                },
+                curveAmplitude(table, inflate = 0) {
+                    if (Number(table?.curve_count || 0) === 0) {
+                        return 0;
+                    }
+
+                    const width = Number(table?.secondary_dimension || 100) + (inflate * 2);
+                    const factor = { subtle: 0.34, medium: 0.72, strong: 1.12 }[table?.curve_type || 'medium'] || 0.72;
+
+                    return Math.max(14, width * factor);
+                },
+                longTableCurvePoint(table, progress, length = null, inflate = 0) {
+                    length = length ?? Math.max(100, Number(table.primary_dimension || 800));
+                    const curves = Math.max(0, Math.min(4, Number(table.curve_count || 0)));
+                    const amplitude = this.curveAmplitude(table, inflate);
+                    const x = -(length / 2) + (length * progress);
+                    const angle = progress * Math.max(1, curves) * Math.PI;
+                    const y = curves > 0 ? Math.sin(angle) * amplitude : 0;
+                    const slope = curves > 0 ? Math.cos(angle) * amplitude * curves * Math.PI / length : 0;
+                    const normalLength = Math.hypot(slope, 1);
+                    const tangentLength = Math.hypot(1, slope);
+
+                    return {
+                        x,
+                        y,
+                        normalX: -slope / normalLength,
+                        normalY: 1 / normalLength,
+                        tangentX: 1 / tangentLength,
+                        tangentY: slope / tangentLength,
+                    };
+                },
+                longTablePath(table, inflate = 0) {
+                    if (! table) return '';
+
+                    const length = Math.max(100, Number(table.primary_dimension || 800)) + (inflate * 2);
+                    const width = 100 + (inflate * 2);
+                    const halfWidth = width / 2;
+                    const curves = Math.max(0, Math.min(4, Number(table.curve_count || 0)));
+                    const steps = Math.max(18, Math.max(1, curves) * 14);
+                    const top = [];
+                    const bottom = [];
+
+                    for (let index = 0; index <= steps; index++) {
+                        const point = this.longTableCurvePoint(table, index / steps, length, inflate);
+
+                        top.push([point.x - (point.normalX * halfWidth), point.y - (point.normalY * halfWidth)]);
+                        bottom.push([point.x + (point.normalX * halfWidth), point.y + (point.normalY * halfWidth)]);
+                    }
+
+                    const points = top.concat(bottom.reverse());
+
+                    return points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point[0].toFixed(1)} ${point[1].toFixed(1)}`).join(' ') + ' Z';
                 },
                 seats(table) {
                     if (! table) return [];
@@ -332,6 +451,29 @@
                         const count = Number(table.seats_total || 0);
                         const spacing = 26;
                         const startX = -((count - 1) * spacing) / 2;
+                        const curveType = table.curve_type || 'none';
+
+                        if (curveType !== 'none' && count > 1) {
+                            const chord = Math.max(spacing, (count - 1) * spacing);
+                            const sagitta = curveType === 'high' ? 30 : 12;
+                            const radius = ((chord * chord) / (8 * sagitta)) + (sagitta / 2);
+                            const centerY = sagitta - radius;
+                            const halfAngle = Math.asin(Math.min(0.98, (chord / 2) / radius));
+
+                            for (let index = 0; index < count; index++) {
+                                const ratio = index / (count - 1);
+                                const angle = -halfAngle + (halfAngle * 2 * ratio);
+
+                                seats.push({
+                                    number: index + 1,
+                                    x: Math.sin(angle) * radius,
+                                    y: Math.cos(angle) * radius - radius + sagitta,
+                                    rotation: (Math.atan2(centerY - (Math.cos(angle) * radius - radius + sagitta), -(Math.sin(angle) * radius)) * 180 / Math.PI) - 90,
+                                });
+                            }
+
+                            return seats;
+                        }
 
                         for (let index = 0; index < count; index++) {
                             seats.push({
@@ -359,6 +501,53 @@
                                 rotation: (angle * 180 / Math.PI) + 90,
                             });
                         }
+
+                        return seats;
+                    }
+
+                    if (this.isLongTable(table)) {
+                        const bySide = table.seats_by_side_json || { top: 0, right: 0, bottom: 0, left: 0 };
+                        const length = Math.max(100, Number(table.primary_dimension || 800));
+                        const halfWidth = 50;
+                        const distance = halfWidth + seatGap - chairInset;
+                        const rotationFor = (x, y) => (Math.atan2(y, x) * 180 / Math.PI) + 90;
+
+                        ['top', 'bottom'].forEach((side) => {
+                            const count = Number(bySide[side] || 0);
+
+                            for (let index = 0; index < count; index++) {
+                                const point = this.longTableCurvePoint(table, (index + 1) / (count + 1), length);
+                                const direction = side === 'top' ? -1 : 1;
+                                const outX = point.normalX * direction;
+                                const outY = point.normalY * direction;
+
+                                seats.push({
+                                    number: seats.length + 1,
+                                    x: point.x + (outX * distance),
+                                    y: point.y + (outY * distance),
+                                    rotation: rotationFor(outX, outY),
+                                });
+                            }
+                        });
+
+                        ['right', 'left'].forEach((side) => {
+                            const count = Number(bySide[side] || 0);
+                            const point = this.longTableCurvePoint(table, side === 'right' ? 1 : 0, length);
+                            const outX = point.tangentX * (side === 'right' ? 1 : -1);
+                            const outY = point.tangentY * (side === 'right' ? 1 : -1);
+
+                            for (let index = 0; index < count; index++) {
+                                const ratio = (index + 1) / (count + 1);
+                                const offset = -halfWidth + (100 * ratio);
+
+                                seats.push({
+                                    number: seats.length + 1,
+                                    x: point.x + (point.normalX * offset) + (outX * (seatGap - chairInset)),
+                                    y: point.y + (point.normalY * offset) + (outY * (seatGap - chairInset)),
+                                    rotation: rotationFor(outX, outY),
+                                });
+                            }
+                        });
 
                         return seats;
                     }

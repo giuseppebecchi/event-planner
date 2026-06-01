@@ -66,6 +66,7 @@ class CategoryBudgetSupplier extends Model
         'cost_items_json',
         'commission_mode',
         'commission_percentage',
+        'commission_base_amount',
         'commission_amount',
         'commission_total_amount_payed',
         'commission_payments_json',
@@ -84,6 +85,7 @@ class CategoryBudgetSupplier extends Model
         'proposed_amount' => 'decimal:2',
         'cost_items_json' => 'array',
         'commission_percentage' => 'decimal:2',
+        'commission_base_amount' => 'decimal:2',
         'commission_amount' => 'decimal:2',
         'commission_total_amount_payed' => 'decimal:2',
         'commission_payments_json' => 'array',
@@ -182,7 +184,7 @@ class CategoryBudgetSupplier extends Model
 
     public function commissionBaseAmount(): float
     {
-        return (float) ($this->proposed_amount ?? 0);
+        return (float) ($this->commission_base_amount ?? $this->proposed_amount ?? 0);
     }
 
     public function calculatedCommissionAmount(): float
@@ -204,12 +206,17 @@ class CategoryBudgetSupplier extends Model
             $this->commission_percentage = $this->commission_percentage !== null
                 ? max(0, min(100, (float) $this->commission_percentage))
                 : 0;
+            $this->commission_base_amount = $this->commission_base_amount !== null
+                ? max(0, (float) $this->commission_base_amount)
+                : null;
             $this->commission_amount = $this->calculatedCommissionAmount();
         } elseif ($this->commission_mode === self::COMMISSION_MODE_FIXED) {
             $this->commission_percentage = null;
+            $this->commission_base_amount = null;
             $this->commission_amount = max(0, (float) ($this->commission_amount ?? 0));
         } else {
             $this->commission_percentage = null;
+            $this->commission_base_amount = null;
             $this->commission_amount = 0;
         }
 

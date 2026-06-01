@@ -241,6 +241,8 @@ class ProjectResource extends Resource
             'guests-rsvp-responses' => Pages\ViewProjectRsvpResponses::route('/{record}/guests/rsvp-responses'),
             'budget' => Pages\ViewProjectBudget::route('/{record}/budget'),
             'budget-scouting' => Pages\ManageProjectBudgetCategory::route('/{record}/budget/{categoryBudget}'),
+            'suppliers' => Pages\ViewProjectSuppliers::route('/{record}/suppliers'),
+            'supplier-manage' => Pages\ManageProjectSupplier::route('/{record}/suppliers/{proposal}/manage'),
             'budget-manage' => Pages\ManageProjectConfirmedSupplier::route('/{record}/budget/{categoryBudget}/manage'),
             'edit' => Pages\EditProject::route('/{record}/edit'),
         ];

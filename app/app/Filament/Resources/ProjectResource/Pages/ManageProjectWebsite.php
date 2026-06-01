@@ -28,6 +28,10 @@ class ManageProjectWebsite extends Page
 
     public array $website = [];
 
+    public string $eventName = '';
+
+    public string $alias = '';
+
     public string $activeTab = 'home';
 
     public array $heroImageUploads = [];
@@ -35,6 +39,10 @@ class ManageProjectWebsite extends Page
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
+        $this->ensureRecordAlias();
+
+        $this->eventName = (string) $this->getRecord()->name;
+        $this->alias = (string) $this->getRecord()->alias;
         $this->website = $this->normalizeWebsite($this->getRecord()->websiteConfiguration());
     }
 
@@ -81,7 +89,12 @@ class ManageProjectWebsite extends Page
 
     public function publicWebsiteUrl(): string
     {
-        return route('public.project-website.show', ['project' => $this->getRecord()]);
+        return route('public.project-website.show', ['projectAlias' => $this->getRecord()->alias]);
+    }
+
+    public function updatedEventName(): void
+    {
+        $this->alias = Project::generateUniqueAlias($this->eventName, $this->getRecord()->id);
     }
 
     public function firstRsvpUrl(): ?string
@@ -239,9 +252,18 @@ class ManageProjectWebsite extends Page
 
     public function saveWebsite(): void
     {
+        $this->validate([
+            'eventName' => ['required', 'string', 'max:255'],
+            'alias' => ['nullable', 'string', 'max:255'],
+        ]);
+
         $this->website = $this->normalizeWebsite($this->website);
+        $this->eventName = trim($this->eventName);
+        $this->alias = Project::generateUniqueAlias($this->alias ?: $this->eventName, $this->getRecord()->id);
 
         $this->getRecord()->forceFill([
+            'name' => $this->eventName,
+            'alias' => $this->alias,
             'website_json' => $this->website,
         ])->save();
 
@@ -249,6 +271,19 @@ class ManageProjectWebsite extends Page
             ->title('Website saved')
             ->success()
             ->send();
+    }
+
+    protected function ensureRecordAlias(): void
+    {
+        if (filled($this->getRecord()->alias)) {
+            return;
+        }
+
+        $this->getRecord()
+            ->forceFill([
+                'alias' => Project::generateUniqueAlias($this->getRecord()->name, $this->getRecord()->id),
+            ])
+            ->saveQuietly();
     }
 
     protected function normalizeWebsite(array $website): array
