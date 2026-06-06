@@ -61,9 +61,9 @@ Modifica almeno questi valori:
 # .env
 WEB_PORT=8080
 ADMINER_PORT=8081
-DB_NAME=laravel
-DB_USER=laravel
-DB_PASS=scegli-una-password-sicura
+DB_DATABASE=laravel
+DB_USERNAME=laravel
+DB_PASSWORD=scegli-una-password-sicura
 ```
 
 ```dotenv
@@ -75,15 +75,12 @@ APP_URL=https://tuo-dominio.it
 DB_CONNECTION=mysql
 DB_HOST=db
 DB_PORT=3306
-DB_DATABASE=laravel
-DB_USERNAME=laravel
-DB_PASSWORD=scegli-una-password-sicura
 SESSION_DRIVER=database
 CACHE_STORE=database
 QUEUE_CONNECTION=database
 ```
 
-I valori database in `.env` e `app/.env` devono coincidere.
+Nome database, utente e password si configurano solo nel `.env` principale. `docker-compose.yml` li passa sia al container MySQL sia al container Laravel.
 
 Esegui l'installazione completa:
 
