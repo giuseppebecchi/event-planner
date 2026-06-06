@@ -34,7 +34,7 @@ services:
     image: nginx:alpine
     container_name: laravel_web
     ports:
-      - "8080:80"
+      - "${WEB_PORT:-8080}:80"
     volumes:
       - ./app:/var/www/html
       - ./docker/nginx:/etc/nginx/conf.d
@@ -99,5 +99,4 @@ networks:
     driver: bridge
 
 volumes:
-  mongo_data:
   db-store:
