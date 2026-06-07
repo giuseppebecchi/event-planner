@@ -240,7 +240,21 @@ Se cambi solo file statici in `public/images`, Blade o PHP, il comando resta sic
 
 ### Asset Admin Non Caricati
 
-Se la pagina admin appare senza stile ma gli URL degli asset si aprono singolarmente, di solito mancano o sono vecchi gli asset pubblicati da Filament/Livewire. Risolvi con:
+Se la pagina admin appare senza stile ma gli URL degli asset si aprono singolarmente, controlla prima la colonna `Status` nel tab Network del browser.
+
+Se vedi `blocked:mixed-content`, la pagina è in HTTPS ma Laravel sta generando asset in HTTP. Sul server imposta in `app/.env`:
+
+```dotenv
+APP_URL=https://tuo-dominio.it
+```
+
+poi esegui:
+
+```sh
+make deploy-update
+```
+
+Se invece gli asset rispondono 404 o 500, di solito mancano o sono vecchi gli asset pubblicati da Filament/Livewire. Risolvi con:
 
 ```sh
 make publish-assets
