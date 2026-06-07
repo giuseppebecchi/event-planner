@@ -421,7 +421,7 @@
             <div class="hero-inner">
                 <div class="hero-top">
                     <div class="brand">
-                        <img src="{{ asset('images/logo-neg.png') }}" alt="Fairytale Italy Weddings">
+                        <img src="{{ asset('images/logo-negative.png') }}" alt="Aurily Event Management">
                         <div>
                             <p class="eyebrow">Fairytale Italy Weddings</p>
                             <p style="margin: 0; opacity: 0.85;">A bespoke questionnaire for your celebration in Italy.</p>

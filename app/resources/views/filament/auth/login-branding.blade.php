@@ -4,4 +4,4 @@
     }
 </style>
 
-<img src="{{ asset('images/logo.png') }}" alt="Wedding Manager" class="fi-login-branding-logo" aria-hidden="true">
+<img src="{{ asset('images/logo-positive.png') }}" alt="Aurily Event Management" class="fi-login-branding-logo" aria-hidden="true">

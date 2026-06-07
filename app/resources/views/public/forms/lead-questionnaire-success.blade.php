@@ -74,7 +74,7 @@
 </head>
 <body>
     <div class="card">
-        <img src="{{ asset('images/logo.png') }}" alt="Fairytale Italy Weddings">
+        <img src="{{ asset('images/logo-positive.png') }}" alt="Aurily Event Management">
         <p class="eyebrow">Fairytale Italy Weddings</p>
         <h1>Thank you for sharing your vision.</h1>
         <p>

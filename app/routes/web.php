@@ -10,7 +10,7 @@ use App\Http\Controllers\PublicGuestRsvpController;
 use App\Http\Controllers\PublicProjectWebsiteController;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/admin');
+Route::view('/', 'welcome')->name('home');
 
 Route::get('/form/{hashId}', [PublicLeadFormController::class, 'show'])
     ->name('public.lead-form.show');

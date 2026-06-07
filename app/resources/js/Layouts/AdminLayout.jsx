@@ -59,7 +59,7 @@ export default function AdminLayout({
             <header className="admin-topbar">
                 <div className="admin-topbar-left">
                     <div className="admin-brand">
-                        <img className="admin-brand-full" src="/images/logo.png" alt="Cup Solidale" />
+                        <img className="admin-brand-full" src="/images/logo-positive.png" alt="Aurily Event Management" />
                     </div>
                     <button className="admin-menu-toggle" type="button" aria-label="Apri menu">
                         <span />

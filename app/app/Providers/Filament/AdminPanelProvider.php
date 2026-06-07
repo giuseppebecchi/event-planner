@@ -36,9 +36,9 @@ class AdminPanelProvider extends PanelProvider
             ->subNavigationPosition(SubNavigationPosition::Top)
             ->readOnlyRelationManagersOnResourceViewPagesByDefault(false)
             ->homeUrl(fn (): string => LeadResource::getUrl(panel: 'admin'))
-            ->brandLogo(asset('images/logo-neg.png'))
-            ->darkModeBrandLogo(asset('images/logo-neg.png'))
-            ->brandLogoHeight('2.5rem')
+            ->brandLogo(asset('images/logo-negative-heart-gold-ai.png'))
+            ->darkModeBrandLogo(asset('images/logo-negative-heart-gold-ai.png'))
+            ->brandLogoHeight('2.85rem')
             ->colors([
                 'primary' => '#7A8F7B',
                 'gray' => Color::Stone,

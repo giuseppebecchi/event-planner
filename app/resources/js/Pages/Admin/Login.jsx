@@ -53,8 +53,8 @@ export default function LoginPage() {
             <main className="login-page">
                 <form className="login-card" onSubmit={handleSubmit}>
                     <img
-                        src="/images/logo.png"
-                        alt="Cup Solidale"
+                        src="/images/logo-positive.png"
+                        alt="Aurily Event Management"
                         className="login-logo"
                     />
                     <h1>Accesso amministratore</h1>

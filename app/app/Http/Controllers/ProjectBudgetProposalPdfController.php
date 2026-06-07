@@ -37,7 +37,7 @@ class ProjectBudgetProposalPdfController extends Controller
             'dateRange' => $this->projectDateRangeLabel($project),
             'partners' => collect([$project->partner_one_name, $project->partner_two_name])->filter()->implode(' & '),
             'coverBackground' => $this->publicImageDataUri('images/bg.jpg'),
-            'logo' => $this->publicImageDataUri('images/logo.png'),
+            'logo' => $this->publicImageDataUri('images/logo-positive.png'),
             'imageResolver' => fn (?string $path): ?string => $this->storageImageDataUri($path),
             'galleryImageResolver' => fn (?string $path): ?string => $this->croppedStorageImageDataUri($path, 1200, 494),
             'money' => fn ($amount): string => $amount !== null ? 'EUR ' . number_format((float) $amount, 2, ',', '.') : '-',
