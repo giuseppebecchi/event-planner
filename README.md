@@ -221,6 +221,7 @@ make deploy-pull
 - `composer install --no-dev --no-interaction --optimize-autoloader`;
 - `npm ci`;
 - `npm run build`;
+- pubblicazione asset Filament e Livewire in `public/`;
 - migrazioni database con `php artisan migrate --force`;
 - `php artisan storage:link`;
 - permessi su `storage` e `bootstrap/cache`;
@@ -236,6 +237,28 @@ make deploy-update
 ```
 
 Se cambi solo file statici in `public/images`, Blade o PHP, il comando resta sicuro: ricompila anche gli asset frontend per evitare differenze tra codice sorgente e `public/build`.
+
+### Asset Admin Non Caricati
+
+Se la pagina admin appare senza stile ma gli URL degli asset si aprono singolarmente, di solito mancano o sono vecchi gli asset pubblicati da Filament/Livewire. Risolvi con:
+
+```sh
+make publish-assets
+make optimize-clear
+make optimize
+```
+
+Oppure usa direttamente il comando completo:
+
+```sh
+make deploy-update
+```
+
+Verifica anche che in produzione non esista `app/public/hot`:
+
+```sh
+rm -f app/public/hot
+```
 
 ## Backup E Restore Database
 

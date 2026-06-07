@@ -9,7 +9,7 @@ ARTISAN := $(DOCKER_COMPOSE) exec $(APP_SERVICE) php artisan
 COMPOSER := $(DOCKER_COMPOSE) exec $(APP_SERVICE) composer
 NODE_RUN := $(DOCKER_COMPOSE) run --rm --entrypoint sh $(NODE_SERVICE) -c
 
-.PHONY: help env build up up-prod up-dev stop down restart destroy destroy-volumes ps install install-prod install-dev deploy-update deploy-pull composer-install composer-install-prod npm-install npm-build npm-dev migrate migrate-fresh seed storage-link permissions key-generate optimize optimize-clear cache-clear test tinker artisan app node web db logs logs-watch log-app log-web log-db log-node wait-db backup-db restore-db
+.PHONY: help env build up up-prod up-dev stop down restart destroy destroy-volumes ps install install-prod install-dev deploy-update deploy-pull composer-install composer-install-prod npm-install npm-build npm-dev publish-assets migrate migrate-fresh seed storage-link permissions key-generate optimize optimize-clear cache-clear test tinker artisan app node web db logs logs-watch log-app log-web log-db log-node wait-db backup-db restore-db
 
 help:
 	@echo "Comandi disponibili:"
@@ -23,6 +23,7 @@ help:
 	@echo "  make artisan cmd='...'   Esegue artisan, es: make artisan cmd='route:list'"
 	@echo "  make migrate             Esegue le migrazioni"
 	@echo "  make npm-build           Compila gli asset frontend"
+	@echo "  make publish-assets      Pubblica asset Filament e Livewire in public/"
 	@echo "  make deploy-update       Aggiorna dipendenze, asset, migrazioni, cache e riavvia dopo git pull"
 	@echo "  make deploy-pull         Esegue git pull e poi make deploy-update"
 
@@ -62,11 +63,11 @@ ps:
 
 install: install-prod
 
-install-prod: env build up-prod composer-install-prod npm-install npm-build key-generate storage-link permissions wait-db migrate seed optimize
+install-prod: env build up-prod composer-install-prod npm-install npm-build publish-assets key-generate storage-link permissions wait-db migrate seed optimize
 
 install-dev: env build up-dev composer-install npm-install key-generate storage-link permissions wait-db migrate seed optimize-clear
 
-deploy-update: env up-prod composer-install-prod npm-install npm-build migrate storage-link permissions optimize-clear optimize
+deploy-update: env up-prod composer-install-prod npm-install npm-build publish-assets migrate storage-link permissions optimize-clear optimize
 	rm -f app/public/hot
 	$(DOCKER_COMPOSE) restart $(APP_SERVICE) $(WEB_SERVICE)
 
@@ -85,6 +86,10 @@ npm-install:
 
 npm-build:
 	$(NODE_RUN) "npm run build"
+
+publish-assets:
+	$(ARTISAN) filament:assets
+	$(ARTISAN) livewire:publish --assets
 
 npm-dev:
 	$(DOCKER_COMPOSE) up $(NODE_SERVICE)
