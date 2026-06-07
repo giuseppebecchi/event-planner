@@ -199,27 +199,43 @@ Test:
 make test
 ```
 
-## Aggiornamento Dopo Git Pull
+## Aggiornamento Sul Server
 
-Dopo aver aggiornato il codice sul server:
+Per aggiornare il server dopo modifiche al codice puoi usare un comando unico.
+
+Se hai già fatto `git pull`:
+
+```sh
+make deploy-update
+```
+
+Se vuoi che il Makefile faccia anche il pull:
+
+```sh
+make deploy-pull
+```
+
+`make deploy-update` esegue:
+
+- avvio dei servizi di produzione se non sono già attivi;
+- `composer install --no-dev --no-interaction --optimize-autoloader`;
+- `npm ci`;
+- `npm run build`;
+- migrazioni database con `php artisan migrate --force`;
+- `php artisan storage:link`;
+- permessi su `storage` e `bootstrap/cache`;
+- rimozione di `app/public/hot` per evitare Vite dev server in produzione;
+- pulizia e rigenerazione cache Laravel;
+- restart di `app` e `webserver`.
+
+Comandi manuali equivalenti:
 
 ```sh
 git pull
-make build
-make up-prod
-make composer-install-prod
-make npm-install
-make npm-build
-make migrate
-make optimize
+make deploy-update
 ```
 
-Se sono state cambiate variabili d'ambiente:
-
-```sh
-make optimize-clear
-make optimize
-```
+Se cambi solo file statici in `public/images`, Blade o PHP, il comando resta sicuro: ricompila anche gli asset frontend per evitare differenze tra codice sorgente e `public/build`.
 
 ## Backup E Restore Database
 
