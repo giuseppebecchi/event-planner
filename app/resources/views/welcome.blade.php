@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ config('app.name', 'Wedding Manager') }}</title>
+    @include('partials.favicons')
     <style>
         :root {
             --ink: #2e2a24;

@@ -30,6 +30,11 @@ class CompanyResource extends Resource
     protected static string|\UnitEnum|null $navigationGroup = 'Setup';
     protected static ?int $navigationSort = 90;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function canViewAny(): bool
     {
         return ! auth()->user()?->isCustomer();
