@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\LeadContractPdfController;
+use App\Http\Controllers\LeadBudgetPdfController;
 use App\Http\Controllers\LeadProposalPdfController;
 use App\Http\Controllers\ProjectBudgetProposalPdfController;
 use App\Http\Controllers\ProjectBudgetComparisonPdfController;
@@ -34,6 +35,10 @@ Route::get('/admin/leads/{lead}/proposal.pdf', LeadProposalPdfController::class)
 Route::get('/admin/leads/{lead}/contract.pdf', LeadContractPdfController::class)
     ->middleware('auth')
     ->name('admin.leads.contract.pdf');
+
+Route::get('/admin/leads/{lead}/budget.pdf', LeadBudgetPdfController::class)
+    ->middleware('auth')
+    ->name('admin.leads.budget.pdf');
 
 Route::get('/admin/projects/{project}/budget/{categoryBudget}/proposals.pdf', ProjectBudgetProposalPdfController::class)
     ->middleware('auth')

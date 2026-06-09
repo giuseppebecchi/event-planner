@@ -9,7 +9,9 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class ViewLeadContract extends BaseLeadPhasePage
 {
@@ -68,51 +70,93 @@ class ViewLeadContract extends BaseLeadPhasePage
                         ->helperText('If enabled, a project/event will be created from this lead if it does not exist yet.'),
                 ])
                 ->action(function (array $data): void {
-                    /** @var Lead $lead */
-                    $lead = $this->getRecord();
+                    try {
+                        /** @var Lead $lead */
+                        $lead = $this->getRecord();
 
-                    $document = LeadDocument::query()->create([
-                        'lead_id' => $lead->id,
-                        'title' => 'Signed contract - '.($lead->couple_name ?: 'Lead'),
-                        'document_type' => 'signed_contract',
-                        'file_path' => $data['file_path'],
-                        'description' => 'Signed contract uploaded from Contract phase',
-                        'is_shared_with_client' => false,
-                        'uploaded_at' => now(),
-                    ]);
+                        $projectCreated = DB::transaction(function () use ($data, $lead): bool {
+                            $document = LeadDocument::query()->create([
+                                'lead_id' => $lead->id,
+                                'title' => 'Signed contract - '.($lead->couple_name ?: 'Lead'),
+                                'document_type' => 'signed_contract',
+                                'file_path' => $data['file_path'],
+                                'description' => 'Signed contract uploaded from Contract phase',
+                                'is_shared_with_client' => false,
+                                'uploaded_at' => now(),
+                            ]);
 
-                    $lead->forceFill([
-                        'contract_received_at' => now(),
-                        'signed_contract_document_id' => $document->id,
-                    ])->save();
+                            $lead->forceFill([
+                                'contract_received_at' => now(),
+                                'signed_contract_document_id' => $document->id,
+                            ])->save();
 
-                    $projectCreated = false;
+                            if (! ($data['create_project'] ?? false) || $lead->project()->exists()) {
+                                return false;
+                            }
 
-                    if (($data['create_project'] ?? false) && ! $lead->project()->exists()) {
-                        $project = Project::query()->create([
-                            'lead_id' => $lead->id,
-                            'name' => $lead->couple_name ? ('Wedding - '.$lead->couple_name) : 'Wedding project',
-                            'partner_one_name' => $lead->first_name,
-                            'partner_two_name' => $lead->last_name,
-                            'reference_email' => $lead->email,
-                            'primary_phone' => $lead->phone,
-                            'nationality' => $lead->nationality,
-                            'region' => $lead->desired_region,
-                            'estimated_guest_count' => $lead->estimated_guest_count,
-                            'budget_amount' => $lead->budget_amount,
-                            'status' => 'confirmed',
-                            'private_notes' => $lead->internal_notes,
-                        ]);
+                            $project = Project::query()->create($this->projectPayloadFromLead($lead));
+                            $project->loadMissing('lead')->initBudget();
 
-                        $project->loadMissing('lead')->initBudget();
-                        $projectCreated = true;
+                            return true;
+                        });
+
+                        Notification::make()
+                            ->title($projectCreated ? 'Signed contract uploaded and event created' : 'Signed contract uploaded')
+                            ->success()
+                            ->send();
+                    } catch (Throwable $exception) {
+                        report($exception);
+
+                        Notification::make()
+                            ->title('Signed contract could not be completed')
+                            ->body('The file was uploaded, but the event could not be created. Check the lead data and try again.')
+                            ->danger()
+                            ->send();
                     }
-
-                    Notification::make()
-                        ->title($projectCreated ? 'Signed contract uploaded and event created' : 'Signed contract uploaded')
-                        ->success()
-                        ->send();
                 }),
+        ];
+    }
+
+    protected function projectPayloadFromLead(Lead $lead): array
+    {
+        [$partnerOneName, $partnerTwoName] = $this->partnerNamesFromLead($lead);
+
+        return [
+            'lead_id' => $lead->id,
+            'name' => $lead->couple_name ? ('Wedding - '.$lead->couple_name) : 'Wedding project',
+            'partner_one_name' => $partnerOneName,
+            'partner_two_name' => $partnerTwoName,
+            'reference_email' => $lead->email,
+            'primary_phone' => $lead->phone,
+            'nationality' => $lead->nationality,
+            'region' => $lead->desired_region,
+            'estimated_guest_count' => $lead->estimated_guest_count,
+            'budget_amount' => $lead->budget_amount,
+            'status' => 'confirmed',
+            'private_notes' => $lead->internal_notes,
+        ];
+    }
+
+    protected function partnerNamesFromLead(Lead $lead): array
+    {
+        $partnerOneName = trim((string) $lead->first_name);
+        $partnerTwoName = trim((string) $lead->last_name);
+
+        if ($partnerOneName !== '') {
+            return [$partnerOneName, $partnerTwoName !== '' ? $partnerTwoName : null];
+        }
+
+        $coupleName = trim((string) $lead->couple_name);
+
+        if ($coupleName === '') {
+            return ['Client', null];
+        }
+
+        $parts = preg_split('/\s+(?:and|&|e)\s+/i', $coupleName, 2);
+
+        return [
+            trim((string) ($parts[0] ?? $coupleName)) ?: 'Client',
+            isset($parts[1]) && trim((string) $parts[1]) !== '' ? trim((string) $parts[1]) : null,
         ];
     }
 

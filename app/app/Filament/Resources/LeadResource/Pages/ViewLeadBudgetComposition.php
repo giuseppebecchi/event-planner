@@ -40,6 +40,12 @@ class ViewLeadBudgetComposition extends Page
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('downloadClientBudgetPdf')
+                ->label('Download client budget PDF')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('primary')
+                ->url(fn (): string => route('admin.leads.budget.pdf', ['lead' => $this->getRecord()]))
+                ->openUrlInNewTab(),
             Action::make('populateDefaults')
                 ->label('Populate defaults')
                 ->icon('heroicon-o-sparkles')
