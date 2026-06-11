@@ -199,7 +199,7 @@ class ManageProjectWebsite extends Page
                 'Title' => $this->filled('home.title'),
                 'Hero image' => count(array_filter($this->website['home']['hero_images'] ?? [], fn ($item) => filled($item['url'] ?? null))) > 0 || $this->filled('home.hero_image'),
                 'Date' => $this->filled('home.date'),
-                'Location' => $this->filled('home.location'),
+                'Venue' => $this->filled('home.location'),
             ],
             'schedule' => ['At least one schedule moment' => count($this->website['schedule']['items'] ?? []) > 0],
             'travel' => [

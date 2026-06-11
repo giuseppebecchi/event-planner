@@ -209,7 +209,7 @@
                             @include('filament.resources.project-resource.pages.partials.website-field', ['path' => 'website.home.title', 'label' => 'Names / title'])
                             @include('filament.resources.project-resource.pages.partials.website-field', ['path' => 'website.home.eyebrow', 'label' => 'Hero phrase'])
                             @include('filament.resources.project-resource.pages.partials.website-field', ['path' => 'website.home.date', 'label' => 'Event date'])
-                            @include('filament.resources.project-resource.pages.partials.website-field', ['path' => 'website.home.location', 'label' => 'Location'])
+                            @include('filament.resources.project-resource.pages.partials.website-field', ['path' => 'website.home.location', 'label' => 'Venue'])
                             <div class="wm-website-field is-full">
                                 <label>Hero slider upload</label>
                                 <div class="wm-upload-row">

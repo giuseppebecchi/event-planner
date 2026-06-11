@@ -1,0 +1,44 @@
+name: Deploy production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
+
+            cd /home/crm/event-planner
+
+            git fetch origin main
+            git reset --hard origin/main
+
+            docker compose up -d --build app webserver
+
+            docker compose exec -T app composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+
+            docker compose run --rm --no-deps node sh -lc "npm ci && npm run build"
+
+            docker compose exec -T app php artisan migrate --force
+            docker compose exec -T app php artisan optimize:clear
+            docker compose exec -T app php artisan optimize
+
+            docker compose restart app webserver

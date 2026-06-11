@@ -102,7 +102,7 @@ class SupplierResourceSupport
                         $excludeLocationCategory,
                         fn ($query) => $query->where('id', '!=', Supplier::LOCATION_CATEGORY_ID)
                     )
-                    ->pluck('label_it', 'id')
+                    ->pluck('label', 'id')
                     ->all())
                 ->searchable()
                 ->preload();

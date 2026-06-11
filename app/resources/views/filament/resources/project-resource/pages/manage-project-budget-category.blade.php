@@ -1060,7 +1060,7 @@
 
                                     @if ($isLocationCategory)
                                         <div class="wm-scout-form-section">
-                                            <p class="wm-scout-form-section-title">Location dates</p>
+                                            <p class="wm-scout-form-section-title">Venue dates</p>
                                             <div class="wm-scout-inline-grid">
                                                 <div>
                                                     <label class="wm-scout-label" for="proposed-dates-{{ $proposal->id }}">Proposed dates</label>
@@ -1072,7 +1072,7 @@
                                                 </div>
 
                                                 <div>
-                                                    <label class="wm-scout-label" for="location-availability-dates-{{ $proposal->id }}">Location availability dates</label>
+                                                    <label class="wm-scout-label" for="location-availability-dates-{{ $proposal->id }}">Venue availability dates</label>
                                                     <textarea
                                                         id="location-availability-dates-{{ $proposal->id }}"
                                                         class="wm-scout-textarea"

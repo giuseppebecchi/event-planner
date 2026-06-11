@@ -181,7 +181,7 @@
         <table class="hero-grid">
             <tr>
                 <td><span class="label">Wedding date</span><span class="value">{{ $summary['date'] }}</span></td>
-                <td><span class="label">Location</span><span class="value">{{ $summary['location'] }}</span></td>
+                <td><span class="label">Venue</span><span class="value">{{ $summary['location'] }}</span></td>
                 <td><span class="label">Guests</span><span class="value">{{ $summary['guests'] ?: 'To be confirmed' }}</span></td>
                 <td><span class="label">Client budget</span><span class="value">{{ $money($summary['client_budget']) }}</span></td>
             </tr>

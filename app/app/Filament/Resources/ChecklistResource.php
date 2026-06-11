@@ -50,7 +50,7 @@ class ChecklistResource extends Resource
                         ->maxLength(255),
                     Components\Select::make('category_id')
                         ->label('Supplier category')
-                        ->relationship('category', 'label_it')
+                        ->relationship('category', 'label')
                         ->searchable()
                         ->preload()
                         ->nullable()
@@ -112,7 +112,7 @@ class ChecklistResource extends Resource
                 TextColumn::make('title')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('category.label_it')
+                TextColumn::make('category.label')
                     ->label('Category')
                     ->placeholder('General')
                     ->sortable(),

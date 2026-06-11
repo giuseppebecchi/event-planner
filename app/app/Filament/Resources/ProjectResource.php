@@ -10,6 +10,10 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components;
 use Filament\Resources\Resource;
@@ -17,9 +21,11 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ProjectResource extends Resource
 {
@@ -41,10 +47,12 @@ class ProjectResource extends Resource
         $user = auth()->user();
 
         if ($user?->isCustomer()) {
-            $query->whereHas('users', fn (Builder $query): Builder => $query->whereKey($user->id));
+            return $query->whereHas('users', fn (Builder $query): Builder => $query->whereKey($user->id));
         }
 
-        return $query;
+        return $query->withoutGlobalScopes([
+            SoftDeletingScope::class,
+        ]);
     }
 
     public static function canCreate(): bool
@@ -63,6 +71,26 @@ class ProjectResource extends Resource
     }
 
     public static function canDeleteAny(): bool
+    {
+        return ! auth()->user()?->isCustomer();
+    }
+
+    public static function canRestore(Model $record): bool
+    {
+        return ! auth()->user()?->isCustomer();
+    }
+
+    public static function canRestoreAny(): bool
+    {
+        return ! auth()->user()?->isCustomer();
+    }
+
+    public static function canForceDelete(Model $record): bool
+    {
+        return ! auth()->user()?->isCustomer();
+    }
+
+    public static function canForceDeleteAny(): bool
     {
         return ! auth()->user()?->isCustomer();
     }
@@ -202,6 +230,7 @@ class ProjectResource extends Resource
                     ->badge(),
             ])
             ->filters([
+                TrashedFilter::make(),
                 SelectFilter::make('status')
                     ->label('Status')
                     ->options(Project::STATUS_OPTIONS),
@@ -213,10 +242,14 @@ class ProjectResource extends Resource
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
+                RestoreAction::make(),
+                ForceDeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
+                    RestoreBulkAction::make(),
+                    ForceDeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('event_start_date', 'desc');

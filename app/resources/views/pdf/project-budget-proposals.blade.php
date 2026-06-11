@@ -384,7 +384,7 @@
                 <table class="facts">
                     @if ($availableDates->isNotEmpty())
                         <tr>
-                            <td>Location availability dates</td>
+                            <td>Venue availability dates</td>
                             <td>{{ $availableDates->implode(', ') }}</td>
                         </tr>
                     @endif

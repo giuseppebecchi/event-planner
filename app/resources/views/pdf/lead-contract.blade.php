@@ -240,7 +240,7 @@
             <tr>
                 <td><span class="label">Client</span>{{ $summary['couple'] }}</td>
                 <td><span class="label">Wedding Date</span>{{ $summary['date'] }}</td>
-                <td><span class="label">Location</span>{{ $summary['location'] }}</td>
+                <td><span class="label">Venue</span>{{ $summary['location'] }}</td>
                 <td><span class="label">Issued</span>{{ $summary['issued_at'] }}</td>
             </tr>
         </table>

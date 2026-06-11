@@ -140,7 +140,7 @@ class Dashboard extends \Filament\Pages\Dashboard
                     'name' => $project->name,
                     'couple' => $project->lead?->couple_name ?: trim(($project->partner_one_name ?? '') . ' ' . ($project->partner_two_name ?? '')),
                     'status' => Project::STATUS_OPTIONS[$project->status] ?? $project->status,
-                    'place' => collect([$project->region, $project->locality])->filter()->join(' / ') ?: 'Location to define',
+                    'place' => collect([$project->region, $project->locality])->filter()->join(' / ') ?: 'Venue to define',
                     'date' => $project->event_start_date?->format('d M Y') ?: 'Date to define',
                     'url' => ProjectResource::getUrl('edit', ['record' => $project]),
                 ];
@@ -163,7 +163,7 @@ class Dashboard extends \Filament\Pages\Dashboard
                     'date' => $project->event_start_date?->format('d M Y'),
                     'days' => $project->event_start_date?->diffInDays(now()),
                     'guests' => $project->final_guest_count ?: $project->estimated_guest_count,
-                    'place' => collect([$project->region, $project->locality])->filter()->join(' / ') ?: 'Location to define',
+                    'place' => collect([$project->region, $project->locality])->filter()->join(' / ') ?: 'Venue to define',
                     'url' => ProjectResource::getUrl('edit', ['record' => $project]),
                 ];
             });

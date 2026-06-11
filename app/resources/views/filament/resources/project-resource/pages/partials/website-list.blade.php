@@ -60,7 +60,7 @@
                     @include('filament.resources.project-resource.pages.partials.website-field', ['path' => "website.$section.$list.$index.title", 'label' => 'Title'])
                     @include('filament.resources.project-resource.pages.partials.website-field', ['path' => "website.$section.$list.$index.date", 'label' => 'Date'])
                     @include('filament.resources.project-resource.pages.partials.website-field', ['path' => "website.$section.$list.$index.time", 'label' => 'Time'])
-                    @include('filament.resources.project-resource.pages.partials.website-field', ['path' => "website.$section.$list.$index.location", 'label' => 'Location'])
+                    @include('filament.resources.project-resource.pages.partials.website-field', ['path' => "website.$section.$list.$index.location", 'label' => 'Venue'])
                     @include('filament.resources.project-resource.pages.partials.website-field', ['path' => "website.$section.$list.$index.address", 'label' => 'Address'])
                     @include('filament.resources.project-resource.pages.partials.website-field', ['path' => "website.$section.$list.$index.url", 'label' => 'URL'])
                     @include('filament.resources.project-resource.pages.partials.website-field', ['path' => "website.$section.$list.$index.text", 'label' => 'Text', 'textarea' => true, 'full' => true])

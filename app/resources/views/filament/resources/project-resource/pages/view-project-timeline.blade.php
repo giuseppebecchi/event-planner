@@ -1094,12 +1094,12 @@
 
                 <div class="wm-timeline-field-grid">
                     <div class="wm-timeline-field">
-                        <label for="timeline-location">Location</label>
+                        <label for="timeline-location">Venue</label>
                         <input id="timeline-location" type="text" class="wm-timeline-input" wire:model="timelineForm.location">
                     </div>
 
                     <div class="wm-timeline-field">
-                        <label for="timeline-location-plan-b">Location Plan B</label>
+                        <label for="timeline-location-plan-b">Venue Plan B</label>
                         <input id="timeline-location-plan-b" type="text" class="wm-timeline-input" wire:model="timelineForm.location_plan_b">
                     </div>
                 </div>

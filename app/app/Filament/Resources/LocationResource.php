@@ -10,6 +10,10 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Forms\Components;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
@@ -21,8 +25,10 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class LocationResource extends Resource
 {
@@ -30,11 +36,11 @@ class LocationResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-building-office';
 
-    protected static ?string $navigationLabel = 'Locations';
+    protected static ?string $navigationLabel = 'Venues';
 
-    protected static ?string $pluralModelLabel = 'Locations';
+    protected static ?string $pluralModelLabel = 'Venues';
 
-    protected static ?string $modelLabel = 'Location';
+    protected static ?string $modelLabel = 'Venue';
 
     protected static string|\UnitEnum|null $navigationGroup = 'Setup';
 
@@ -48,6 +54,9 @@ class LocationResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ])
             ->where('category_id', Supplier::LOCATION_CATEGORY_ID);
     }
 
@@ -58,7 +67,7 @@ class LocationResource extends Resource
             ->components([
                 Components\Hidden::make('category_id')
                     ->default(Supplier::LOCATION_CATEGORY_ID),
-                Tabs::make('Location tabs')
+                Tabs::make('Venue tabs')
                     ->contained(false)
                     ->columnSpanFull()
                     ->tabs([
@@ -69,7 +78,7 @@ class LocationResource extends Resource
                                 ->columns(3)
                                 ->schema([
                                     Components\TextInput::make('name')
-                                        ->label('Location name')
+                                        ->label('Venue name')
                                         ->required()
                                         ->maxLength(255),
                                     Components\TextInput::make('loc_locality')
@@ -80,7 +89,7 @@ class LocationResource extends Resource
                                         ->options(Supplier::LOCATION_STRUCTURE_TYPES)
                                         ->searchable(),
                                     Components\Select::make('loc_style')
-                                        ->label('Location style')
+                                        ->label('Venue style')
                                         ->options(Supplier::LOCATION_STYLE_TYPES)
                                         ->searchable(),
                                     Components\TextInput::make('loc_website')
@@ -424,7 +433,7 @@ class LocationResource extends Resource
             ->defaultSort('name')
             ->columns([
                 TextColumn::make('name')
-                    ->label('Location')
+                    ->label('Venue')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('loc_locality')
@@ -456,6 +465,7 @@ class LocationResource extends Resource
                     ->boolean(),
             ])
             ->filters([
+                TrashedFilter::make(),
                 SelectFilter::make('loc_structure_type')
                     ->label('Structure type')
                     ->options(Supplier::LOCATION_STRUCTURE_TYPES),
@@ -497,10 +507,14 @@ class LocationResource extends Resource
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
+                RestoreAction::make(),
+                ForceDeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
+                    RestoreBulkAction::make(),
+                    ForceDeleteBulkAction::make(),
                 ]),
             ]);
     }
