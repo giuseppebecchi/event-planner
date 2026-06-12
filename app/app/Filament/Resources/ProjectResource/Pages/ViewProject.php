@@ -161,8 +161,8 @@ class ViewProject extends ViewRecord
         return [
             ['label' => 'Checklist groups created', 'done' => $summary['groups'] > 0],
             ['label' => 'Default checklist items enabled', 'done' => $summary['enabled'] > 0],
-            ['label' => 'Due dates calculated', 'done' => $summary['dated'] > 0 || blank($this->getRecord()->event_start_date)],
-            ['label' => 'Event date defined', 'done' => filled($this->getRecord()->event_start_date)],
+            ['label' => 'Due dates calculated', 'done' => $summary['dated'] > 0 || blank($this->getRecord()->event_date)],
+            ['label' => 'Event date defined', 'done' => filled($this->getRecord()->event_date)],
         ];
     }
 
@@ -195,7 +195,7 @@ class ViewProject extends ViewRecord
         $supplierSummary = $this->getSupplierSummary();
 
         $items = collect([
-            blank($project->event_start_date) ? 'Set the event date to unlock countdown and planning milestones.' : null,
+            blank($project->event_date) ? 'Set the event date to unlock countdown and planning milestones.' : null,
             $budgetSummary['categories_count'] === 0 ? 'Create the first category budgets for venue, flowers, catering and key services.' : null,
             $supplierSummary['awaiting'] > 0 ? sprintf('Review %d supplier proposals still awaiting a reply.', $supplierSummary['awaiting']) : null,
             $budgetSummary['in_evaluation_count'] > 0 ? sprintf('Compare and confirm %d budget categories still under evaluation.', $budgetSummary['in_evaluation_count']) : null,
@@ -237,7 +237,7 @@ class ViewProject extends ViewRecord
 
     public function getDaysToGo(): ?int
     {
-        $startDate = $this->getRecord()->event_start_date;
+        $startDate = $this->getRecord()->event_date;
 
         if (! $startDate) {
             return null;
@@ -274,7 +274,7 @@ class ViewProject extends ViewRecord
             [
                 'label' => 'Days to go',
                 'value' => $this->getDaysToGo() ?? '—',
-                'caption' => $project->event_start_date?->format('d M Y') ?? 'date pending',
+                'caption' => $project->event_date?->format('d M Y') ?? 'date pending',
                 'tone' => 'rose',
             ],
         ]);

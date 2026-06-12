@@ -11,7 +11,7 @@ trait InteractsWithProjectDateEditor
 
     public array $projectDateForm = [
         'is_multi_day' => false,
-        'single_date' => '',
+        'event_date' => '',
         'start_date' => '',
         'end_date' => '',
     ];
@@ -19,13 +19,14 @@ trait InteractsWithProjectDateEditor
     public function openProjectDateEditor(): void
     {
         $record = $this->getRecord();
+        $eventDate = $record->event_date;
         $startDate = $record->event_start_date;
         $endDate = $record->event_end_date;
         $isMultiDay = $startDate && $endDate && ! $startDate->isSameDay($endDate);
 
         $this->projectDateForm = [
             'is_multi_day' => $isMultiDay,
-            'single_date' => $startDate?->format('Y-m-d') ?? '',
+            'event_date' => $eventDate?->format('Y-m-d') ?? ($startDate?->format('Y-m-d') ?? ''),
             'start_date' => $startDate?->format('Y-m-d') ?? '',
             'end_date' => $endDate?->format('Y-m-d') ?? ($startDate?->format('Y-m-d') ?? ''),
         ];
@@ -42,23 +43,24 @@ trait InteractsWithProjectDateEditor
     {
         $data = validator($this->projectDateForm, [
             'is_multi_day' => ['required', 'boolean'],
-            'single_date' => ['nullable', 'date', 'required_if:is_multi_day,false'],
+            'event_date' => ['required', 'date'],
             'start_date' => ['nullable', 'date', 'required_if:is_multi_day,true'],
             'end_date' => ['nullable', 'date', 'required_if:is_multi_day,true', 'after_or_equal:start_date'],
         ])->validate();
 
         $record = $this->getRecord();
+        $eventDate = Carbon::parse($data['event_date'])->startOfDay();
 
         if ($data['is_multi_day']) {
             $startDate = Carbon::parse($data['start_date'])->startOfDay();
             $endDate = Carbon::parse($data['end_date'])->startOfDay();
         } else {
-            $singleDate = Carbon::parse($data['single_date'])->startOfDay();
-            $startDate = $singleDate;
-            $endDate = $singleDate;
+            $startDate = $eventDate;
+            $endDate = $eventDate;
         }
 
         $record->forceFill([
+            'event_date' => $eventDate,
             'event_start_date' => $startDate,
             'event_end_date' => $endDate,
         ])->save();

@@ -52,30 +52,33 @@ class Dashboard extends \Filament\Pages\Dashboard
                 'caption' => 'Open opportunities to move forward',
                 'tone' => 'olive',
                 'icon' => 'heroicon-o-fire',
+                'url' => LeadResource::getUrl(),
             ],
             [
                 'label' => 'Projects in preparation',
                 'value' => Project::query()
                     ->whereIn('status', ['proposal', 'confirmed'])
                     ->where(function ($query) use ($today): void {
-                        $query->whereNull('event_start_date')
-                            ->orWhereDate('event_start_date', '>=', $today);
+                        $query->whereNull('event_date')
+                            ->orWhereDate('event_date', '>=', $today);
                     })
                     ->count(),
                 'caption' => 'Active weddings being planned',
                 'tone' => 'blue',
                 'icon' => 'heroicon-o-folder-open',
+                'url' => ProjectResource::getUrl(),
             ],
             [
                 'label' => 'Confirmed events soon',
                 'value' => Project::query()
                     ->where('status', 'confirmed')
-                    ->whereDate('event_start_date', '>=', $today)
-                    ->whereDate('event_start_date', '<=', now()->copy()->addDays(60))
+                    ->whereDate('event_date', '>=', $today)
+                    ->whereDate('event_date', '<=', now()->copy()->addDays(60))
                     ->count(),
                 'caption' => 'Events happening in the next 60 days',
                 'tone' => 'gold',
                 'icon' => 'heroicon-o-calendar-days',
+                'url' => ProjectResource::getUrl(),
             ],
             [
                 'label' => 'Pending follow ups',
@@ -85,8 +88,23 @@ class Dashboard extends \Filament\Pages\Dashboard
                 'caption' => 'Calls, reminders and appointments',
                 'tone' => 'rose',
                 'icon' => 'heroicon-o-chat-bubble-left-right',
+                'url' => $this->getPendingFollowUpsUrl(),
             ],
         ];
+    }
+
+    protected function getPendingFollowUpsUrl(): string
+    {
+        $followUp = LeadFollowUp::query()
+            ->with('lead')
+            ->where('status', 'pending')
+            ->orderByRaw("case priority when 'urgent' then 1 when 'high' then 2 when 'normal' then 3 else 4 end")
+            ->orderBy('due_at')
+            ->first();
+
+        return $followUp?->lead
+            ? LeadResource::getUrl('follow-ups', ['record' => $followUp->lead])
+            : LeadResource::getUrl();
     }
 
     protected function getHotLeads(): Collection
@@ -132,7 +150,7 @@ class Dashboard extends \Filament\Pages\Dashboard
                     else 3
                 end
             ")
-            ->orderBy('event_start_date')
+            ->orderBy('event_date')
             ->limit(6)
             ->get()
             ->map(function (Project $project): array {
@@ -141,7 +159,7 @@ class Dashboard extends \Filament\Pages\Dashboard
                     'couple' => $project->lead?->couple_name ?: trim(($project->partner_one_name ?? '') . ' ' . ($project->partner_two_name ?? '')),
                     'status' => Project::STATUS_OPTIONS[$project->status] ?? $project->status,
                     'place' => collect([$project->region, $project->locality])->filter()->join(' / ') ?: 'Venue to define',
-                    'date' => $project->event_start_date?->format('d M Y') ?: 'Date to define',
+                    'date' => $project->event_date?->format('d M Y') ?: 'Date to define',
                     'url' => ProjectResource::getUrl('edit', ['record' => $project]),
                 ];
             });
@@ -152,16 +170,16 @@ class Dashboard extends \Filament\Pages\Dashboard
         return Project::query()
             ->with('lead')
             ->where('status', 'confirmed')
-            ->whereDate('event_start_date', '>=', now()->startOfDay())
-            ->orderBy('event_start_date')
+            ->whereDate('event_date', '>=', now()->startOfDay())
+            ->orderBy('event_date')
             ->limit(5)
             ->get()
             ->map(function (Project $project): array {
                 return [
                     'name' => $project->name,
                     'couple' => $project->lead?->couple_name ?: trim(($project->partner_one_name ?? '') . ' ' . ($project->partner_two_name ?? '')),
-                    'date' => $project->event_start_date?->format('d M Y'),
-                    'days' => $project->event_start_date?->diffInDays(now()),
+                    'date' => $project->event_date?->format('d M Y'),
+                    'days' => $project->event_date?->diffInDays(now()),
                     'guests' => $project->final_guest_count ?: $project->estimated_guest_count,
                     'place' => collect([$project->region, $project->locality])->filter()->join(' / ') ?: 'Venue to define',
                     'url' => ProjectResource::getUrl('edit', ['record' => $project]),

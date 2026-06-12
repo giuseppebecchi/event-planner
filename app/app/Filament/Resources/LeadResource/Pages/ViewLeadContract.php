@@ -139,24 +139,14 @@ class ViewLeadContract extends BaseLeadPhasePage
 
     protected function partnerNamesFromLead(Lead $lead): array
     {
-        $partnerOneName = trim((string) $lead->first_name);
-        $partnerTwoName = trim((string) $lead->last_name);
-
-        if ($partnerOneName !== '') {
-            return [$partnerOneName, $partnerTwoName !== '' ? $partnerTwoName : null];
-        }
-
-        $coupleName = trim((string) $lead->couple_name);
-
-        if ($coupleName === '') {
-            return ['Client', null];
-        }
-
-        $parts = preg_split('/\s+(?:and|&|e)\s+/i', $coupleName, 2);
+        $contactName = trim(collect([
+            $lead->first_name,
+            $lead->last_name,
+        ])->filter(fn ($value): bool => filled($value))->implode(' '));
 
         return [
-            trim((string) ($parts[0] ?? $coupleName)) ?: 'Client',
-            isset($parts[1]) && trim((string) $parts[1]) !== '' ? trim((string) $parts[1]) : null,
+            $contactName ?: (trim((string) $lead->couple_name) ?: 'Client'),
+            null,
         ];
     }
 

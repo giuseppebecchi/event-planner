@@ -15,10 +15,31 @@ class Project extends Model
 {
     use SoftDeletes;
 
+    protected bool $shouldInitializeDefaultTimeline = false;
+
     public const STATUS_OPTIONS = [
         'proposal' => 'Proposal',
         'confirmed' => 'Confirmed',
         'completed' => 'Completed',
+    ];
+
+    public const DEFAULT_TIMELINE_TITLES = [
+        'Hair and make-up for guests starts',
+        'Caterer arrives',
+        'Planner gets to the venue',
+        'Bride starts to get ready',
+        'Groom starts to get ready',
+        'Bride is ready for the dress and has portraits',
+        'Guests arrive',
+        'Ceremony',
+        'Aperitivo',
+        'Couple session',
+        'Grand entrance to dinner area',
+        'Dinner',
+        'Speeches',
+        'Cake cutting',
+        'First dance',
+        'Party',
     ];
 
     protected $fillable = [
@@ -37,6 +58,7 @@ class Project extends Model
         'private_notes',
         'region',
         'locality',
+        'event_date',
         'event_start_date',
         'event_end_date',
         'estimated_guest_count',
@@ -51,6 +73,7 @@ class Project extends Model
     ];
 
     protected $casts = [
+        'event_date' => 'date',
         'event_start_date' => 'date',
         'event_end_date' => 'date',
         'budget_amount' => 'decimal:2',
@@ -65,6 +88,13 @@ class Project extends Model
             if (blank($project->alias)) {
                 $project->alias = static::generateUniqueAlias($project->name);
             }
+
+            $project->normalizeEventDates();
+        });
+
+        static::saving(function (Project $project): void {
+            $project->normalizeEventDates();
+            $project->shouldInitializeDefaultTimeline = blank($project->getOriginal('event_date')) && filled($project->event_date);
         });
 
         static::created(function (Project $project): void {
@@ -76,10 +106,77 @@ class Project extends Model
                 $project->syncChecklistOptionsFromTemplates();
             }
 
-            if ($project->wasChanged('event_start_date')) {
+            if ($project->wasChanged('event_date')) {
                 $project->refreshChecklistOptionDueDates();
             }
+
+            if ($project->shouldInitializeDefaultTimeline) {
+                $project->initializeDefaultTimelineForEventDate();
+            }
         });
+    }
+
+    public function normalizeEventDates(): void
+    {
+        if (! $this->event_date && $this->event_start_date) {
+            $this->event_date = $this->event_start_date;
+        }
+
+        if (! $this->event_date) {
+            return;
+        }
+
+        if (! $this->event_start_date) {
+            $this->event_start_date = $this->event_date;
+        }
+
+        if (! $this->event_end_date) {
+            $this->event_end_date = $this->event_start_date;
+        }
+    }
+
+    public function getEventSpansMultipleDaysAttribute(): bool
+    {
+        return (bool) (
+            $this->event_start_date
+            && $this->event_end_date
+            && ! $this->event_start_date->isSameDay($this->event_end_date)
+        );
+    }
+
+    public function initializeDefaultTimelineForEventDate(): int
+    {
+        if (! $this->event_date || $this->projectTimelineItems()->exists()) {
+            return 0;
+        }
+
+        $rows = collect(self::DEFAULT_TIMELINE_TITLES)
+            ->values()
+            ->map(fn (string $title, int $index): array => [
+                'timeline_date' => $this->event_date,
+                'start_time' => null,
+                'end_time' => null,
+                'sunset_time' => null,
+                'is_surprise' => false,
+                'cover_activity' => false,
+                'cover_activity_type' => null,
+                'location' => null,
+                'location_plan_b' => null,
+                'supplier_id' => null,
+                'title' => $title,
+                'description' => null,
+                'has_extended_description' => false,
+                'extended_description' => null,
+                'notes' => null,
+                'image_paths' => [],
+                'sort_order' => $index + 1,
+            ]);
+
+        $rows->each(fn (array $row) => $this->projectTimelineItems()->create($row));
+
+        $this->unsetRelation('projectTimelineItems');
+
+        return $rows->count();
     }
 
     public function lead(): BelongsTo
@@ -398,7 +495,7 @@ class Project extends Model
     public static function defaultWebsiteConfiguration(?Project $project = null): array
     {
         $partners = trim(collect([$project?->partner_one_name, $project?->partner_two_name])->filter()->implode(' & '));
-        $date = $project?->event_start_date?->format('F j, Y') ?? '';
+        $date = $project?->event_date?->format('F j, Y') ?? '';
         $location = trim(collect([$project?->locality, $project?->region])->filter()->implode(', '));
 
         return [
@@ -446,7 +543,7 @@ class Project extends Model
         $this->loadMissing('categoryBudgets.supplierProposals');
 
         $categoryBudgets = $this->categoryBudgets->keyBy('category_id');
-        $eventDate = $this->event_start_date;
+        $eventDate = $this->event_date;
 
         foreach (Checklist::query()->with('category')->orderBy('title')->get() as $checklist) {
             foreach (array_values($checklist->options ?? []) as $index => $option) {
@@ -497,7 +594,7 @@ class Project extends Model
             return;
         }
 
-        $eventDate = $this->event_start_date;
+        $eventDate = $this->event_date;
 
         $this->projectChecklistOptions()->get()->each(function (ProjectChecklistOption $item) use ($eventDate): void {
             $dueDate = static::calculateChecklistDueDate($eventDate, $item->anticipation);

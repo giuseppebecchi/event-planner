@@ -50,6 +50,11 @@ class EditProject extends EditRecord
         return static::getResource()::getUrl('index');
     }
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        return ProjectResource::normalizeEventDateFormData($data);
+    }
+
     public function sendCustomerCredentials(string $field): void
     {
         if (! in_array($field, ['reference_email', 'partner_2_reference_email'], true)) {

@@ -110,9 +110,13 @@
         }
 
         .wm-stat {
+            display: block;
             padding: 1.15rem 1.2rem;
             position: relative;
             overflow: hidden;
+            color: inherit;
+            text-decoration: none;
+            transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
         }
 
         .wm-stat::before {
@@ -121,6 +125,12 @@
             inset: 0 auto 0 0;
             width: 0.35rem;
             background: var(--tone, #7a8f7b);
+        }
+
+        .wm-stat:hover {
+            transform: translateY(-2px);
+            border-color: color-mix(in srgb, var(--tone, #7a8f7b) 45%, #e8e3dc);
+            box-shadow: 0 22px 44px rgba(45, 42, 38, 0.09);
         }
 
         .wm-stat-label {
@@ -388,7 +398,7 @@
 
         <section class="wm-stats">
             @foreach($stats as $stat)
-                <article class="wm-hero-card wm-stat" style="--tone:
+                <a class="wm-hero-card wm-stat" href="{{ $stat['url'] }}" aria-label="Open {{ $stat['label'] }}" style="--tone:
                     {{ $stat['tone'] === 'blue' ? '#2E4A62' : ($stat['tone'] === 'gold' ? '#C9A96A' : ($stat['tone'] === 'rose' ? '#E3B7B2' : '#7A8F7B')) }};">
                     <div class="wm-stat-head">
                         <span class="wm-icon-chip {{ $stat['tone'] }}">
@@ -398,7 +408,7 @@
                     </div>
                     <p class="wm-stat-value">{{ $stat['value'] }}</p>
                     <p class="wm-stat-caption">{{ $stat['caption'] }}</p>
-                </article>
+                </a>
             @endforeach
         </section>
 

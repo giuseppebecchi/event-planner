@@ -101,14 +101,14 @@ class ViewProjectChecklist extends Page
                 'key' => 'admin',
                 'title' => 'ME',
                 'subtitle' => 'planner',
-                'avatar' => 'GB',
+                'avatar' => 'WP',
                 'items' => $items->where('assigned_to', 'admin')->values(),
             ],
             [
                 'key' => 'client',
                 'title' => $clientLabel !== '' ? mb_strtoupper($clientLabel) : 'CLIENT',
                 'subtitle' => 'client',
-                'avatar' => $this->getInitials($clientLabel !== '' ? $clientLabel : 'Client'),
+                'avatar' => $this->getClientInitials($record),
                 'items' => $items->where('assigned_to', 'client')->values(),
             ],
         ]);
@@ -337,7 +337,7 @@ class ViewProjectChecklist extends Page
 
         $item->forceFill([
             'anticipation' => $anticipation,
-            'due_date' => Project::calculateChecklistDueDate($this->getRecord()->event_start_date, $anticipation),
+            'due_date' => Project::calculateChecklistDueDate($this->getRecord()->event_date, $anticipation),
         ])->save();
 
         $this->syncChecklistForm($item->fresh());
@@ -513,5 +513,19 @@ class ViewProjectChecklist extends Page
             ->map(fn (string $part): string => mb_strtoupper(mb_substr($part, 0, 1)));
 
         return $parts->implode('') ?: 'GB';
+    }
+
+    protected function getClientInitials(Project $project): string
+    {
+        $initials = collect([$project->partner_one_name, $project->partner_two_name])
+            ->filter(fn ($name): bool => filled($name))
+            ->map(fn (string $name): string => mb_strtoupper(mb_substr(trim($name), 0, 1)))
+            ->values();
+
+        if ($initials->count() >= 2) {
+            return $initials->take(2)->implode('&');
+        }
+
+        return $initials->first() ?: 'C';
     }
 }

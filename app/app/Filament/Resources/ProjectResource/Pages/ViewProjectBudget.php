@@ -4,8 +4,14 @@ namespace App\Filament\Resources\ProjectResource\Pages;
 
 use App\Filament\Resources\ProjectResource;
 use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDateEditor;
+use App\Models\Category;
 use App\Models\CategoryBudget;
 use App\Models\CategoryBudgetSupplier;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Support\Enums\Width;
@@ -53,6 +59,95 @@ class ViewProjectBudget extends Page
     protected function getHeaderActions(): array
     {
         return [];
+    }
+
+    public function addServiceCategoryAction(): Action
+    {
+        return Action::make('addServiceCategory')
+            ->label('Add Service Category')
+            ->modalHeading('Add Service Category')
+            ->modalSubmitActionLabel('Add category')
+            ->visible(fn (): bool => ! auth()->user()?->isCustomer())
+            ->disabled(fn (): bool => ! $this->hasAvailableServiceCategories())
+            ->form([
+                Select::make('category_id')
+                    ->label('Service Category')
+                    ->options(fn (): array => $this->availableServiceCategoryOptions())
+                    ->searchable()
+                    ->preload()
+                    ->required(),
+                TextInput::make('initial_estimated_amount')
+                    ->label('Estimated budget')
+                    ->prefix('EUR')
+                    ->numeric()
+                    ->minValue(0)
+                    ->step('0.01'),
+                Textarea::make('notes')
+                    ->label('Notes')
+                    ->rows(3),
+            ])
+            ->action(function (array $data): void {
+                if (auth()->user()?->isCustomer()) {
+                    return;
+                }
+
+                $project = $this->getRecord();
+                $categoryId = (int) $data['category_id'];
+                $alreadyExists = CategoryBudget::query()
+                    ->where('project_id', $project->getKey())
+                    ->where('category_id', $categoryId)
+                    ->exists();
+
+                if ($alreadyExists) {
+                    Notification::make()
+                        ->title('Service Category already exists in this budget')
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                CategoryBudget::query()->create([
+                    'project_id' => $project->getKey(),
+                    'category_id' => $categoryId,
+                    'initial_estimated_amount' => filled($data['initial_estimated_amount'] ?? null)
+                        ? (float) $data['initial_estimated_amount']
+                        : null,
+                    'budget_status' => CategoryBudget::STATUS_HYPOTHETICAL,
+                    'notes' => $data['notes'] ?? null,
+                ]);
+
+                $this->record = $project->fresh();
+
+                Notification::make()
+                    ->title('Service Category added')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    public function hasAvailableServiceCategories(): bool
+    {
+        return $this->availableServiceCategoryQuery()->exists();
+    }
+
+    protected function availableServiceCategoryOptions(): array
+    {
+        return $this->availableServiceCategoryQuery()
+            ->pluck('label', 'id')
+            ->all();
+    }
+
+    protected function availableServiceCategoryQuery()
+    {
+        $usedCategoryIds = $this->getRecord()
+            ->categoryBudgets()
+            ->whereNotNull('category_id')
+            ->pluck('category_id')
+            ->all();
+
+        return Category::query()
+            ->when($usedCategoryIds !== [], fn ($query) => $query->whereNotIn('id', $usedCategoryIds));
     }
 
     public function getBudgetSummary(): array

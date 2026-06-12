@@ -17,6 +17,7 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -157,18 +158,34 @@ class ProjectResource extends Resource
             Section::make('Event')
                 ->columns(3)
                 ->schema([
+                    Grid::make(4)
+                        ->schema([
+                            Components\DatePicker::make('event_date')
+                                ->label('Event date')
+                                ->native(false)
+                                ->required(),
+                            Components\Checkbox::make('event_spans_multiple_days')
+                                ->label('Event spans multiple days')
+                                ->live(),
+                            Components\DatePicker::make('event_start_date')
+                                ->label('Start date')
+                                ->visible(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
+                                ->required(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
+                                ->native(false),
+                            Components\DatePicker::make('event_end_date')
+                                ->label('End date')
+                                ->visible(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
+                                ->required(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
+                                ->afterOrEqual('event_start_date')
+                                ->native(false),
+                        ])
+                        ->columnSpanFull(),
                     Components\TextInput::make('region')
                         ->label('Region')
                         ->maxLength(255),
                     Components\TextInput::make('locality')
                         ->label('Locality')
                         ->maxLength(255),
-                    Components\DatePicker::make('event_start_date')
-                        ->label('Event start date')
-                        ->native(false),
-                    Components\DatePicker::make('event_end_date')
-                        ->label('Event end date')
-                        ->native(false),
                     Components\TextInput::make('estimated_guest_count')
                         ->label('Estimated guests')
                         ->numeric()
@@ -218,7 +235,7 @@ class ProjectResource extends Resource
                 TextColumn::make('region')
                     ->label('Region')
                     ->searchable(),
-                TextColumn::make('event_start_date')
+                TextColumn::make('event_date')
                     ->label('Date')
                     ->date('d/m/Y')
                     ->sortable(),
@@ -252,7 +269,25 @@ class ProjectResource extends Resource
                     ForceDeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('event_start_date', 'desc');
+            ->defaultSort('event_date', 'desc');
+    }
+
+    public static function normalizeEventDateFormData(array $data): array
+    {
+        $eventDate = $data['event_date'] ?? null;
+        $spansMultipleDays = (bool) ($data['event_spans_multiple_days'] ?? false);
+
+        if ($spansMultipleDays) {
+            $data['event_start_date'] = filled($data['event_start_date'] ?? null) ? $data['event_start_date'] : $eventDate;
+            $data['event_end_date'] = filled($data['event_end_date'] ?? null) ? $data['event_end_date'] : $data['event_start_date'];
+        } else {
+            $data['event_start_date'] = $eventDate;
+            $data['event_end_date'] = $eventDate;
+        }
+
+        unset($data['event_spans_multiple_days']);
+
+        return $data;
     }
 
     public static function getPages(): array

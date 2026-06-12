@@ -591,6 +591,11 @@
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
+        .wm-timeline-field-grid.is-operational {
+            grid-template-columns: minmax(0, 1.6fr) minmax(8rem, 0.7fr) minmax(8rem, 0.7fr);
+            align-items: end;
+        }
+
         .wm-timeline-modal > .wm-timeline-field,
         .wm-timeline-modal > .wm-timeline-field-grid,
         .wm-timeline-modal > .wm-timeline-check {
@@ -613,16 +618,16 @@
         }
 
         .wm-timeline-check {
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 0.9rem;
+            justify-content: flex-start;
+            flex-direction: row;
+            gap: 0.55rem;
             min-height: 2.8rem;
-            margin-top: 1.58rem;
-            border-radius: 0.95rem;
-            border: 1px solid #ddd2c5;
-            background: #fff;
-            padding: 0 0.95rem;
+            margin: 0;
+            border: 0;
+            background: transparent;
+            padding: 0 0 0.2rem;
             color: #5e5852;
             font-size: 0.78rem;
             font-weight: 700;
@@ -631,10 +636,25 @@
             cursor: pointer;
         }
 
+        .wm-timeline-check span {
+            order: 2;
+        }
+
         .wm-timeline-check input {
+            order: 1;
             width: 1.1rem;
             height: 1.1rem;
             accent-color: #b38b43;
+        }
+
+        .wm-timeline-help {
+            margin: 0.35rem 0 0;
+            color: #8b847d;
+            font-size: 0.78rem;
+            line-height: 1.5;
+            letter-spacing: 0;
+            text-transform: none;
+            font-weight: 500;
         }
 
         .wm-timeline-input,
@@ -843,6 +863,7 @@
 
             .wm-timeline-field-grid,
             .wm-timeline-field-grid.is-three,
+            .wm-timeline-field-grid.is-operational,
             .wm-event-date-grid {
                 grid-template-columns: minmax(0, 1fr);
             }
@@ -1057,7 +1078,17 @@
                     </div>
                 </div>
 
-                <div class="wm-timeline-field-grid">
+                <div class="wm-timeline-field">
+                    <label for="timeline-title">Activity title <span style="color: #dc2626;">*</span></label>
+                    <input id="timeline-title" type="text" class="wm-timeline-input" wire:model="timelineForm.title">
+                </div>
+
+                <div class="wm-timeline-field">
+                    <label for="timeline-description">Activity short description</label>
+                    <textarea id="timeline-description" class="wm-timeline-textarea" rows="4" wire:model="timelineForm.description"></textarea>
+                </div>
+
+                <div class="wm-timeline-field-grid is-operational">
                     <div class="wm-timeline-field">
                         <label for="timeline-supplier">Supplier</label>
                         <select id="timeline-supplier" class="wm-timeline-select" wire:model="timelineForm.supplier_id">
@@ -1068,18 +1099,17 @@
                         </select>
                     </div>
                     <label class="wm-timeline-field wm-timeline-check">
-                        <span>Surprise</span>
+                        <input type="checkbox" wire:model.live="timelineForm.cover_activity">
+                        <span>Key cover activity</span>
+                    </label>
+                    <label class="wm-timeline-field wm-timeline-check">
                         <input type="checkbox" wire:model="timelineForm.is_surprise">
+                        <span>Surprise</span>
                     </label>
                 </div>
 
-                <div class="wm-timeline-field-grid">
-                    <label class="wm-timeline-field wm-timeline-check">
-                        <span>Key cover activity</span>
-                        <input type="checkbox" wire:model.live="timelineForm.cover_activity">
-                    </label>
-
-                    @if ($timelineForm['cover_activity'] ?? false)
+                @if ($timelineForm['cover_activity'] ?? false)
+                    <div class="wm-timeline-field-grid">
                         <div class="wm-timeline-field">
                             <label for="timeline-cover-activity-type">Cover activity type</label>
                             <select id="timeline-cover-activity-type" class="wm-timeline-select" wire:model="timelineForm.cover_activity_type">
@@ -1089,8 +1119,8 @@
                                 @endforeach
                             </select>
                         </div>
-                    @endif
-                </div>
+                    </div>
+                @endif
 
                 <div class="wm-timeline-field-grid">
                     <div class="wm-timeline-field">
@@ -1104,20 +1134,13 @@
                     </div>
                 </div>
 
-                <div class="wm-timeline-field">
-                    <label for="timeline-title">Activity title <span style="color: #dc2626;">*</span></label>
-                    <input id="timeline-title" type="text" class="wm-timeline-input" wire:model="timelineForm.title">
-                </div>
-
-                <div class="wm-timeline-field">
-                    <label for="timeline-description">Activity description</label>
-                    <textarea id="timeline-description" class="wm-timeline-textarea" rows="4" wire:model="timelineForm.description"></textarea>
-                </div>
-
                 <label class="wm-timeline-field wm-timeline-check">
-                    <span>Has extended HTML description</span>
                     <input type="checkbox" wire:model.live="timelineForm.has_extended_description">
+                    <span>Has extended HTML description</span>
                 </label>
+                <p class="wm-timeline-help">
+                    Use this to create a dedicated small section in the recap file with this extended description.
+                </p>
 
                 @if ($timelineForm['has_extended_description'] ?? false)
                     <div class="wm-timeline-field">
@@ -1171,6 +1194,9 @@
                 <div class="wm-timeline-field">
                     <label for="timeline-notes">Notes</label>
                     <textarea id="timeline-notes" class="wm-timeline-textarea" rows="4" wire:model="timelineForm.notes"></textarea>
+                    <p class="wm-timeline-help">
+                        Internal planning notes only. Guests will not see them and they are not included in the recap PDF.
+                    </p>
                 </div>
 
                 <div class="wm-timeline-field wm-timeline-upload">

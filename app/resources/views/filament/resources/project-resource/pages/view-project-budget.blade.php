@@ -344,6 +344,12 @@
             margin-bottom: 1rem;
         }
 
+        .wm-budget-table-heading {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
         .wm-budget-table-title,
         .wm-budget-sidebar-heading {
             margin: 0;
@@ -463,6 +469,11 @@
             font-size: 0.8rem;
             font-weight: 700;
             white-space: nowrap;
+        }
+
+        .wm-budget-add-category {
+            border: 0;
+            cursor: pointer;
         }
 
         .wm-budget-action.is-confirmed {
@@ -611,8 +622,16 @@
         <section class="wm-budget-layout">
             <article class="wm-event-card wm-budget-table-card">
                 <div class="wm-budget-table-header">
-                    <h3 class="wm-budget-table-title">Service categories</h3>
-                    <span class="wm-budget-table-note">{{ $budgetSummary['categories_count'] }} categories</span>
+                    <div class="wm-budget-table-heading">
+                        <h3 class="wm-budget-table-title">Service categories</h3>
+                        <span class="wm-budget-table-note">{{ $budgetSummary['categories_count'] }} categories</span>
+                    </div>
+
+                    @if (! $isCustomer && $this->hasAvailableServiceCategories())
+                        <button type="button" class="wm-budget-action wm-budget-add-category" wire:click="mountAction('addServiceCategory')">
+                            Add Service Category
+                        </button>
+                    @endif
                 </div>
 
                 @if ($budgetRows->isEmpty())
@@ -649,7 +668,7 @@
                                     <tr class="{{ $budget->budget_status === \App\Models\CategoryBudget::STATUS_CONFIRMED ? 'is-confirmed' : '' }}">
                                         <td>
                                             <div class="wm-budget-category">
-                                                <span class="wm-budget-category-name">{{ $budget->category?->label_it ?? 'Category' }}</span>
+                                                <span class="wm-budget-category-name">{{ $budget->category?->label ?? 'Category' }}</span>
                                                 <span class="wm-budget-category-meta">
                                                     {{ $budget->supplierProposals->count() }} supplier {{ \Illuminate\Support\Str::plural('request', $budget->supplierProposals->count()) }}
                                                     @if ($confirmedProposals->isNotEmpty())

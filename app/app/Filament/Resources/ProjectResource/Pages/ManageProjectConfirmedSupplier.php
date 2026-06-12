@@ -750,7 +750,7 @@ class ManageProjectConfirmedSupplier extends Page
 
         $item->forceFill([
             'anticipation' => $anticipation,
-            'due_date' => Project::calculateChecklistDueDate($this->getRecord()->event_start_date, $anticipation),
+            'due_date' => Project::calculateChecklistDueDate($this->getRecord()->event_date, $anticipation),
         ])->save();
 
         $this->syncChecklistForm($item->fresh());

@@ -1,9 +1,9 @@
 @php
-    $daysToGo = $record->event_start_date
-        ? now()->startOfDay()->diffInDays($record->event_start_date->startOfDay(), false)
+    $daysToGo = $record->event_date
+        ? now()->startOfDay()->diffInDays($record->event_date->startOfDay(), false)
         : null;
 
-    $dateLabel = $record->event_start_date?->format('F j, Y') ?? 'Date to be defined';
+    $dateLabel = $record->event_date?->format('F j, Y') ?? 'Date to be defined';
     $locationLabel = collect([$record->locality, $record->region])->filter()->implode(', ') ?: 'Venue to be defined';
     $partnerLabel = collect([$record->partner_one_name, $record->partner_two_name])->filter()->implode(' & ') ?: 'Partners not set';
     $overviewUrl = \App\Filament\Resources\ProjectResource::getUrl('view', ['record' => $record]);
@@ -48,7 +48,7 @@
                         type="button"
                         class="wm-event-countdown-edit"
                         wire:click="openProjectDateEditor"
-                        aria-label="{{ $record->event_start_date ? 'Edit event date' : 'Set event date' }}"
+                        aria-label="{{ $record->event_date ? 'Edit event date' : 'Set event date' }}"
                     >
                         <x-heroicon-o-pencil-square />
                     </button>
@@ -62,24 +62,24 @@
     <div class="wm-event-top-date-tools">
         @if ($showProjectDateEditor)
             <div class="wm-event-date-editor">
+                <div class="wm-event-date-grid is-single">
+                    <div>
+                        <label class="wm-event-date-label" for="project-event-date">Event date</label>
+                        <input
+                            id="project-event-date"
+                            type="date"
+                            class="wm-event-date-input"
+                            wire:model="projectDateForm.event_date"
+                        >
+                    </div>
+                </div>
+
                 <label class="wm-event-date-toggle">
                     <input type="checkbox" wire:model.live="projectDateForm.is_multi_day">
                     <span>Event spans multiple days</span>
                 </label>
 
-                @if (! ($projectDateForm['is_multi_day'] ?? false))
-                    <div class="wm-event-date-grid is-single">
-                        <div>
-                            <label class="wm-event-date-label" for="project-single-date">Event date</label>
-                            <input
-                                id="project-single-date"
-                                type="date"
-                                class="wm-event-date-input"
-                                wire:model="projectDateForm.single_date"
-                            >
-                        </div>
-                    </div>
-                @else
+                @if ($projectDateForm['is_multi_day'] ?? false)
                     <div class="wm-event-date-grid">
                         <div>
                             <label class="wm-event-date-label" for="project-start-date">Start date</label>

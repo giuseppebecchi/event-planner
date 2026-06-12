@@ -12,6 +12,8 @@ class CreateProject extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $data = ProjectResource::normalizeEventDateFormData($data);
+
         if (blank($data['name'] ?? null)) {
             $partnerOne = trim((string) ($data['partner_one_name'] ?? ''));
             $partnerTwo = trim((string) ($data['partner_two_name'] ?? ''));
