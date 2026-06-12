@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Project extends Model
@@ -177,6 +178,42 @@ class Project extends Model
         $this->unsetRelation('projectTimelineItems');
 
         return $rows->count();
+    }
+
+    public function resetDefaultTimelineForEventDate(bool $deleteImages = true): array
+    {
+        if (! $this->event_date) {
+            return [
+                'deleted' => 0,
+                'created' => 0,
+                'missing_event_date' => true,
+            ];
+        }
+
+        $items = $this->projectTimelineItems()->get();
+        $deleted = $items->count();
+
+        if ($deleteImages) {
+            $imagePaths = $items
+                ->flatMap(fn (ProjectTimeline $item): array => $item->image_paths ?? [])
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            if ($imagePaths) {
+                Storage::disk('public')->delete($imagePaths);
+            }
+        }
+
+        $this->projectTimelineItems()->delete();
+        $this->unsetRelation('projectTimelineItems');
+
+        return [
+            'deleted' => $deleted,
+            'created' => $this->initializeDefaultTimelineForEventDate(),
+            'missing_event_date' => false,
+        ];
     }
 
     public function lead(): BelongsTo

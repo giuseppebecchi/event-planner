@@ -47,6 +47,8 @@ class ManageProjectBudgetCategory extends Page
 
     public ?int $requestSupplierId = null;
     public ?int $responseProposalId = null;
+    public ?int $responseSupplierId = null;
+    public ?string $responseFormContext = null;
 
     public array $requestForm = [
         'requested_at' => '',
@@ -128,6 +130,9 @@ class ManageProjectBudgetCategory extends Page
         $proposal = $this->findProposalBySupplier($supplierId);
 
         $this->requestSupplierId = $supplierId;
+        $this->responseProposalId = null;
+        $this->responseSupplierId = null;
+        $this->responseFormContext = null;
         $this->requestForm = [
             'requested_at' => ($proposal?->requested_at ?? now())->format('Y-m-d\TH:i'),
             'request_text' => (string) ($proposal?->request_text ?? ''),
@@ -212,7 +217,54 @@ class ManageProjectBudgetCategory extends Page
     {
         $proposal = $this->findProposalById($proposalId, true);
 
+        $this->requestSupplierId = null;
+        $this->responseSupplierId = null;
+        $this->responseFormContext = 'requests';
+        $this->fillResponseForm($proposal);
+    }
+
+    public function startInsertAcceptedQuote(int $supplierId): void
+    {
+        $this->requestSupplierId = null;
+
+        $proposal = $this->findProposalBySupplier($supplierId);
+
+        if ($proposal) {
+            $this->responseFormContext = 'supplier';
+            $this->fillResponseForm($proposal, true);
+
+            return;
+        }
+
+        Supplier::query()
+            ->where('category_id', $this->categoryBudgetRecord->category_id)
+            ->findOrFail($supplierId);
+
+        $this->responseProposalId = null;
+        $this->responseSupplierId = $supplierId;
+        $this->responseFormContext = 'supplier';
+        $this->responseExistingAttachments = [];
+        $this->responseUploads = [];
+        $this->responseForm = [
+            'responded_at' => now()->format('Y-m-d\TH:i'),
+            'availability_status' => 'available',
+            'proposed_amount' => '',
+            'cost_items_json' => [],
+            'proposal_summary' => '',
+            'response_text' => '',
+            'costs_and_conditions' => '',
+            'proposed_dates' => '',
+            'location_available_dates' => '',
+            'scouting_status' => 'chosen',
+            'proposal_status' => CategoryBudgetSupplier::STATUS_CONFIRMED,
+            'notes' => '',
+        ];
+    }
+
+    protected function fillResponseForm(CategoryBudgetSupplier $proposal, bool $acceptedQuote = false): void
+    {
         $this->responseProposalId = $proposal->id;
+        $this->responseSupplierId = null;
         $this->responseExistingAttachments = $proposal->projectDocuments
             ->where('type', ProjectDocument::TYPE_QUOTE)
             ->values()
@@ -233,8 +285,8 @@ class ManageProjectBudgetCategory extends Page
             'costs_and_conditions' => (string) ($proposal->costs_and_conditions ?? ''),
             'proposed_dates' => collect($proposal->proposed_dates ?? [])->implode(', '),
             'location_available_dates' => collect($proposal->location_available_dates ?? [])->implode(', '),
-            'scouting_status' => (string) ($proposal->scouting_status ?? 'shortlist'),
-            'proposal_status' => (string) ($proposal->proposal_status ?? CategoryBudgetSupplier::STATUS_RECEIVED),
+            'scouting_status' => $acceptedQuote ? 'chosen' : (string) ($proposal->scouting_status ?? 'shortlist'),
+            'proposal_status' => $acceptedQuote ? CategoryBudgetSupplier::STATUS_CONFIRMED : (string) ($proposal->proposal_status ?? CategoryBudgetSupplier::STATUS_RECEIVED),
             'notes' => (string) ($proposal->notes ?? ''),
         ];
     }
@@ -242,6 +294,8 @@ class ManageProjectBudgetCategory extends Page
     public function cancelRecordResponse(): void
     {
         $this->responseProposalId = null;
+        $this->responseSupplierId = null;
+        $this->responseFormContext = null;
         $this->responseExistingAttachments = [];
         $this->responseUploads = [];
         $this->responseForm = [
@@ -281,8 +335,9 @@ class ManageProjectBudgetCategory extends Page
     public function saveRecordResponse(): void
     {
         $proposalId = $this->responseProposalId;
+        $supplierId = $this->responseSupplierId;
 
-        if (! $proposalId) {
+        if (! $proposalId && ! $supplierId) {
             return;
         }
 
@@ -311,7 +366,9 @@ class ManageProjectBudgetCategory extends Page
             ]
         )->validate();
 
-        $proposal = $this->findProposalById($proposalId, true);
+        $proposal = $proposalId
+            ? $this->findProposalById($proposalId, true)
+            : $this->makeProposalForSupplier($supplierId);
 
         $proposal->fill([
             'responded_at' => Carbon::parse($data['form']['responded_at']),
@@ -333,6 +390,10 @@ class ManageProjectBudgetCategory extends Page
         }
 
         $proposal->save();
+
+        if ($proposal->proposal_status === CategoryBudgetSupplier::STATUS_CONFIRMED) {
+            $proposal->markAsConfirmed();
+        }
 
         $proposal->communications()->updateOrCreate(
             ['communication_type' => 'quote_response'],
@@ -674,6 +735,25 @@ class ManageProjectBudgetCategory extends Page
         return $this->categoryBudgetRecord
             ->supplierProposals
             ->firstWhere('supplier_id', $supplierId);
+    }
+
+    protected function makeProposalForSupplier(int $supplierId): CategoryBudgetSupplier
+    {
+        $supplier = Supplier::query()
+            ->where('category_id', $this->categoryBudgetRecord->category_id)
+            ->findOrFail($supplierId);
+
+        return $this->categoryBudgetRecord
+            ->supplierProposals()
+            ->firstOrNew(['supplier_id' => $supplier->id])
+            ->fill([
+                'supplier_id' => $supplier->id,
+                'requested_at' => now(),
+                'request_text' => null,
+                'scouting_status' => 'chosen',
+                'proposal_status' => CategoryBudgetSupplier::STATUS_CONFIRMED,
+                'availability_status' => 'available',
+            ]);
     }
 
     protected function findProposalById(int $proposalId, bool $fail = false): ?CategoryBudgetSupplier

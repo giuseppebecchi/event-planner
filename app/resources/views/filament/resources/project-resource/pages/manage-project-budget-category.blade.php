@@ -383,6 +383,12 @@
             gap: 1rem;
         }
 
+        .wm-scout-supplier-card {
+            display: grid;
+            gap: 0.75rem;
+            padding-block: 0.9rem;
+        }
+
         .wm-scout-request-card.is-confirmed {
             background: rgba(83, 168, 106, 0.08);
             border-color: rgba(83, 168, 106, 0.24);
@@ -395,6 +401,18 @@
             gap: 1rem;
         }
 
+        .wm-scout-supplier-card .wm-scout-card-head {
+            align-items: center;
+        }
+
+        .wm-scout-card-main {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 0.35rem 0.9rem;
+            min-width: 0;
+        }
+
         .wm-scout-card-title {
             margin: 0;
             color: #2d2a26;
@@ -402,11 +420,48 @@
             font-size: 1rem;
         }
 
+        .wm-scout-supplier-card .wm-scout-card-title {
+            flex: 0 1 auto;
+            min-width: min(18rem, 100%);
+        }
+
         .wm-scout-card-subtitle {
             margin: 0.2rem 0 0;
             color: #776f68;
             font-size: 0.86rem;
             line-height: 1.5;
+        }
+
+        .wm-scout-supplier-meta {
+            display: inline-flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.3rem 0.7rem;
+            color: #5f5953;
+            font-size: 0.82rem;
+            line-height: 1.45;
+        }
+
+        .wm-scout-supplier-meta-item {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 0.28rem;
+            min-width: 0;
+        }
+
+        .wm-scout-supplier-meta-label {
+            color: #968c82;
+            font-size: 0.66rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .wm-scout-supplier-meta-value {
+            color: #2d2a26;
+            font-weight: 700;
+            overflow-wrap: anywhere;
         }
 
         .wm-scout-badges {
@@ -475,9 +530,8 @@
         }
 
         .wm-scout-copy {
-            margin-top: 0.9rem;
             display: grid;
-            gap: 0.7rem;
+            gap: 0.45rem;
         }
 
         .wm-scout-copy-block strong {
@@ -492,7 +546,7 @@
         .wm-scout-copy-block p {
             margin: 0;
             color: #6d665f;
-            line-height: 1.7;
+            line-height: 1.45;
             white-space: pre-line;
         }
 
@@ -929,218 +983,12 @@
                                 @endif
                             </div>
 
-                            @if ($responseProposalId === $proposal->id)
-                                <div class="wm-scout-inline-form">
-                                    <div class="wm-scout-form-section">
-                                        <p class="wm-scout-form-section-title">Response status</p>
-                                        <div class="wm-scout-inline-grid">
-                                            <div>
-                                                <label class="wm-scout-label" for="responded-at-{{ $proposal->id }}">Response received at</label>
-                                                <input
-                                                    id="responded-at-{{ $proposal->id }}"
-                                                    type="datetime-local"
-                                                    class="wm-scout-field"
-                                                    wire:model="responseForm.responded_at"
-                                                >
-                                            </div>
-
-                                            <div>
-                                                <label class="wm-scout-label" for="availability-status-{{ $proposal->id }}">Availability</label>
-                                                <select
-                                                    id="availability-status-{{ $proposal->id }}"
-                                                    class="wm-scout-select"
-                                                    wire:model="responseForm.availability_status"
-                                                >
-                                                    @foreach (\App\Models\CategoryBudgetSupplier::AVAILABILITY_STATUS_OPTIONS as $value => $label)
-                                                        <option value="{{ $value }}">{{ $label }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="wm-scout-form-section">
-                                        <p class="wm-scout-form-section-title">Quote details</p>
-                                        <div class="wm-scout-inline-grid">
-                                            <div>
-                                                <label class="wm-scout-label" for="proposed-amount-{{ $proposal->id }}">Proposed amount</label>
-                                                <input
-                                                    id="proposed-amount-{{ $proposal->id }}"
-                                                    type="number"
-                                                    step="0.01"
-                                                    class="wm-scout-field"
-                                                    wire:model="responseForm.proposed_amount"
-                                                >
-                                            </div>
-
-                                            <div>
-                                                <label class="wm-scout-label" for="response-scouting-status-{{ $proposal->id }}">Scouting status</label>
-                                                <select
-                                                    id="response-scouting-status-{{ $proposal->id }}"
-                                                    class="wm-scout-select"
-                                                    wire:model="responseForm.scouting_status"
-                                                >
-                                                    @foreach (\App\Models\CategoryBudgetSupplier::SCOUTING_STATUS_OPTIONS as $value => $label)
-                                                        <option value="{{ $value }}">{{ $label }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div style="margin-top: 0.75rem;">
-                                            <div class="wm-scout-card-head" style="margin-bottom: 0.6rem;">
-                                                <label class="wm-scout-label" style="margin: 0;">Cost breakdown</label>
-                                                <x-filament::button type="button" size="sm" color="gray" icon="heroicon-m-plus" wire:click="addResponseCostItem">
-                                                    Add item
-                                                </x-filament::button>
-                                            </div>
-
-                                            <datalist id="cost-item-suggestions-{{ $proposal->id }}">
-                                                @foreach ($costItemSuggestions as $suggestion)
-                                                    <option value="{{ $suggestion }}"></option>
-                                                @endforeach
-                                            </datalist>
-
-                                            <div class="wm-cost-items">
-                                                @forelse (($responseForm['cost_items_json'] ?? []) as $costItemIndex => $costItem)
-                                                    <div class="wm-cost-item-row" wire:key="cost-item-{{ $proposal->id }}-{{ $costItemIndex }}">
-                                                        <input
-                                                            type="text"
-                                                            class="wm-scout-field"
-                                                            list="cost-item-suggestions-{{ $proposal->id }}"
-                                                            placeholder="Item"
-                                                            wire:model="responseForm.cost_items_json.{{ $costItemIndex }}.label"
-                                                        >
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            class="wm-scout-field"
-                                                            placeholder="Amount"
-                                                            wire:model="responseForm.cost_items_json.{{ $costItemIndex }}.amount"
-                                                        >
-                                                        <x-filament::button type="button" color="danger" size="sm" class="wm-cost-remove" wire:click="removeResponseCostItem({{ $costItemIndex }})">
-                                                            Remove
-                                                        </x-filament::button>
-                                                    </div>
-                                                @empty
-                                                    <div class="wm-scout-empty">No cost items added yet.</div>
-                                                @endforelse
-                                            </div>
-                                        </div>
-
-                                        <input type="hidden" wire:model="responseForm.proposal_status">
-
-                                        <div style="margin-top: 0.75rem;">
-                                            <label class="wm-scout-label" for="proposal-summary-{{ $proposal->id }}">Proposal summary</label>
-                                            <textarea
-                                                id="proposal-summary-{{ $proposal->id }}"
-                                                class="wm-scout-textarea"
-                                                wire:model="responseForm.proposal_summary"
-                                            ></textarea>
-                                        </div>
-
-                                        <div style="margin-top: 0.75rem;">
-                                            <label class="wm-scout-label" for="response-text-{{ $proposal->id }}">Response text</label>
-                                            <textarea
-                                                id="response-text-{{ $proposal->id }}"
-                                                class="wm-scout-textarea"
-                                                wire:model="responseForm.response_text"
-                                            ></textarea>
-                                        </div>
-
-                                        <div style="margin-top: 0.75rem;">
-                                            <label class="wm-scout-label" for="costs-and-conditions-{{ $proposal->id }}">Costs and conditions</label>
-                                            <textarea
-                                                id="costs-and-conditions-{{ $proposal->id }}"
-                                                class="wm-scout-textarea"
-                                                wire:model="responseForm.costs_and_conditions"
-                                            ></textarea>
-                                        </div>
-                                    </div>
-
-                                    @if ($isLocationCategory)
-                                        <div class="wm-scout-form-section">
-                                            <p class="wm-scout-form-section-title">Venue dates</p>
-                                            <div class="wm-scout-inline-grid">
-                                                <div>
-                                                    <label class="wm-scout-label" for="proposed-dates-{{ $proposal->id }}">Proposed dates</label>
-                                                    <textarea
-                                                        id="proposed-dates-{{ $proposal->id }}"
-                                                        class="wm-scout-textarea"
-                                                        wire:model="responseForm.proposed_dates"
-                                                    ></textarea>
-                                                </div>
-
-                                                <div>
-                                                    <label class="wm-scout-label" for="location-availability-dates-{{ $proposal->id }}">Venue availability dates</label>
-                                                    <textarea
-                                                        id="location-availability-dates-{{ $proposal->id }}"
-                                                        class="wm-scout-textarea"
-                                                        wire:model="responseForm.location_available_dates"
-                                                    ></textarea>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    <div class="wm-scout-form-section">
-                                        <p class="wm-scout-form-section-title">Internal notes and files</p>
-                                        <div>
-                                            <label class="wm-scout-label" for="response-notes-{{ $proposal->id }}">Notes</label>
-                                            <textarea
-                                                id="response-notes-{{ $proposal->id }}"
-                                                class="wm-scout-textarea"
-                                                wire:model="responseForm.notes"
-                                            ></textarea>
-                                        </div>
-
-                                        @if (count($responseExistingAttachments))
-                                            <div style="margin-top: 0.75rem;">
-                                                <span class="wm-scout-label">Existing attachments</span>
-                                                <div class="wm-scout-attachments">
-                                                    @foreach ($responseExistingAttachments as $attachment)
-                                                        <a
-                                                            href="{{ $attachment['url'] }}"
-                                                            target="_blank"
-                                                            class="wm-scout-attachment"
-                                                        >
-                                                            {{ $attachment['title'] }}
-                                                        </a>
-
-                                                        <button
-                                                            type="button"
-                                                            class="wm-scout-attachment is-remove"
-                                                            wire:click="removeExistingResponseAttachment({{ $attachment['id'] }})"
-                                                        >
-                                                            Remove
-                                                        </button>
-                                                    @endforeach
-                                                </div>
-                                            </div>
-                                        @endif
-
-                                        <div style="margin-top: 0.75rem;">
-                                            <label class="wm-scout-label" for="response-uploads-{{ $proposal->id }}">New attachments</label>
-                                            <input
-                                                id="response-uploads-{{ $proposal->id }}"
-                                                type="file"
-                                                multiple
-                                                class="wm-scout-field"
-                                                wire:model="responseUploads"
-                                            >
-                                        </div>
-                                    </div>
-
-                                    <div class="wm-scout-actions" style="margin-top: 0;">
-                                        <x-filament::button icon="heroicon-m-check" wire:click="saveRecordResponse">
-                                            Save response
-                                        </x-filament::button>
-
-                                        <x-filament::button color="gray" icon="heroicon-m-x-mark" wire:click="cancelRecordResponse">
-                                            Cancel
-                                        </x-filament::button>
-                                    </div>
-                                </div>
+                            @if ($responseFormContext === 'requests' && $responseProposalId === $proposal->id)
+                                @include('filament.resources.project-resource.pages.partials.budget-response-form', [
+                                    'proposal' => $proposal,
+                                    'responseFormKey' => 'proposal-' . $proposal->id,
+                                    'saveLabel' => 'Save response',
+                                ])
                             @endif
                         </article>
                     @endforeach
@@ -1265,7 +1113,27 @@
                         <article class="wm-scout-supplier-card">
                             <div class="wm-scout-card-head">
                                 <div>
-                                    <h4 class="wm-scout-card-title">{{ $supplier->name }}</h4>
+                                    <div class="wm-scout-card-main">
+                                        <h4 class="wm-scout-card-title">{{ $supplier->name }}</h4>
+                                        <div class="wm-scout-supplier-meta" aria-label="Supplier details">
+                                            <span class="wm-scout-supplier-meta-item">
+                                                <span class="wm-scout-supplier-meta-label">Contact</span>
+                                                <span class="wm-scout-supplier-meta-value">{{ $supplier->contact_person ?: '—' }}</span>
+                                            </span>
+                                            <span class="wm-scout-supplier-meta-item">
+                                                <span class="wm-scout-supplier-meta-label">Email</span>
+                                                <span class="wm-scout-supplier-meta-value">{{ $supplier->email ?: '—' }}</span>
+                                            </span>
+                                            <span class="wm-scout-supplier-meta-item">
+                                                <span class="wm-scout-supplier-meta-label">Phone</span>
+                                                <span class="wm-scout-supplier-meta-value">{{ $supplier->phone ?: '—' }}</span>
+                                            </span>
+                                            <span class="wm-scout-supplier-meta-item">
+                                                <span class="wm-scout-supplier-meta-label">Price range</span>
+                                                <span class="wm-scout-supplier-meta-value">{{ $supplier->price_range ?: '—' }}</span>
+                                            </span>
+                                        </div>
+                                    </div>
                                     <p class="wm-scout-card-subtitle">
                                         {{ collect([$supplier->service_area, $supplier->city, $supplier->province])->filter()->implode(' • ') ?: 'No area specified' }}
                                     </p>
@@ -1278,40 +1146,12 @@
                                 @endif
                             </div>
 
-                            <div class="wm-scout-data-grid">
-                                <div class="wm-scout-data">
-                                    <p class="wm-scout-data-label">Contact</p>
-                                    <p class="wm-scout-data-value">{{ $supplier->contact_person ?: '—' }}</p>
-                                </div>
-                                <div class="wm-scout-data">
-                                    <p class="wm-scout-data-label">Email</p>
-                                    <p class="wm-scout-data-value">{{ $supplier->email ?: '—' }}</p>
-                                </div>
-                                <div class="wm-scout-data">
-                                    <p class="wm-scout-data-label">Phone</p>
-                                    <p class="wm-scout-data-value">{{ $supplier->phone ?: '—' }}</p>
-                                </div>
-                                <div class="wm-scout-data">
-                                    <p class="wm-scout-data-label">Price range</p>
-                                    <p class="wm-scout-data-value">{{ $supplier->price_range ?: '—' }}</p>
-                                </div>
-                            </div>
-
-                            @if (filled($supplier->style_description) || filled($supplier->internal_notes))
+                            @if (filled($supplier->style_description))
                                 <div class="wm-scout-copy">
-                                    @if (filled($supplier->style_description))
-                                        <div class="wm-scout-copy-block">
-                                            <strong>Style</strong>
-                                            <p>{{ $supplier->style_description }}</p>
-                                        </div>
-                                    @endif
-
-                                    @if (filled($supplier->internal_notes))
-                                        <div class="wm-scout-copy-block">
-                                            <strong>Internal notes</strong>
-                                            <p>{{ $supplier->internal_notes }}</p>
-                                        </div>
-                                    @endif
+                                    <div class="wm-scout-copy-block">
+                                        <strong>Style</strong>
+                                        <p>{{ $supplier->style_description }}</p>
+                                    </div>
                                 </div>
                             @endif
 
@@ -1322,6 +1162,14 @@
                                     wire:click="startSendRequest({{ $supplier->id }})"
                                 >
                                     {{ $existingProposal ? 'Update request' : 'Request sent' }}
+                                </x-filament::button>
+
+                                <x-filament::button
+                                    color="success"
+                                    icon="heroicon-m-document-plus"
+                                    wire:click="startInsertAcceptedQuote({{ $supplier->id }})"
+                                >
+                                    Insert quote
                                 </x-filament::button>
                             </div>
 
@@ -1383,6 +1231,13 @@
                                         </x-filament::button>
                                     </div>
                                 </div>
+                            @endif
+
+                            @if ($responseFormContext === 'supplier' && (($existingProposal && $responseProposalId === $existingProposal->id) || $responseSupplierId === $supplier->id))
+                                @include('filament.resources.project-resource.pages.partials.budget-response-form', [
+                                    'responseFormKey' => 'supplier-' . $supplier->id,
+                                    'saveLabel' => 'Save accepted quote',
+                                ])
                             @endif
                         </article>
                     @endforeach
