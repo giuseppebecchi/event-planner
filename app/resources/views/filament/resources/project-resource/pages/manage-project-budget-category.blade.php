@@ -1102,7 +1102,9 @@
                 </x-filament::button>
             </div>
 
-            @if ($supplierResults->isEmpty())
+            @if (! $this->hasSupplierSearchFilters())
+                <div class="wm-scout-empty">Start typing or choose a filter to show suppliers.</div>
+            @elseif ($supplierResults->isEmpty())
                 <div class="wm-scout-empty">No suppliers match the current filters for this category.</div>
             @else
                 <div class="wm-scout-supplier-grid">

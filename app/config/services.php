@@ -35,4 +35,6 @@ return [
         ],
     ],
 
+    'default_wedding_id' => env('DEFAULT_WEDDING_ID'),
+
 ];

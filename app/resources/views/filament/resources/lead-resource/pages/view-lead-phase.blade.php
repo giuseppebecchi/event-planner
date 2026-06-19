@@ -29,6 +29,10 @@
             margin-bottom: 1rem;
         }
 
+        .lead-phase-toolbar.is-actions-only {
+            justify-content: flex-end;
+        }
+
         .lead-phase-inline-actions {
             display: flex;
             gap: 0.65rem;
@@ -204,27 +208,43 @@
     <div class="lead-phase-layout">
         <div class="lead-phase-grid">
             <div class="lead-phase-panel">
-                <div class="lead-phase-toolbar">
-                    <div>
-                        <h2 class="lead-phase-title">{{ $phaseTitle }}</h2>
-                        <p class="lead-phase-copy">{{ $phaseDescription }}</p>
-                    </div>
+                <div class="lead-phase-toolbar {{ str_contains(strtolower($phaseTitle), 'proposal') ? 'is-actions-only' : '' }}">
+                    @if (! str_contains(strtolower($phaseTitle), 'proposal'))
+                        <div>
+                            <h2 class="lead-phase-title">{{ $phaseTitle }}</h2>
+                            <p class="lead-phase-copy">{{ $phaseDescription }}</p>
+                        </div>
+                    @endif
 
                     <div class="lead-phase-inline-actions">
-                        <button type="button" class="lead-phase-button is-primary" wire:click="mountAction('generatePhase')">
+                        <x-filament::button color="gray" icon="heroicon-o-sparkles" wire:click="mountAction('generatePhase')">
                             {{ str_contains(strtolower($phaseTitle), 'contract') ? 'Generate contract' : 'Generate proposal' }}
-                        </button>
-                        <button type="button" class="lead-phase-button" wire:click="mountAction('editContent')">
-                            Edit content
-                        </button>
-                        @if ($exportPdfUrl)
-                            <a href="{{ $exportPdfUrl }}" target="_blank" class="lead-phase-button">
-                                Export PDF
-                            </a>
+                        </x-filament::button>
+                        @if (str_contains(strtolower($phaseTitle), 'contract'))
+                            <x-filament::button color="gray" icon="heroicon-o-paper-airplane" wire:click="mountAction('sendContract')">
+                                Send Contract
+                            </x-filament::button>
                         @else
-                            <button type="button" class="lead-phase-button is-disabled" disabled>
+                            <x-filament::button color="gray" icon="heroicon-o-adjustments-horizontal" wire:click="mountAction('configureProposal')">
+                                Configure proposal
+                            </x-filament::button>
+                            <x-filament::button color="gray" icon="heroicon-o-photo" wire:click="mountAction('configureProposalImages')">
+                                Configure images
+                            </x-filament::button>
+                        @endif
+                        @if (str_contains(strtolower($phaseTitle), 'contract'))
+                            <x-filament::button color="gray" icon="heroicon-o-pencil-square" wire:click="mountAction('editContent')">
+                                Edit content
+                            </x-filament::button>
+                        @endif
+                        @if ($exportPdfUrl)
+                            <x-filament::button color="gray" icon="heroicon-o-arrow-down-tray" tag="a" href="{{ $exportPdfUrl }}" target="_blank">
                                 Export PDF
-                            </button>
+                            </x-filament::button>
+                        @else
+                            <x-filament::button color="gray" icon="heroicon-o-arrow-down-tray" disabled>
+                                Export PDF
+                            </x-filament::button>
                         @endif
                     </div>
                 </div>

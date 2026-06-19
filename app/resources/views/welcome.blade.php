@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ config('app.name', 'Wedding Manager') }}</title>
+    <title>Aurily</title>
     @include('partials.favicons')
     <style>
         :root {
@@ -108,6 +108,31 @@
             line-height: 1.7;
         }
 
+        .story {
+            max-width: 610px;
+            margin: 36px auto 0;
+            padding-top: 32px;
+            border-top: 1px solid rgba(46, 42, 36, .1);
+        }
+
+        .story-title {
+            margin: 0;
+            color: var(--ink);
+            font-family: Optima, Candara, 'Segoe UI', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+        }
+
+        .story-copy {
+            margin: 18px 0 0;
+            color: var(--muted);
+            font-family: Optima, Candara, 'Segoe UI', sans-serif;
+            font-size: 16px;
+            line-height: 1.75;
+        }
+
         .actions {
             display: flex;
             flex-wrap: wrap;
@@ -157,6 +182,29 @@
             background: linear-gradient(90deg, transparent, var(--gold), transparent);
         }
 
+        .creator {
+            margin-top: 34px;
+            padding-top: 28px;
+            border-top: 1px solid rgba(46, 42, 36, .1);
+        }
+
+        .creator-label {
+            margin: 0 0 14px;
+            color: var(--muted);
+            font-family: Optima, Candara, 'Segoe UI', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+        }
+
+        .creator-logo {
+            display: block;
+            width: min(100%, 230px);
+            height: auto;
+            margin: 0 auto;
+        }
+
         @media (max-width: 560px) {
             .card {
                 border-radius: 26px;
@@ -176,16 +224,38 @@
 <body>
     <main class="page">
         <section class="card" aria-labelledby="home-title">
-            <img class="logo" src="{{ asset('images/logo-positive.png') }}" alt="{{ config('app.name', 'Wedding Manager') }}">
+            <img class="logo" src="{{ asset('images/logo-positive.png') }}" alt="Aurily">
             <p class="eyebrow">Event planning software</p>
-            <h1 id="home-title">Gestione completa per matrimoni ed eventi.</h1>
+            <h1 id="home-title">Complete management for weddings and private events.</h1>
             <p class="intro">
-                Una piattaforma operativa per seguire lead, clienti, fornitori, budget, documenti, RSVP,
-                timeline e disposizione tavoli in un unico flusso di lavoro.
+                A centralized workspace to manage leads, clients, vendors, budgets, payments, documents,
+                RSVPs, timelines, and seating charts in a single, seamless workflow.
             </p>
-            <div class="actions" aria-label="Azioni principali">
-                <a class="button" href="{{ url('/admin') }}">Accedi all'area admin</a>
-                <a class="button secondary" href="{{ url('/up') }}">Stato applicazione</a>
+
+            <section class="story" aria-labelledby="aurily-name-title">
+                <h2 class="story-title" id="aurily-name-title">Behind the Name: Aurily</h2>
+                <p class="story-copy">
+                    Every unforgettable, fairytale event possesses a unique energy—a distinct atmosphere and
+                    intangible magic that guests feel the moment they step into the room.
+                </p>
+                <p class="story-copy">
+                    In the world of design, we call this the aura.
+                </p>
+                <p class="story-copy">
+                    We created Aurily to be the digital backbone behind those ethereal moments. Built to handle
+                    complex logistics with absolute precision, Aurily gives your private event the flawless
+                    structure it needs so that when the day arrives, the magic can simply take over.
+                </p>
+            </section>
+
+            <div class="creator" aria-label="Created by Fairytale Italy Weddings">
+                <p class="creator-label">Created by</p>
+                <img class="creator-logo" src="{{ asset('images/FAIRYTALE-LOGO-positivo.png') }}" alt="Fairytale Italy Weddings">
+            </div>
+
+            <div class="actions" aria-label="Primary actions">
+                <a class="button" href="{{ url('/admin') }}">Admin area</a>
+                <a class="button secondary" href="{{ url('/up') }}">Application status</a>
             </div>
             <div class="mark" aria-hidden="true"></div>
         </section>

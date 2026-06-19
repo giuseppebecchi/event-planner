@@ -54,7 +54,7 @@ class LeadBudgetPdfController extends Controller
             [
                 'title' => 'Estimated vendor budget',
                 'description' => 'Expected third-party vendor costs by category.',
-                'rows' => $this->normalizedRows($lead->budget_vendors),
+                'rows' => $this->normalizedRows($lead->budget_vendors, true),
             ],
             [
                 'title' => 'Wedding planner fee',
@@ -74,7 +74,7 @@ class LeadBudgetPdfController extends Controller
         ];
     }
 
-    protected function normalizedRows(mixed $rows): array
+    protected function normalizedRows(mixed $rows, bool $excludeWeddingPlanner = false): array
     {
         if (! is_array($rows)) {
             return [];
@@ -91,9 +91,17 @@ class LeadBudgetPdfController extends Controller
                     'amount' => $this->numericAmount($row['amount'] ?? null),
                 ];
             })
+            ->when($excludeWeddingPlanner, fn ($rows) => $rows->reject(fn (array $row): bool => $this->isWeddingPlannerRow($row)))
             ->filter(fn (array $row): bool => $row['label'] !== '' || $row['notes'] !== '' || $row['amount'] > 0)
             ->values()
             ->all();
+    }
+
+    protected function isWeddingPlannerRow(array $row): bool
+    {
+        $label = mb_strtolower(trim((string) ($row['label'] ?? '')));
+
+        return in_array($label, ['wedding planner', 'wedding planning'], true);
     }
 
     protected function grandTotal(Lead $lead): float

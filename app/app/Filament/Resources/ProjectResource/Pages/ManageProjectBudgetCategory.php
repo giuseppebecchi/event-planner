@@ -127,6 +127,8 @@ class ManageProjectBudgetCategory extends Page
 
     public function startSendRequest(int $supplierId): void
     {
+        $this->findSearchableSupplierOrFail($supplierId);
+
         $proposal = $this->findProposalBySupplier($supplierId);
 
         $this->requestSupplierId = $supplierId;
@@ -167,9 +169,7 @@ class ManageProjectBudgetCategory extends Page
             'planner_notes' => ['nullable', 'string'],
         ])->validate();
 
-        $supplier = Supplier::query()
-            ->where('category_id', $this->categoryBudgetRecord->category_id)
-            ->findOrFail($supplierId);
+        $supplier = $this->findSearchableSupplierOrFail($supplierId);
 
         $proposal = $this->categoryBudgetRecord->supplierProposals()
             ->firstOrNew(['supplier_id' => $supplier->id]);
@@ -236,9 +236,7 @@ class ManageProjectBudgetCategory extends Page
             return;
         }
 
-        Supplier::query()
-            ->where('category_id', $this->categoryBudgetRecord->category_id)
-            ->findOrFail($supplierId);
+        $this->findSearchableSupplierOrFail($supplierId);
 
         $this->responseProposalId = null;
         $this->responseSupplierId = $supplierId;
@@ -499,6 +497,31 @@ class ManageProjectBudgetCategory extends Page
             || $labels->contains('catering');
     }
 
+    public function hasSupplierSearchFilters(): bool
+    {
+        return collect($this->supplierFilters)
+            ->contains(fn ($value): bool => filled($value));
+    }
+
+    protected function isCateringCategory(): bool
+    {
+        $category = $this->categoryBudgetRecord->category;
+
+        return strcasecmp((string) ($category?->label_it ?? ''), 'Catering') === 0
+            || strcasecmp((string) ($category?->label ?? ''), 'Catering') === 0;
+    }
+
+    protected function searchableSupplierCategoryIds(): array
+    {
+        $categoryIds = [(int) $this->categoryBudgetRecord->category_id];
+
+        if ($this->isCateringCategory()) {
+            $categoryIds[] = Supplier::LOCATION_CATEGORY_ID;
+        }
+
+        return array_values(array_unique(array_filter($categoryIds)));
+    }
+
     public function getExistingRequests(): Collection
     {
         return $this->categoryBudgetRecord
@@ -575,6 +598,11 @@ class ManageProjectBudgetCategory extends Page
     public function getSupplierResults(): Collection
     {
         $filters = $this->supplierFilters;
+
+        if (! $this->hasSupplierSearchFilters()) {
+            return collect();
+        }
+
         $trackedSupplierIds = $this->categoryBudgetRecord
             ->supplierProposals()
             ->pluck('supplier_id')
@@ -582,7 +610,7 @@ class ManageProjectBudgetCategory extends Page
             ->all();
 
         return Supplier::query()
-            ->where('category_id', $this->categoryBudgetRecord->category_id)
+            ->whereIn('category_id', $this->searchableSupplierCategoryIds())
             ->when(
                 filled($trackedSupplierIds),
                 fn ($query) => $query->whereNotIn('id', $trackedSupplierIds)
@@ -610,7 +638,7 @@ class ManageProjectBudgetCategory extends Page
     public function getServiceAreaOptions(): array
     {
         return Supplier::query()
-            ->where('category_id', $this->categoryBudgetRecord->category_id)
+            ->whereIn('category_id', $this->searchableSupplierCategoryIds())
             ->whereNotNull('service_area')
             ->where('service_area', '!=', '')
             ->orderBy('service_area')
@@ -621,7 +649,7 @@ class ManageProjectBudgetCategory extends Page
     public function getCityOptions(): array
     {
         return Supplier::query()
-            ->where('category_id', $this->categoryBudgetRecord->category_id)
+            ->whereIn('category_id', $this->searchableSupplierCategoryIds())
             ->whereNotNull('city')
             ->where('city', '!=', '')
             ->orderBy('city')
@@ -632,7 +660,7 @@ class ManageProjectBudgetCategory extends Page
     public function getPriceRangeOptions(): array
     {
         return Supplier::query()
-            ->where('category_id', $this->categoryBudgetRecord->category_id)
+            ->whereIn('category_id', $this->searchableSupplierCategoryIds())
             ->whereNotNull('price_range')
             ->where('price_range', '!=', '')
             ->orderBy('price_range')
@@ -739,9 +767,7 @@ class ManageProjectBudgetCategory extends Page
 
     protected function makeProposalForSupplier(int $supplierId): CategoryBudgetSupplier
     {
-        $supplier = Supplier::query()
-            ->where('category_id', $this->categoryBudgetRecord->category_id)
-            ->findOrFail($supplierId);
+        $supplier = $this->findSearchableSupplierOrFail($supplierId);
 
         return $this->categoryBudgetRecord
             ->supplierProposals()
@@ -754,6 +780,13 @@ class ManageProjectBudgetCategory extends Page
                 'proposal_status' => CategoryBudgetSupplier::STATUS_CONFIRMED,
                 'availability_status' => 'available',
             ]);
+    }
+
+    protected function findSearchableSupplierOrFail(int $supplierId): Supplier
+    {
+        return Supplier::query()
+            ->whereIn('category_id', $this->searchableSupplierCategoryIds())
+            ->findOrFail($supplierId);
     }
 
     protected function findProposalById(int $proposalId, bool $fail = false): ?CategoryBudgetSupplier

@@ -253,10 +253,18 @@ class Project extends Model
             'created' => 0,
             'updated' => 0,
             'skipped' => 0,
+            'supplier_proposals_created' => 0,
+            'supplier_proposals_updated' => 0,
             'no_lead' => false,
         ];
 
+        $defaultWeddingSupplier = $this->defaultWeddingSupplier();
+        $weddingPlannerCategoryId = $defaultWeddingSupplier?->category_id
+            ?: $this->weddingPlannerCategoryId($categories);
+        $weddingPlannerAmount = $this->leadWeddingPlannerBudgetAmount($lead);
+
         $rows = collect($lead->budget_vendors ?? [])
+            ->reject(fn (array $row): bool => $this->isWeddingPlannerBudgetRow($row, $weddingPlannerCategoryId))
             ->map(function (array $row) use ($categories): ?array {
                 $categoryId = $row['category_id'] ?? null;
 
@@ -286,6 +294,14 @@ class Project extends Model
                 ];
             })
             ->filter()
+            ->when(
+                $weddingPlannerCategoryId && $weddingPlannerAmount > 0,
+                fn (Collection $rows): Collection => $rows->push([
+                    'category_id' => $weddingPlannerCategoryId,
+                    'amount' => $weddingPlannerAmount,
+                    'notes' => 'Wedding planner fee',
+                ])
+            )
             ->unique('category_id')
             ->values();
 
@@ -313,11 +329,84 @@ class Project extends Model
             } else {
                 $stats['skipped']++;
             }
+
+            if (
+                $defaultWeddingSupplier
+                && $weddingPlannerCategoryId
+                && (int) $row['category_id'] === (int) $weddingPlannerCategoryId
+                && (float) $row['amount'] > 0
+            ) {
+                $proposal = $budget->supplierProposals()->firstOrNew([
+                    'supplier_id' => $defaultWeddingSupplier->id,
+                ]);
+                $proposalIsNew = ! $proposal->exists;
+
+                $proposal->fill([
+                    'supplier_id' => $defaultWeddingSupplier->id,
+                    'responded_at' => now(),
+                    'availability_status' => 'available',
+                    'scouting_status' => 'chosen',
+                    'proposal_status' => CategoryBudgetSupplier::STATUS_CONFIRMED,
+                    'proposed_amount' => (float) $row['amount'],
+                    'cost_items_json' => [[
+                        'label' => 'Wedding planner fee',
+                        'amount' => (float) $row['amount'],
+                    ]],
+                    'proposal_summary' => 'Automatically created from the lead wedding planner budget.',
+                    'confirmed_at' => $proposal->confirmed_at ?? now(),
+                ]);
+
+                if ($proposal->isDirty()) {
+                    $proposal->save();
+                    $stats[$proposalIsNew ? 'supplier_proposals_created' : 'supplier_proposals_updated']++;
+                }
+            }
         }
 
         $this->syncChecklistOptionsFromTemplates();
 
         return $stats;
+    }
+
+    protected function defaultWeddingSupplier(): ?Supplier
+    {
+        $supplierId = (int) config('services.default_wedding_id');
+
+        if ($supplierId <= 0) {
+            return null;
+        }
+
+        return Supplier::query()->find($supplierId);
+    }
+
+    protected function weddingPlannerCategoryId(Collection $categories): ?int
+    {
+        $category = $categories->first(fn (Category $category): bool => $this->isWeddingPlannerCategory($category));
+
+        return $category?->id;
+    }
+
+    protected function leadWeddingPlannerBudgetAmount(Lead $lead): float
+    {
+        return collect($lead->budget_wedding_planner ?? [])
+            ->sum(fn (array $row): float => blank($row['amount'] ?? null) ? 0.0 : (float) str_replace(',', '.', (string) $row['amount']));
+    }
+
+    protected function isWeddingPlannerBudgetRow(array $row, ?int $weddingPlannerCategoryId): bool
+    {
+        if ($weddingPlannerCategoryId && (int) ($row['category_id'] ?? 0) === (int) $weddingPlannerCategoryId) {
+            return true;
+        }
+
+        $label = mb_strtolower(trim((string) ($row['label'] ?? '')));
+
+        return in_array($label, ['wedding planner', 'wedding planning'], true);
+    }
+
+    protected function isWeddingPlannerCategory(Category $category): bool
+    {
+        return in_array(mb_strtolower(trim((string) $category->label)), ['wedding planner', 'wedding planning'], true)
+            || in_array(mb_strtolower(trim((string) $category->label_it)), ['wedding planner', 'wedding planning'], true);
     }
 
     public function categoryBudgets(): HasMany

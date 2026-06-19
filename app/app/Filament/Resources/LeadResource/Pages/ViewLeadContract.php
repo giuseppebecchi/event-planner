@@ -5,11 +5,14 @@ namespace App\Filament\Resources\LeadResource\Pages;
 use App\Models\Lead;
 use App\Models\LeadDocument;
 use App\Models\Project;
+use App\Models\Template;
+use App\Notifications\LeadContractNotification;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
@@ -40,6 +43,19 @@ class ViewLeadContract extends BaseLeadPhasePage
     protected function getPhaseHeaderActions(): array
     {
         return [
+            Action::make('sendContract')
+                ->label('Send Contract')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Send contract by email?')
+                ->modalDescription(fn (): string => sprintf(
+                    'Confirm sending the contract by email to %s.',
+                    $this->getRecord()->email ?: 'the client email'
+                ))
+                ->action(function (): void {
+                    $this->sendContractByEmail();
+                }),
             Action::make('markContractSent')
                 ->label('Mark contract as sent')
                 ->icon('heroicon-o-document-check')
@@ -115,6 +131,61 @@ class ViewLeadContract extends BaseLeadPhasePage
                     }
                 }),
         ];
+    }
+
+    public function sendContractByEmail(): void
+    {
+        /** @var Lead $lead */
+        $lead = $this->getRecord()->loadMissing('project');
+
+        if (blank($lead->email)) {
+            Notification::make()
+                ->title('Client email missing')
+                ->body('Add an email address to this lead before sending the contract.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $missingTemplates = collect([
+            'mail-contratto-oggetto',
+            'mail-contratto-corpo',
+            'mail-signature',
+        ])->reject(fn (string $slug): bool => Template::query()->where('slug', $slug)->exists());
+
+        if ($missingTemplates->isNotEmpty()) {
+            Notification::make()
+                ->title('Contract email template missing')
+                ->body('Missing template slug: '.$missingTemplates->implode(', '))
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        try {
+            NotificationFacade::route('mail', $lead->email)
+                ->notify(new LeadContractNotification($lead));
+
+            $lead->forceFill([
+                'contract_sent_at' => now(),
+            ])->save();
+
+            Notification::make()
+                ->title('Contract sent')
+                ->body('The contract email was sent to '.$lead->email.'.')
+                ->success()
+                ->send();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            Notification::make()
+                ->title('Contract could not be sent')
+                ->body('Check the mail configuration, templates and contract PDF generation, then try again.')
+                ->danger()
+                ->send();
+        }
     }
 
     protected function projectPayloadFromLead(Lead $lead): array

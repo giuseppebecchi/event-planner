@@ -67,7 +67,7 @@ class ViewLeadBudgetComposition extends Page
         $state = $this->data;
 
         $this->getRecord()->forceFill([
-            'budget_vendors' => $this->normalizeRows($state['budget_vendors'] ?? []),
+            'budget_vendors' => $this->normalizeRows($state['budget_vendors'] ?? [], true),
             'budget_wedding_planner' => $this->normalizeRows($state['budget_wedding_planner'] ?? []),
             'budget_wedding_planner_extra_services' => $this->normalizeRows($state['budget_wedding_planner_extra_services'] ?? []),
             'budget_wedding_planner_special_packages' => $this->normalizeRows($state['budget_wedding_planner_special_packages'] ?? []),
@@ -126,6 +126,7 @@ class ViewLeadBudgetComposition extends Page
     {
         return Category::query()
             ->get()
+            ->reject(fn (Category $category): bool => $this->isWeddingPlannerCategory($category))
             ->map(fn (Category $category): array => [
                 'category_id' => $category->id,
                 'label' => $category->label,
@@ -150,6 +151,8 @@ class ViewLeadBudgetComposition extends Page
                     'amount' => blank($row['amount'] ?? null) ? 0 : $row['amount'],
                 ];
             })
+            ->reject(fn (array $row): bool => $this->isWeddingPlannerRow($row))
+            ->values()
             ->all();
     }
 
@@ -197,7 +200,7 @@ class ViewLeadBudgetComposition extends Page
             ->all();
     }
 
-    protected function normalizeRows(array $rows): array
+    protected function normalizeRows(array $rows, bool $excludeWeddingPlanner = false): array
     {
         return collect($rows)
             ->map(function (array $row): array {
@@ -208,7 +211,29 @@ class ViewLeadBudgetComposition extends Page
                     'amount' => blank($row['amount'] ?? null) ? 0 : (float) str_replace(',', '.', (string) $row['amount']),
                 ];
             })
+            ->when($excludeWeddingPlanner, fn (Collection $rows): Collection => $rows->reject(fn (array $row): bool => $this->isWeddingPlannerRow($row)))
             ->values()
             ->all();
+    }
+
+    protected function isWeddingPlannerRow(array $row): bool
+    {
+        if (filled($row['category_id'] ?? null)) {
+            $category = Category::query()->find((int) $row['category_id']);
+
+            if ($category && $this->isWeddingPlannerCategory($category)) {
+                return true;
+            }
+        }
+
+        $label = mb_strtolower(trim((string) ($row['label'] ?? '')));
+
+        return in_array($label, ['wedding planner', 'wedding planning'], true);
+    }
+
+    protected function isWeddingPlannerCategory(Category $category): bool
+    {
+        return in_array(mb_strtolower(trim((string) $category->label)), ['wedding planner', 'wedding planning'], true)
+            || in_array(mb_strtolower(trim((string) $category->label_it)), ['wedding planner', 'wedding planning'], true);
     }
 }

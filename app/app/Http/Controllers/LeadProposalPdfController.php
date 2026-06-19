@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lead;
+use App\Models\Template;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class LeadProposalPdfController extends Controller
@@ -16,7 +18,7 @@ class LeadProposalPdfController extends Controller
         $pdf = Pdf::loadView('pdf.lead-proposal', [
             'lead' => $lead,
             'data' => $this->buildData($lead),
-            'images' => $this->proposalImages(),
+            'images' => $this->proposalImages($lead),
             'fonts' => $this->proposalFonts(),
         ])->setPaper('a4', 'landscape');
 
@@ -33,17 +35,18 @@ class LeadProposalPdfController extends Controller
         $extraRows = $this->normalizedRows($lead->budget_wedding_planner_extra_services);
         $mainOffer = $plannerRows[0] ?? null;
         $mainFee = $this->money($mainOffer['amount'] ?? null);
+        $planningRows = $this->planningRows($lead);
 
         return [
             'couple_name' => $lead->couple_name ?: trim(collect([$project?->partner_one_name, $project?->partner_two_name])->filter()->implode(' & ')),
             'proposal_title' => Str::upper(sprintf("Wedding in %s\n%s", $region, $period)),
             'offer_title' => Str::upper($this->mainOfferLabel($mainOffer, $guestText)),
             'main_fee' => $mainFee ?: $this->money($project?->budget_amount ?? $lead->budget_amount) ?: 'Tuscany: 6900 euros',
-            'planning_rows_left' => $this->planningRowsLeft(),
-            'planning_rows_right' => $this->planningRowsRight(),
+            'planning_rows_left' => $planningRows->get(0, []),
+            'planning_rows_right' => $planningRows->get(1, []),
             'extra_rows' => $extraRows ?: $this->defaultExtraRows(),
             'valid_until' => now()->addDays(30)->format('F jS Y'),
-            'confirmation_rows' => $this->confirmationRows(),
+            'confirmation_rows' => $this->confirmationRows($lead),
         ];
     }
 
@@ -59,6 +62,50 @@ class LeadProposalPdfController extends Controller
             "Planning and coordination fee for\nwedding day + welcome dinner + recovery event\n%s",
             $guestText,
         );
+    }
+
+    protected function planningRows(Lead $lead): \Illuminate\Support\Collection
+    {
+        $rows = $this->proposalWeddingPlanningServiceRows($lead);
+
+        if ($rows->isEmpty()) {
+            $rows = collect([
+                ...$this->planningRowsLeft(),
+                ...$this->planningRowsRight(),
+            ]);
+        }
+
+        return $rows
+            ->values()
+            ->chunk((int) ceil(max(1, $rows->count()) / 2))
+            ->values();
+    }
+
+    protected function proposalWeddingPlanningServiceRows(Lead $lead): \Illuminate\Support\Collection
+    {
+        $content = trim((string) ($lead->proposal_wedding_planning_service ?: Template::query()
+            ->where('slug', 'proposal-wedding-planning-service')
+            ->where('language', 'en')
+            ->value('content')));
+
+        if ($content === '') {
+            return collect();
+        }
+
+        preg_match_all('/<(?:p|li)[^>]*>(.*?)<\/(?:p|li)>/is', $content, $matches);
+
+        $rows = collect($matches[1] ?? [])
+            ->map(fn (string $row): string => trim(html_entity_decode(strip_tags($row))))
+            ->filter();
+
+        if ($rows->isNotEmpty()) {
+            return $rows->values();
+        }
+
+        return collect(preg_split('/\r\n|\r|\n/', strip_tags($content)) ?: [])
+            ->map(fn (string $row): string => trim(html_entity_decode($row)))
+            ->filter()
+            ->values();
     }
 
     protected function planningRowsLeft(): array
@@ -86,7 +133,45 @@ class LeadProposalPdfController extends Controller
         ];
     }
 
-    protected function confirmationRows(): array
+    protected function confirmationRows(Lead $lead): array
+    {
+        $configuredRows = $this->proposalConditionRows($lead);
+
+        if ($configuredRows !== []) {
+            return $configuredRows;
+        }
+
+        return $this->defaultConfirmationRows();
+    }
+
+    protected function proposalConditionRows(Lead $lead): array
+    {
+        $content = trim((string) $lead->proposal_content);
+
+        if ($content === '') {
+            return [];
+        }
+
+        preg_match_all('/<li[^>]*>(.*?)<\/li>/is', $content, $matches);
+
+        $rows = collect($matches[1] ?? [])
+            ->map(fn (string $row): string => trim(html_entity_decode(strip_tags($row))))
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($rows !== []) {
+            return $rows;
+        }
+
+        return collect(preg_split('/\r\n|\r|\n/', strip_tags($content)) ?: [])
+            ->map(fn (string $row): string => trim(html_entity_decode($row)))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    protected function defaultConfirmationRows(): array
     {
         return [
             'A non-refundable deposit of 2000 euros is required upon confirmation of the wedding planning package.',
@@ -163,9 +248,9 @@ class LeadProposalPdfController extends Controller
         return Carbon::parse($value)->format('F Y');
     }
 
-    protected function proposalImages(): array
+    protected function proposalImages(Lead $lead): array
     {
-        return collect([
+        $defaults = [
             'logo' => 'images/proposal/client-logo.png',
             'social_block' => 'images/proposal/social-block.png',
             'cover_bride' => 'images/proposal/cover-bride.png',
@@ -181,7 +266,40 @@ class LeadProposalPdfController extends Controller
             'olive_ceremony' => 'images/proposal/olive-ceremony.png',
             'table_film' => 'images/proposal/table-film.png',
             'table_rustic' => 'images/proposal/table-rustic.png',
-        ])->map(fn (string $path): string => public_path($path))->all();
+        ];
+
+        $config = is_array($lead->proposal_images_json_config) ? $lead->proposal_images_json_config : [];
+
+        return collect($defaults)
+            ->map(function (string $defaultPath, string $key) use ($config): string {
+                if (in_array($key, ['logo', 'social_block'], true)) {
+                    return public_path($defaultPath);
+                }
+
+                $customPath = $this->customProposalImagePath($config[$key] ?? null);
+
+                return $customPath ?: public_path($defaultPath);
+            })
+            ->all();
+    }
+
+    protected function customProposalImagePath(mixed $value): ?string
+    {
+        if (is_array($value)) {
+            $value = collect($value)->filter()->first();
+        }
+
+        if (blank($value)) {
+            return null;
+        }
+
+        $path = (string) $value;
+
+        if (! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->path($path);
     }
 
     protected function proposalFonts(): array
