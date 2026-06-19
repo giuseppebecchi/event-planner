@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'payload' => [
+        'max_nesting_depth' => (int) env('LIVEWIRE_PAYLOAD_MAX_NESTING_DEPTH', 30),
+    ],
+
     'temporary_file_upload' => [
         'disk' => env('LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK', 'local'),
         'rules' => ['required', 'file', 'max:20480'],
