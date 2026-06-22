@@ -29,21 +29,14 @@ class LeadContractNotification extends Notification
         $this->lead->loadMissing('project');
 
         $renderer = app(LeadContractPdfRenderer::class);
-        $subjectTemplate = $this->template('mail-contratto-oggetto');
-        $bodyTemplate = $this->template('mail-contratto-corpo');
-        $signatureTemplate = $this->template('mail-signature');
+        $template = $this->template('mail-contratto');
 
-        $subject = Str::of($this->renderTemplateContent((string) $subjectTemplate->content, $renderer))
+        $subject = Str::of($this->renderTemplateContent((string) ($template->subject ?: $template->title), $renderer))
             ->stripTags()
             ->squish()
             ->value();
 
-        $bodyHtml = collect([
-            $this->renderTemplateContent((string) $bodyTemplate->content, $renderer),
-            $this->renderTemplateContent((string) $signatureTemplate->content, $renderer),
-        ])
-            ->filter(fn (string $content): bool => trim($content) !== '')
-            ->implode("\n");
+        $bodyHtml = $this->renderTemplateContent((string) $template->content, $renderer);
 
         return (new MailMessage)
             ->subject($subject)

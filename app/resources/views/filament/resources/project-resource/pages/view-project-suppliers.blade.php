@@ -3,6 +3,8 @@
         $record = $this->getRecord();
         $supplierProposals = $this->getSupplierProposals();
         $summary = $this->getSuppliersSummary();
+        $payments = $this->getProjectPayments();
+        $paymentsSummary = $this->getPaymentsSummary();
     @endphp
 
     <style>
@@ -279,15 +281,23 @@
             font-weight: 700;
         }
 
-        .wm-supplier-grid {
+        .wm-suppliers-workspace {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: minmax(0, 2fr) minmax(22rem, 1fr);
             gap: 1rem;
+            align-items: start;
+        }
+
+        .wm-supplier-list {
+            display: grid;
+            gap: 0.75rem;
         }
 
         .wm-supplier-card {
             display: grid;
-            gap: 1rem;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 0.8rem 1rem;
+            align-items: center;
         }
 
         .wm-supplier-head {
@@ -301,14 +311,14 @@
             margin: 0.25rem 0 0;
             color: #2d2a26;
             font-family: 'Cinzel', serif;
-            font-size: 1.05rem;
+            font-size: 1rem;
         }
 
         .wm-supplier-copy {
             margin: 0.3rem 0 0;
             color: #6f6861;
-            font-size: 0.9rem;
-            line-height: 1.55;
+            font-size: 0.84rem;
+            line-height: 1.45;
         }
 
         .wm-supplier-amount {
@@ -320,12 +330,13 @@
         .wm-supplier-meta {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.7rem;
+            gap: 0.5rem;
+            grid-column: 1 / -1;
         }
 
         .wm-supplier-mini {
-            padding: 0.8rem 0.85rem;
-            border-radius: 0.9rem;
+            padding: 0.62rem 0.7rem;
+            border-radius: 0.75rem;
             background: #fbf8f4;
             border: 1px solid #ece5dd;
         }
@@ -343,13 +354,184 @@
             justify-content: center;
             width: fit-content;
             min-height: 2.45rem;
-            padding: 0 1rem;
+            padding: 0 0.9rem;
             border-radius: 999px;
             background: #2e4a62;
             color: #fff;
             font-size: 0.8rem;
             font-weight: 700;
             text-decoration: none;
+        }
+
+        .wm-payments-panel {
+            position: sticky;
+            top: 1rem;
+            display: grid;
+            gap: 0.9rem;
+            padding: 1rem;
+        }
+
+        .wm-payments-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .wm-payments-title {
+            margin: 0.28rem 0 0;
+            color: #2d2a26;
+            font-size: 1rem;
+            font-weight: 800;
+        }
+
+        .wm-payments-toggle {
+            min-height: 2.1rem;
+            border: 1px solid #ddd2c5;
+            border-radius: 999px;
+            background: #fff;
+            padding: 0 0.8rem;
+            color: #4d473f;
+            font-size: 0.74rem;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .wm-payments-kpis {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.45rem;
+        }
+
+        .wm-payments-kpi {
+            border-radius: 0.75rem;
+            background: #fbf8f4;
+            border: 1px solid #ece5dd;
+            padding: 0.58rem 0.62rem;
+        }
+
+        .wm-payments-kpi strong {
+            display: block;
+            color: #2d2a26;
+            font-size: 0.98rem;
+            line-height: 1.1;
+        }
+
+        .wm-payments-kpi span {
+            display: block;
+            margin-top: 0.18rem;
+            color: #8b847d;
+            font-size: 0.62rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .wm-payment-list {
+            display: grid;
+            gap: 0.55rem;
+            max-height: 42rem;
+            overflow: auto;
+            padding-right: 0.15rem;
+        }
+
+        .wm-payment-item {
+            display: grid;
+            gap: 0.48rem;
+            padding: 0.78rem;
+            border-radius: 0.85rem;
+            border: 1px solid #ece5dd;
+            background: #fff;
+        }
+
+        .wm-payment-item.is-paid {
+            opacity: 0.62;
+        }
+
+        .wm-payment-item.is-overdue {
+            border-color: rgba(197, 65, 65, 0.42);
+            background: rgba(197, 65, 65, 0.07);
+        }
+
+        .wm-payment-topline {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        .wm-payment-title {
+            margin: 0;
+            color: #2d2a26;
+            font-size: 0.86rem;
+            font-weight: 800;
+            line-height: 1.35;
+        }
+
+        .wm-payment-amount {
+            color: #2d2a26;
+            font-size: 0.82rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .wm-payment-meta {
+            margin: 0;
+            color: #746d66;
+            font-size: 0.76rem;
+            line-height: 1.45;
+        }
+
+        .wm-payment-due {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .wm-payment-due-date {
+            color: #2d2a26;
+            font-size: 0.92rem;
+            font-weight: 900;
+            line-height: 1.25;
+        }
+
+        .wm-payment-countdown {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            border-radius: 999px;
+            padding: 0.18rem 0.48rem;
+            background: rgba(201, 169, 106, 0.16);
+            color: #8b6423;
+            font-size: 0.66rem;
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .wm-payment-status {
+            display: inline-flex;
+            width: fit-content;
+            border-radius: 999px;
+            padding: 0.22rem 0.52rem;
+            background: rgba(46, 74, 98, 0.1);
+            color: #2e4a62;
+            font-size: 0.66rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .wm-payment-status.is-paid {
+            background: rgba(122, 143, 123, 0.14);
+            color: #4c6d4e;
+        }
+
+        .wm-payment-status.is-overdue {
+            background: rgba(197, 65, 65, 0.13);
+            color: #9b2f2f;
         }
 
         .wm-supplier-empty {
@@ -359,9 +541,17 @@
 
         @media (max-width: 1100px) {
             .wm-suppliers-summary,
-            .wm-supplier-grid,
+            .wm-suppliers-workspace,
             .wm-event-top-head,
             .wm-event-date-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .wm-payments-panel {
+                position: static;
+            }
+
+            .wm-supplier-card {
                 grid-template-columns: 1fr;
             }
 
@@ -402,51 +592,126 @@
             </article>
         </section>
 
-        @if ($supplierProposals->isEmpty())
-            <section class="wm-event-card wm-supplier-empty">
-                No confirmed suppliers yet. Confirm a quote from Budget to move it into this operational area.
-            </section>
-        @else
-            <section class="wm-supplier-grid">
-                @foreach ($supplierProposals as $proposal)
-                    <article class="wm-event-card wm-supplier-card">
-                        <div class="wm-supplier-head">
-                            <div>
-                                <p class="wm-supplier-label">{{ $proposal->category?->label_it ?? $proposal->category?->label ?? 'Category' }}</p>
-                                <h3 class="wm-supplier-title">{{ $proposal->supplier?->name ?? 'Supplier' }}</h3>
-                                <p class="wm-supplier-copy">
-                                    {{ collect([$proposal->supplier?->service_area, $proposal->supplier?->city])->filter()->implode(' • ') ?: 'No area specified' }}
+        <section class="wm-suppliers-workspace">
+            <div>
+                @if ($supplierProposals->isEmpty())
+                    <section class="wm-event-card wm-supplier-empty">
+                        No confirmed suppliers yet. Confirm a quote from Budget to move it into this operational area.
+                    </section>
+                @else
+                    <section class="wm-supplier-list">
+                        @foreach ($supplierProposals as $proposal)
+                            <article class="wm-event-card wm-supplier-card">
+                                <div class="wm-supplier-head">
+                                    <div>
+                                        <p class="wm-supplier-label">{{ $proposal->category?->label ?? 'Category' }}</p>
+                                        <h3 class="wm-supplier-title">{{ $proposal->supplier?->name ?? 'Supplier' }}</h3>
+                                        <p class="wm-supplier-copy">
+                                            {{ collect([$proposal->supplier?->service_area, $proposal->supplier?->city])->filter()->implode(' • ') ?: 'No area specified' }}
+                                        </p>
+                                    </div>
+                                    <span class="wm-supplier-amount">
+                                        {{ $proposal->proposed_amount !== null ? 'EUR ' . number_format((float) $proposal->proposed_amount, 2, ',', '.') : '—' }}
+                                    </span>
+                                </div>
+
+                                <a
+                                    href="{{ \App\Filament\Resources\ProjectResource::getUrl('supplier-manage', ['record' => $record, 'proposal' => $proposal->id]) }}"
+                                    class="wm-supplier-action"
+                                >
+                                    Manage {{ $proposal->supplier?->name ?? 'supplier' }}
+                                </a>
+
+                                <div class="wm-supplier-meta">
+                                    <div class="wm-supplier-mini">
+                                        <p class="wm-supplier-label">Docs</p>
+                                        <strong>{{ $proposal->projectDocuments->count() }}</strong>
+                                    </div>
+                                    <div class="wm-supplier-mini">
+                                        <p class="wm-supplier-label">Payments</p>
+                                        <strong>{{ $proposal->payments->count() }}</strong>
+                                    </div>
+                                    <div class="wm-supplier-mini">
+                                        <p class="wm-supplier-label">Messages</p>
+                                        <strong>{{ $proposal->communications->count() }}</strong>
+                                    </div>
+                                </div>
+                            </article>
+                        @endforeach
+                    </section>
+                @endif
+            </div>
+
+            <aside class="wm-event-card wm-payments-panel">
+                <div class="wm-payments-head">
+                    <div>
+                        <p class="wm-supplier-label">Payment schedule</p>
+                        <h3 class="wm-payments-title">Upcoming deadlines</h3>
+                    </div>
+                    <button type="button" class="wm-payments-toggle" wire:click="$toggle('hidePaidPayments')">
+                        {{ $this->hidePaidPayments ? 'Show paid' : 'Hide paid' }}
+                    </button>
+                </div>
+
+                <div class="wm-payments-kpis">
+                    <div class="wm-payments-kpi">
+                        <strong>{{ $paymentsSummary['visible_count'] }}</strong>
+                        <span>Visible</span>
+                    </div>
+                    <div class="wm-payments-kpi">
+                        <strong>{{ $paymentsSummary['unpaid_count'] }}</strong>
+                        <span>Unpaid</span>
+                    </div>
+                    <div class="wm-payments-kpi">
+                        <strong>{{ $paymentsSummary['overdue_count'] }}</strong>
+                        <span>Overdue</span>
+                    </div>
+                </div>
+
+                @if ($payments->isEmpty())
+                    <div class="wm-supplier-empty">
+                        {{ $paymentsSummary['total_count'] === 0 ? 'No payments scheduled yet.' : 'No payments match the current filter.' }}
+                    </div>
+                @else
+                    <div class="wm-payment-list">
+                        @foreach ($payments as $payment)
+                            @php
+                                $isPaid = $payment->payment_status === \App\Models\Payment::STATUS_PAID;
+                                $isOverdue = ! $isPaid && $payment->due_date && $payment->due_date->copy()->startOfDay()->lt(now()->startOfDay());
+                                $statusLabel = $isPaid ? 'Paid' : ($isOverdue ? 'Overdue' : 'Unpaid');
+                                $daysUntilDue = (! $isPaid && $payment->due_date)
+                                    ? now()->startOfDay()->diffInDays($payment->due_date->copy()->startOfDay(), false)
+                                    : null;
+                                $showDueSoon = $daysUntilDue !== null && $daysUntilDue >= 0 && $daysUntilDue <= 30;
+                                $proposal = $payment->categoryBudgetSupplier;
+                            @endphp
+                            <article class="wm-payment-item {{ $isPaid ? 'is-paid' : '' }} {{ $isOverdue ? 'is-overdue' : '' }}">
+                                <div class="wm-payment-topline">
+                                    <p class="wm-payment-title">{{ $payment->reason ?: 'Payment' }}</p>
+                                    <span class="wm-payment-amount">EUR {{ number_format((float) $payment->amount, 2, ',', '.') }}</span>
+                                </div>
+                                <div class="wm-payment-due">
+                                    <span class="wm-payment-due-date">Due {{ $payment->due_date?->format('M j, Y') ?? 'not set' }}</span>
+                                    @if ($showDueSoon)
+                                        <span class="wm-payment-countdown">
+                                            {{ $daysUntilDue === 0 ? 'Due today' : $daysUntilDue . ' days left' }}
+                                        </span>
+                                    @endif
+                                </div>
+                                <p class="wm-payment-meta">
+                                    @if ($payment->supplier?->name)
+                                        {{ $payment->supplier->name }}
+                                    @endif
+                                    @if ($proposal?->category)
+                                        {{ $payment->supplier?->name ? ' • ' : '' }}{{ $proposal->category->label }}
+                                    @endif
                                 </p>
-                            </div>
-                            <span class="wm-supplier-amount">
-                                {{ $proposal->proposed_amount !== null ? 'EUR ' . number_format((float) $proposal->proposed_amount, 2, ',', '.') : '—' }}
-                            </span>
-                        </div>
-
-                        <div class="wm-supplier-meta">
-                            <div class="wm-supplier-mini">
-                                <p class="wm-supplier-label">Docs</p>
-                                <strong>{{ $proposal->projectDocuments->count() }}</strong>
-                            </div>
-                            <div class="wm-supplier-mini">
-                                <p class="wm-supplier-label">Payments</p>
-                                <strong>{{ $proposal->payments->count() }}</strong>
-                            </div>
-                            <div class="wm-supplier-mini">
-                                <p class="wm-supplier-label">Messages</p>
-                                <strong>{{ $proposal->communications->count() }}</strong>
-                            </div>
-                        </div>
-
-                        <a
-                            href="{{ \App\Filament\Resources\ProjectResource::getUrl('supplier-manage', ['record' => $record, 'proposal' => $proposal->id]) }}"
-                            class="wm-supplier-action"
-                        >
-                            Manage {{ $proposal->supplier?->name ?? 'supplier' }}
-                        </a>
-                    </article>
-                @endforeach
-            </section>
-        @endif
+                                <span class="wm-payment-status {{ $isPaid ? 'is-paid' : '' }} {{ $isOverdue ? 'is-overdue' : '' }}">{{ $statusLabel }}</span>
+                            </article>
+                        @endforeach
+                    </div>
+                @endif
+            </aside>
+        </section>
     </div>
 </x-filament-panels::page>

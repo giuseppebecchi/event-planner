@@ -112,6 +112,16 @@ class LocationResource extends Resource
                                         ->rows(5)
                                         ->columnSpanFull(),
                                 ]),
+                            Section::make('Social')
+                                ->columns(2)
+                                ->schema([
+                                    Components\TextInput::make('instagram_profile')
+                                        ->label('Instagram profile')
+                                        ->maxLength(255),
+                                    Components\TextInput::make('instagram_hashtag')
+                                        ->label('Instagram hashtag')
+                                        ->maxLength(255),
+                                ]),
                         ]),
                     Tab::make('Address')
                         ->icon('heroicon-o-map-pin')

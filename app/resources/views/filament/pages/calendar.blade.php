@@ -851,8 +851,8 @@
 
                     <div class="wm-calendar-legend">
                         <span class="wm-calendar-legend-chip"><span class="wm-calendar-legend-dot wm-dot-olive"></span>Checklist</span>
-                        <span class="wm-calendar-legend-chip"><span class="wm-calendar-legend-dot wm-dot-sky"></span>Payments</span>
-                        <span class="wm-calendar-legend-chip"><span class="wm-calendar-legend-dot wm-dot-rose"></span>Events</span>
+                        <span class="wm-calendar-legend-chip"><span class="wm-calendar-legend-dot wm-dot-rose"></span>Payments</span>
+                        <span class="wm-calendar-legend-chip"><span class="wm-calendar-legend-dot wm-dot-sky"></span>Events</span>
                     </div>
 
                     <div class="wm-calendar-nav">

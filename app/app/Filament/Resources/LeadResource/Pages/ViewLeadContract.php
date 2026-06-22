@@ -149,9 +149,7 @@ class ViewLeadContract extends BaseLeadPhasePage
         }
 
         $missingTemplates = collect([
-            'mail-contratto-oggetto',
-            'mail-contratto-corpo',
-            'mail-signature',
+            'mail-contratto',
         ])->reject(fn (string $slug): bool => Template::query()->where('slug', $slug)->exists());
 
         if ($missingTemplates->isNotEmpty()) {

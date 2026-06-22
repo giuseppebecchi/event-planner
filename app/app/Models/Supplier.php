@@ -69,6 +69,8 @@ class Supplier extends Model
         'contact_person',
         'style_description',
         'price_range',
+        'instagram_profile',
+        'instagram_hashtag',
         'default_commission_enabled',
         'default_commission_percentage',
         'internal_notes',

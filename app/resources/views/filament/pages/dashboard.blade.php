@@ -201,7 +201,7 @@
 
         .wm-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 1rem;
         }
 
@@ -317,15 +317,49 @@
 
         .wm-deadlines {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.75rem;
+            gap: 0.65rem;
         }
 
         .wm-deadline {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 0.75rem;
+            align-items: start;
             border: 1px solid #eee7e0;
             border-radius: 1rem;
             padding: 0.95rem 1rem;
             background: #fffdfa;
+            text-decoration: none;
+        }
+
+        .wm-deadline:hover {
+            border-color: #d9c4ab;
+            background: #fffaf4;
+        }
+
+        .wm-deadline.is-critical {
+            border-color: rgba(201, 169, 106, 0.48);
+            background: rgba(201, 169, 106, 0.08);
+        }
+
+        .wm-deadline.is-critical.rose {
+            border-color: rgba(156, 67, 67, 0.38);
+            background: rgba(227, 183, 178, 0.18);
+        }
+
+        .wm-deadline-due {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.4rem;
+            min-width: 7rem;
+        }
+
+        .wm-deadline-date {
+            color: #2d2a26;
+            font-size: 0.82rem;
+            font-weight: 800;
+            white-space: nowrap;
         }
 
         .wm-empty {
@@ -454,6 +488,38 @@
                 <article class="wm-panel">
                     <div class="wm-panel-header">
                         <div class="wm-panel-heading">
+                            <span class="wm-icon-chip gold">
+                                <x-filament::icon icon="heroicon-o-calendar-days" />
+                            </span>
+                            <div>
+                                <h2 class="wm-panel-title">Upcoming confirmed events</h2>
+                                <p class="wm-panel-subtitle">Confirmed celebrations approaching soon.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="wm-list">
+                        @forelse($upcomingConfirmedEvents as $event)
+                            <a class="wm-item" href="{{ $event['url'] }}">
+                                <div>
+                                    <p class="wm-item-title">{{ $event['name'] }}</p>
+                                    <p class="wm-item-meta">{{ $event['couple'] }}</p>
+                                    <p class="wm-item-copy">{{ $event['place'] }} · {{ $event['guests'] ? $event['guests'] . ' guests' : 'Guest list to define' }}</p>
+                                </div>
+                                <div class="wm-item-aside">
+                                    <span class="wm-badge gold">{{ $event['date'] }}</span>
+                                    <div class="wm-item-note">{{ $event['days'] }} days</div>
+                                </div>
+                            </a>
+                        @empty
+                            <div class="wm-empty">No confirmed upcoming events found.</div>
+                        @endforelse
+                    </div>
+                </article>
+
+                <article class="wm-panel">
+                    <div class="wm-panel-header">
+                        <div class="wm-panel-heading">
                             <span class="wm-icon-chip blue">
                                 <x-filament::icon icon="heroicon-o-folder-open" />
                             </span>
@@ -488,57 +554,32 @@
                 <article class="wm-panel">
                     <div class="wm-panel-header">
                         <div class="wm-panel-heading">
-                            <span class="wm-icon-chip gold">
-                                <x-filament::icon icon="heroicon-o-calendar-days" />
-                            </span>
-                            <div>
-                                <h2 class="wm-panel-title">Upcoming confirmed events</h2>
-                                <p class="wm-panel-subtitle">Confirmed celebrations approaching soon.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="wm-list">
-                        @forelse($upcomingConfirmedEvents as $event)
-                            <a class="wm-item" href="{{ $event['url'] }}">
-                                <div>
-                                    <p class="wm-item-title">{{ $event['name'] }}</p>
-                                    <p class="wm-item-meta">{{ $event['couple'] }}</p>
-                                    <p class="wm-item-copy">{{ $event['place'] }} · {{ $event['guests'] ? $event['guests'] . ' guests' : 'Guest list to define' }}</p>
-                                </div>
-                                <div class="wm-item-aside">
-                                    <span class="wm-badge gold">{{ $event['date'] }}</span>
-                                    <div class="wm-item-note">{{ $event['days'] }} days</div>
-                                </div>
-                            </a>
-                        @empty
-                            <div class="wm-empty">No confirmed upcoming events found.</div>
-                        @endforelse
-                    </div>
-                </article>
-
-                <article class="wm-panel">
-                    <div class="wm-panel-header">
-                        <div class="wm-panel-heading">
                             <span class="wm-icon-chip rose">
                                 <x-filament::icon icon="heroicon-o-banknotes" />
                             </span>
                             <div>
                                 <h2 class="wm-panel-title">Deadlines</h2>
-                                <p class="wm-panel-subtitle">Temporary sample reminders for payments and couple communications.</p>
+                                <p class="wm-panel-subtitle">Next 10 operational dates from payments, checklist items and project events.</p>
                             </div>
                         </div>
                     </div>
 
                     <div class="wm-deadlines">
-                        @foreach($fakeDeadlines as $deadline)
-                            <div class="wm-deadline">
-                                <span class="wm-badge {{ $deadline['tone'] }}">{{ $deadline['kind'] }}</span>
-                                <p class="wm-item-title" style="margin-top: .75rem;">{{ $deadline['title'] }}</p>
-                                <p class="wm-item-meta">{{ $deadline['context'] }}</p>
-                                <p class="wm-item-copy">Due {{ $deadline['due'] }}</p>
-                            </div>
-                        @endforeach
+                        @forelse($upcomingDeadlines as $deadline)
+                            <a class="wm-deadline {{ $deadline['is_critical'] ? 'is-critical' : '' }} {{ $deadline['tone'] }}" href="{{ $deadline['url'] }}">
+                                <div>
+                                    <span class="wm-badge {{ $deadline['tone'] }}">{{ $deadline['kind'] }}</span>
+                                    <p class="wm-item-title" style="margin-top: .55rem;">{{ $deadline['title'] }}</p>
+                                    <p class="wm-item-meta">{{ $deadline['context'] }}</p>
+                                </div>
+                                <div class="wm-deadline-due">
+                                    <span class="wm-deadline-date">{{ $deadline['due'] }}</span>
+                                    <span class="wm-badge {{ $deadline['tone'] }}">{{ $deadline['urgency'] }}</span>
+                                </div>
+                            </a>
+                        @empty
+                            <div class="wm-empty">No upcoming operational deadlines found.</div>
+                        @endforelse
                     </div>
                 </article>
 

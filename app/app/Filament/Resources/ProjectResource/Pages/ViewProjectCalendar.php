@@ -70,7 +70,7 @@ class ViewProjectCalendar extends Page
     {
         $this->record = $this->resolveRecord($record);
 
-        $anchorDate = $this->getRecord()->event_start_date ?: now();
+        $anchorDate = now();
         $this->visibleMonth = $anchorDate->copy()->startOfMonth()->format('Y-m');
         $this->syncMonthPickerForm();
 
@@ -475,7 +475,7 @@ class ViewProjectCalendar extends Page
                 'start_date' => $payment->due_date->copy()->startOfDay(),
                 'end_date' => $payment->due_date->copy()->startOfDay(),
                 'time_sort' => '000000',
-                'color' => 'sky',
+                'color' => 'rose',
                 'completed' => $payment->payment_status === Payment::STATUS_PAID,
                 'payment_status' => $payment->payment_status,
                 'is_all_day' => true,
@@ -495,7 +495,7 @@ class ViewProjectCalendar extends Page
                 'start_date' => $event->starts_at->copy()->startOfDay(),
                 'end_date' => ($event->ends_at ?: $event->starts_at)->copy()->startOfDay(),
                 'time_sort' => $event->is_all_day ? '000000' : $event->starts_at->format('His'),
-                'color' => 'rose',
+                'color' => 'sky',
                 'completed' => false,
                 'payment_status' => null,
                 'is_all_day' => (bool) $event->is_all_day,

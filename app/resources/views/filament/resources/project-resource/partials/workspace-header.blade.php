@@ -4,7 +4,7 @@
         : null;
 
     $dateLabel = $record->event_date?->format('F j, Y') ?? 'Date to be defined';
-    $locationLabel = collect([$record->locality, $record->region])->filter()->implode(', ') ?: 'Venue to be defined';
+    $locationLabel = $record->displayLocationLabel();
     $partnerLabel = collect([$record->partner_one_name, $record->partner_two_name])->filter()->implode(' & ') ?: 'Partners not set';
     $overviewUrl = \App\Filament\Resources\ProjectResource::getUrl('view', ['record' => $record]);
     $checklistUrl = \App\Filament\Resources\ProjectResource::getUrl('checklist', ['record' => $record]);

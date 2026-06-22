@@ -6,8 +6,12 @@ use App\Filament\Resources\LeadResource;
 use App\Filament\Resources\ProjectResource;
 use App\Models\Lead;
 use App\Models\LeadFollowUp;
+use App\Models\Payment;
 use App\Models\Project;
+use App\Models\ProjectChecklistOption;
+use App\Models\ProjectEvent;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class Dashboard extends \Filament\Pages\Dashboard
@@ -35,7 +39,7 @@ class Dashboard extends \Filament\Pages\Dashboard
             'projectsInPreparation' => $this->getProjectsInPreparation(),
             'upcomingConfirmedEvents' => $this->getUpcomingConfirmedEvents(),
             'upcomingFollowUps' => $this->getUpcomingFollowUps(),
-            'fakeDeadlines' => $this->getFakeDeadlines(),
+            'upcomingDeadlines' => $this->getUpcomingDeadlines(),
         ];
     }
 
@@ -208,39 +212,119 @@ class Dashboard extends \Filament\Pages\Dashboard
             });
     }
 
-    protected function getFakeDeadlines(): array
+    protected function getUpcomingDeadlines(): Collection
     {
-        $base = now()->startOfDay();
+        $today = now()->startOfDay();
+        $activeProjectStatuses = ['proposal', 'confirmed'];
+
+        $payments = Payment::query()
+            ->with(['project', 'supplier', 'categoryBudgetSupplier.categoryBudget'])
+            ->whereNotNull('due_date')
+            ->where('payment_status', '!=', Payment::STATUS_PAID)
+            ->whereHas('project', fn ($query) => $query->whereIn('status', $activeProjectStatuses))
+            ->get()
+            ->map(function (Payment $payment) use ($today): array {
+                $date = $payment->due_date->copy()->startOfDay();
+                $proposal = $payment->categoryBudgetSupplier;
+                $url = ($payment->project && $proposal?->categoryBudget)
+                    ? ProjectResource::getUrl('budget-manage', [
+                        'record' => $payment->project,
+                        'categoryBudget' => $proposal->categoryBudget,
+                    ])
+                    : ($payment->project ? ProjectResource::getUrl('suppliers', ['record' => $payment->project]) : ProjectResource::getUrl());
+
+                return $this->deadlinePayload(
+                    title: $payment->reason ?: 'Supplier payment',
+                    context: collect([$payment->project?->name, $payment->supplier?->name])->filter()->implode(' · '),
+                    date: $date,
+                    kind: 'Payment',
+                    url: $url,
+                    today: $today,
+                );
+            });
+
+        $checklists = ProjectChecklistOption::query()
+            ->with(['project', 'supplier'])
+            ->where('enabled', true)
+            ->where(function ($query): void {
+                $query
+                    ->where('completed', false)
+                    ->orWhereNull('completed');
+            })
+            ->whereNull('completed_at')
+            ->whereNotNull('due_date')
+            ->whereHas('project', fn ($query) => $query->whereIn('status', $activeProjectStatuses))
+            ->get()
+            ->map(fn (ProjectChecklistOption $item): array => $this->deadlinePayload(
+                title: $item->title ?: 'Checklist item',
+                context: collect([$item->project?->name, $item->supplier?->name])->filter()->implode(' · '),
+                date: $item->due_date->copy()->startOfDay(),
+                kind: 'Checklist',
+                url: $item->project ? ProjectResource::getUrl('checklist', ['record' => $item->project]) : ProjectResource::getUrl(),
+                today: $today,
+            ));
+
+        $events = ProjectEvent::query()
+            ->with('project')
+            ->where('starts_at', '>=', $today)
+            ->whereHas('project', fn ($query) => $query->whereIn('status', $activeProjectStatuses))
+            ->get()
+            ->map(fn (ProjectEvent $event): array => $this->deadlinePayload(
+                title: $event->title ?: 'Project event',
+                context: $event->project?->name ?? 'Project',
+                date: $event->starts_at,
+                kind: 'Event',
+                url: $event->project ? ProjectResource::getUrl('calendar', ['record' => $event->project]) : ProjectResource::getUrl(),
+                today: $today,
+                includeTime: ! $event->is_all_day,
+            ));
+
+        return $payments
+            ->concat($checklists)
+            ->concat($events)
+            ->sortBy(fn (array $deadline): string => sprintf('%s-%s-%s', $deadline['date_sort'], $deadline['kind'], mb_strtolower($deadline['title'])))
+            ->take(10)
+            ->values();
+    }
+
+    protected function deadlinePayload(
+        string $title,
+        string $context,
+        Carbon $date,
+        string $kind,
+        string $url,
+        Carbon $today,
+        bool $includeTime = false,
+    ): array {
+        $dateDay = $date->copy()->startOfDay();
+        $days = $today->diffInDays($dateDay, false);
+        $isOverdue = $days < 0;
+
+        $tone = match (true) {
+            $isOverdue || $days === 0 => 'rose',
+            $days <= 7 => 'gold',
+            $days <= 30 => 'blue',
+            default => 'olive',
+        };
+
+        $urgency = match (true) {
+            $isOverdue => abs($days) . ' days overdue',
+            $days === 0 => 'Due today',
+            $days === 1 => 'Due tomorrow',
+            $days <= 30 => $days . ' days left',
+            default => $date->format($includeTime ? 'd M Y, H:i' : 'd M Y'),
+        };
 
         return [
-            [
-                'title' => 'Venue second deposit',
-                'context' => 'Alessia & Tommaso',
-                'due' => $base->copy()->addDays(2)->format('d M Y'),
-                'kind' => 'Payment',
-                'tone' => 'gold',
-            ],
-            [
-                'title' => 'Reminder to share final moodboard',
-                'context' => 'Emily & James',
-                'due' => $base->copy()->addDays(4)->format('d M Y'),
-                'kind' => 'Reminder',
-                'tone' => 'olive',
-            ],
-            [
-                'title' => 'Photographer balance due',
-                'context' => 'Martina & Luca',
-                'due' => $base->copy()->addDays(6)->format('d M Y'),
-                'kind' => 'Payment',
-                'tone' => 'rose',
-            ],
-            [
-                'title' => 'Schedule tasting confirmation',
-                'context' => 'Sophie & Daniel',
-                'due' => $base->copy()->addDays(7)->format('d M Y'),
-                'kind' => 'Planning',
-                'tone' => 'blue',
-            ],
+            'title' => $title,
+            'context' => $context ?: 'Project',
+            'due' => $date->format($includeTime ? 'd M Y, H:i' : 'd M Y'),
+            'urgency' => $urgency,
+            'kind' => $kind,
+            'tone' => $tone,
+            'url' => $url,
+            'date_sort' => $date->format('YmdHis'),
+            'is_critical' => $days <= 7,
         ];
     }
 }

@@ -139,6 +139,17 @@ class SupplierResourceSupport
                 ->columns(3)
                 ->schema($mainInformationFields),
 
+            Section::make('Social')
+                ->columns(2)
+                ->schema([
+                    Components\TextInput::make('instagram_profile')
+                        ->label('Instagram profile')
+                        ->maxLength(255),
+                    Components\TextInput::make('instagram_hashtag')
+                        ->label('Instagram hashtag')
+                        ->maxLength(255),
+                ]),
+
             Section::make('Address')
                 ->columns(3)
                 ->schema([

@@ -11,6 +11,7 @@ class Template extends Model
 
     protected $fillable = [
         'title',
+        'subject',
         'slug',
         'language',
         'type',

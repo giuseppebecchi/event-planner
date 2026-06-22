@@ -46,6 +46,7 @@ class TemplateResource extends Resource
                 ->columns(4)
                 ->schema([
                     Components\TextInput::make('title')
+                        ->label('Title')
                         ->required()
                         ->maxLength(255)
                         ->live(onBlur: true)
@@ -74,6 +75,11 @@ class TemplateResource extends Resource
                         ])
                         ->native(false)
                         ->live(),
+                    Components\TextInput::make('subject')
+                        ->label('Title / subject')
+                        ->maxLength(255)
+                        ->helperText('Use this as the content title or email subject when the template is used for mail.')
+                        ->columnSpanFull(),
                     Components\RichEditor::make('content')
                         ->label('HTML content')
                         ->columnSpanFull()
@@ -110,6 +116,10 @@ class TemplateResource extends Resource
                 TextColumn::make('title')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('subject')
+                    ->label('Title / subject')
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('slug')
                     ->searchable()
                     ->copyable(),

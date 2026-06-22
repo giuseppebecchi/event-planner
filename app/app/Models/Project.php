@@ -419,6 +419,38 @@ class Project extends Model
         return $this->hasMany(CategoryBudgetSupplier::class);
     }
 
+    public function confirmedVenueProposal(): ?CategoryBudgetSupplier
+    {
+        return $this->categoryBudgetSuppliers()
+            ->with(['category', 'supplier'])
+            ->where('proposal_status', CategoryBudgetSupplier::STATUS_CONFIRMED)
+            ->where(function ($query): void {
+                $query
+                    ->where('category_id', Supplier::LOCATION_CATEGORY_ID)
+                    ->orWhereHas('category', function ($categoryQuery): void {
+                        $categoryQuery
+                            ->where('label_it', 'Location')
+                            ->orWhere('label', 'Venue');
+                    });
+            })
+            ->latest('confirmed_at')
+            ->latest('updated_at')
+            ->first();
+    }
+
+    public function displayLocationLabel(): string
+    {
+        $venueName = $this->confirmedVenueProposal()?->supplier?->name;
+
+        if (filled($venueName)) {
+            return $venueName;
+        }
+
+        return collect([$this->locality, $this->region])
+            ->filter()
+            ->implode(', ') ?: 'Venue to be defined';
+    }
+
     public function projectChecklistOptions(): HasMany
     {
         return $this->hasMany(ProjectChecklistOption::class);
