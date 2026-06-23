@@ -588,6 +588,7 @@ class ManageProjectConfirmedSupplier extends Page
             'title' => ['nullable', 'string'],
             'details' => ['nullable', 'string'],
             'to_be_filled' => ['nullable', 'boolean'],
+            'insert_into_recap' => ['nullable', 'boolean'],
             'supplier_id' => ['nullable', 'integer', Rule::in(array_keys($this->getSupplierOptions()))],
         ])->validate();
 
@@ -595,6 +596,7 @@ class ManageProjectConfirmedSupplier extends Page
             'title' => trim((string) ($data['title'] ?? '')),
             'details' => filled($data['details'] ?? null) ? trim((string) $data['details']) : null,
             'to_be_filled' => (bool) ($data['to_be_filled'] ?? false),
+            'insert_into_recap' => (bool) ($data['insert_into_recap'] ?? false),
             'supplier_id' => filled($data['supplier_id'] ?? null) ? (int) $data['supplier_id'] : null,
         ])->save();
 
@@ -603,7 +605,7 @@ class ManageProjectConfirmedSupplier extends Page
 
     public function updatedChecklistForms(mixed $value, string $name): void
     {
-        if (! preg_match('/^(\d+)\.(title|details|to_be_filled|supplier_id|response|anticipation_value|anticipation_unit|exact_due_date)$/', $name, $matches)) {
+        if (! preg_match('/^(\d+)\.(title|details|to_be_filled|insert_into_recap|supplier_id|response|anticipation_value|anticipation_unit|exact_due_date)$/', $name, $matches)) {
             return;
         }
 
@@ -617,7 +619,7 @@ class ManageProjectConfirmedSupplier extends Page
             return;
         }
 
-        if (in_array($matches[2], ['title', 'details', 'to_be_filled', 'supplier_id'], true)) {
+        if (in_array($matches[2], ['title', 'details', 'to_be_filled', 'insert_into_recap', 'supplier_id'], true)) {
             $this->saveChecklistItem((int) $matches[1]);
 
             return;
@@ -698,6 +700,7 @@ class ManageProjectConfirmedSupplier extends Page
             'response' => null,
             'default' => false,
             'to_be_filled' => false,
+            'insert_into_recap' => false,
             'anticipation' => null,
             'assigned_to' => $assignedTo,
             'due_date' => null,
@@ -1342,6 +1345,7 @@ class ManageProjectConfirmedSupplier extends Page
             'supplier_id' => $item->supplier_id ?? '',
             'completed' => (bool) $item->completed,
             'to_be_filled' => (bool) $item->to_be_filled,
+            'insert_into_recap' => (bool) $item->insert_into_recap,
             'due_date_mode' => $item->anticipation ? 'relative' : 'exact',
             'anticipation_value' => $anticipationValue,
             'anticipation_unit' => $anticipationUnit ?? 'weeks',

@@ -62,6 +62,10 @@
         .detail-title { color: #1f1914; font-size: 22px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
         .detail-meta { margin-top: 10px; color: #6f665c; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
         .detail-html { margin-top: 26px; color: #302923; font-size: 12px; line-height: 1.78; }
+        .recap-card { margin-top: 16px; padding-bottom: 16px; border-bottom: 1px solid #e8ded1; page-break-inside: avoid; }
+        .recap-title { color: #1f1914; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+        .recap-meta { margin-top: 4px; color: #8c8176; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; }
+        .recap-html { margin-top: 9px; color: #302923; font-size: 11px; line-height: 1.65; }
         .suppliers { width: 100%; border-collapse: collapse; margin-top: 10px; }
         .suppliers th { padding: 10px 8px; background: #f1e5d9; color: #342d26; font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; text-align: left; }
         .suppliers td { padding: 11px 8px; border-bottom: 1px solid #e8ded1; vertical-align: top; color: #4b433b; }
@@ -265,6 +269,37 @@
             </div>
         </section>
     @endforelse
+
+    @if (($recapChecklistItems ?? collect())->isNotEmpty())
+        <section class="page">
+            <div class="page-shell">
+                <aside class="left-rail {{ $leftRailImage ? 'has-image' : '' }}" @if ($leftRailImage) style="background-image: url('{{ $leftRailImage }}')" @endif>
+                    <div class="left-rail-overlay"></div>
+                    <div class="left-rail-copy">Checklist recap</div>
+                </aside>
+
+                <div class="page-main">
+                    <div class="corner-flower-bottom"></div>
+                    <div class="section-band">Checklist recap</div>
+                    <p class="section-copy">Texts selected from project checklist compilations.</p>
+
+                    @foreach ($recapChecklistItems as $item)
+                        <div class="recap-card">
+                            <h3 class="recap-title">{!! $item['title'] !!}</h3>
+                            <p class="recap-meta">
+                                {{ collect([$item['supplier_name'], $item['due_date']])->filter()->implode(' | ') ?: 'Project checklist' }}
+                            </p>
+                            @if ($item['response'])
+                                <div class="recap-html">{!! $item['response'] !!}</div>
+                            @elseif ($item['details'])
+                                <div class="recap-html">{!! $item['details'] !!}</div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
 
     <section class="page">
         <div class="page-shell">

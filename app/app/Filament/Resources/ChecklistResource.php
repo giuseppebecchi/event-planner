@@ -66,9 +66,8 @@ class ChecklistResource extends Resource
                                 ->minValue(1)
                                 ->columnSpan(1)
                                 ->extraInputAttributes(['style' => 'max-width: 5.5rem;']),
-                            Components\Textarea::make('title')
+                            Components\RichEditor::make('title')
                                 ->required()
-                                ->rows(3)
                                 ->columnSpan(3)
                                 ->maxLength(1000),
                             Components\Toggle::make('default')
@@ -80,9 +79,14 @@ class ChecklistResource extends Resource
                                 ->default(false)
                                 ->columnSpan(1)
                                 ->helperText('Requires a written response instead of only a checkbox.'),
+                            Components\Toggle::make('insert_into_recap')
+                                ->label('Insert into recap')
+                                ->default(false)
+                                ->columnSpan(1)
+                                ->helperText('Show the compiled text in the project recap.'),
                             Components\TextInput::make('anticipation')
                                 ->placeholder('e.g. 3 days, 4 weeks, 9 months')
-                                ->columnSpan(2)
+                                ->columnSpan(1)
                                 ->visible(fn (callable $get): bool => (bool) $get('default'))
                                 ->helperText('Only used for default checklist items.'),
                             Components\Select::make('assigned_to')

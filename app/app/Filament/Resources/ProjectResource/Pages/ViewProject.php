@@ -53,7 +53,11 @@ class ViewProject extends ViewRecord
     public function getBudgetSummary(): array
     {
         $project = $this->getRecord()->loadMissing('categoryBudgets.category', 'categoryBudgets.supplierProposals');
-        $budgets = $project->categoryBudgets;
+        $budgets = (bool) $project->venue_included_in_budget
+            ? $project->categoryBudgets
+            : $project->categoryBudgets
+                ->reject(fn (CategoryBudget $budget): bool => $this->isVenueBudget($budget))
+                ->values();
         $confirmed = $budgets->where('budget_status', 'confirmed');
         $inEvaluation = $budgets->where('budget_status', 'in_evaluation');
 
@@ -74,6 +78,14 @@ class ViewProject extends ViewRecord
             'confirmed_hypothetical_total' => $confirmedHypotheticalTotal,
             'completion' => $budgets->count() > 0 ? (int) round(($confirmed->count() / $budgets->count()) * 100) : 0,
         ];
+    }
+
+    protected function isVenueBudget(CategoryBudget $budget): bool
+    {
+        $category = $budget->category;
+
+        return strcasecmp((string) ($category?->label ?? ''), 'Venue') === 0
+            || strcasecmp((string) ($category?->label_it ?? ''), 'Location') === 0;
     }
 
     public function getSupplierSummary(): array

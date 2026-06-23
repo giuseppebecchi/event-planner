@@ -80,6 +80,9 @@ class LeadResource extends Resource
                         ->prefix('EUR')
                         ->step(0.01)
                         ->minValue(0),
+                    Components\Toggle::make('venue_included_in_budget')
+                        ->label('Venue included in budget')
+                        ->helperText('When converted into a project, enabled means the recap totals include Venue; disabled means Venue is tracked separately from estimated, confirmed, and working totals.'),
                     Components\Select::make('status')
                         ->label('Lead status')
                         ->options(Lead::STATUS_OPTIONS)
@@ -319,6 +322,10 @@ class LeadResource extends Resource
                     TextEntry::make('budget_amount')
                         ->label('Budget')
                         ->money('EUR'),
+                    TextEntry::make('venue_included_in_budget')
+                        ->label('Venue included in budget')
+                        ->formatStateUsing(fn (bool $state): string => $state ? 'Yes' : 'No')
+                        ->badge(),
                     TextEntry::make('status')
                         ->formatStateUsing(fn (?string $state): ?string => $state ? (Lead::STATUS_OPTIONS[$state] ?? $state) : null)
                         ->badge(),

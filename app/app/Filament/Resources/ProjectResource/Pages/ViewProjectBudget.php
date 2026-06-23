@@ -61,6 +61,73 @@ class ViewProjectBudget extends Page
         return [];
     }
 
+    public function editBudgetCategoryAction(): Action
+    {
+        return Action::make('editBudgetCategory')
+            ->label('Edit budget')
+            ->modalHeading('Edit category budget')
+            ->modalSubmitActionLabel('Save budget')
+            ->visible(fn (): bool => ! auth()->user()?->isCustomer())
+            ->fillForm(function (array $arguments): array {
+                $budget = $this->findBudget((int) ($arguments['budget'] ?? 0));
+
+                return [
+                    'initial_estimated_amount' => $budget->initial_estimated_amount,
+                    'comparison_amount' => $budget->comparison_amount,
+                    'final_amount' => $budget->final_amount,
+                    'budget_status' => $budget->budget_status,
+                    'notes' => $budget->notes,
+                ];
+            })
+            ->form([
+                TextInput::make('initial_estimated_amount')
+                    ->label('Estimated budget')
+                    ->prefix('EUR')
+                    ->numeric()
+                    ->minValue(0)
+                    ->step('0.01'),
+                TextInput::make('comparison_amount')
+                    ->label('Working budget')
+                    ->prefix('EUR')
+                    ->numeric()
+                    ->minValue(0)
+                    ->step('0.01'),
+                TextInput::make('final_amount')
+                    ->label('Final budget')
+                    ->prefix('EUR')
+                    ->numeric()
+                    ->minValue(0)
+                    ->step('0.01'),
+                Select::make('budget_status')
+                    ->label('Status')
+                    ->options(CategoryBudget::STATUS_OPTIONS)
+                    ->required(),
+                Textarea::make('notes')
+                    ->rows(3),
+            ])
+            ->action(function (array $data, array $arguments): void {
+                if (auth()->user()?->isCustomer()) {
+                    return;
+                }
+
+                $budget = $this->findBudget((int) ($arguments['budget'] ?? 0));
+                $budget->update([
+                    'initial_estimated_amount' => filled($data['initial_estimated_amount'] ?? null) ? (float) $data['initial_estimated_amount'] : null,
+                    'comparison_amount' => filled($data['comparison_amount'] ?? null) ? (float) $data['comparison_amount'] : null,
+                    'final_amount' => filled($data['final_amount'] ?? null) ? (float) $data['final_amount'] : null,
+                    'budget_status' => $data['budget_status'] ?? CategoryBudget::STATUS_HYPOTHETICAL,
+                    'notes' => filled($data['notes'] ?? null) ? trim((string) $data['notes']) : null,
+                ]);
+
+                $this->record = $this->getRecord()->fresh();
+
+                Notification::make()
+                    ->title('Budget updated')
+                    ->success()
+                    ->send();
+            });
+    }
+
     public function addServiceCategoryAction(): Action
     {
         return Action::make('addServiceCategory')
@@ -150,12 +217,25 @@ class ViewProjectBudget extends Page
             ->when($usedCategoryIds !== [], fn ($query) => $query->whereNotIn('id', $usedCategoryIds));
     }
 
+    protected function findBudget(int $budgetId): CategoryBudget
+    {
+        return $this->getRecord()
+            ->categoryBudgets()
+            ->whereKey($budgetId)
+            ->firstOrFail();
+    }
+
     public function getBudgetSummary(): array
     {
-        $project = $this->getRecord()->loadMissing('categoryBudgets');
-        $budgets = auth()->user()?->isCustomer()
+        $project = $this->getRecord()->loadMissing('categoryBudgets.category');
+        $allBudgets = auth()->user()?->isCustomer()
             ? $this->getBudgetRows()
             : $project->categoryBudgets;
+        $venueBudgets = $allBudgets->filter(fn (CategoryBudget $budget): bool => $this->isVenueBudget($budget));
+        $venueExcluded = ! (bool) $project->venue_included_in_budget;
+        $budgets = $venueExcluded
+            ? $allBudgets->reject(fn (CategoryBudget $budget): bool => $this->isVenueBudget($budget))->values()
+            : $allBudgets;
         $confirmed = $budgets->where('budget_status', CategoryBudget::STATUS_CONFIRMED);
         $inEvaluation = $budgets->where('budget_status', CategoryBudget::STATUS_IN_EVALUATION);
 
@@ -163,19 +243,42 @@ class ViewProjectBudget extends Page
         $comparisonTotal = (float) $budgets->sum(fn (CategoryBudget $budget) => (float) ($budget->comparison_amount ?? $budget->initial_estimated_amount ?? 0));
         $finalTotal = (float) $confirmed->sum(fn (CategoryBudget $budget) => (float) ($budget->final_amount ?? 0));
         $confirmedHypotheticalTotal = (float) $confirmed->sum(fn (CategoryBudget $budget) => (float) ($budget->initial_estimated_amount ?? 0));
+        $venueEstimatedTotal = (float) $venueBudgets->sum(fn (CategoryBudget $budget) => (float) ($budget->initial_estimated_amount ?? 0));
+        $venueComparisonTotal = (float) $venueBudgets->sum(fn (CategoryBudget $budget) => (float) ($budget->comparison_amount ?? $budget->initial_estimated_amount ?? 0));
+        $venueFinalTotal = (float) $venueBudgets
+            ->where('budget_status', CategoryBudget::STATUS_CONFIRMED)
+            ->sum(fn (CategoryBudget $budget) => (float) ($budget->final_amount ?? 0));
+        $venueSeparatedAmount = $venueFinalTotal ?: $venueComparisonTotal ?: $venueEstimatedTotal;
+        $rawCoupleBudget = $project->budget_amount !== null ? (float) $project->budget_amount : null;
 
         return [
             'categories_count' => $budgets->count(),
+            'all_categories_count' => $allBudgets->count(),
             'confirmed_count' => $confirmed->count(),
             'in_evaluation_count' => $inEvaluation->count(),
-            'couple_budget' => $project->budget_amount !== null ? (float) $project->budget_amount : null,
+            'couple_budget' => $rawCoupleBudget,
+            'raw_couple_budget' => $rawCoupleBudget,
             'estimated_total' => $estimatedTotal,
             'comparison_total' => $comparisonTotal,
             'final_total' => $finalTotal,
             'confirmed_hypothetical_total' => $confirmedHypotheticalTotal,
             'difference_total' => $comparisonTotal - $estimatedTotal,
             'completion' => $budgets->count() > 0 ? (int) round(($confirmed->count() / $budgets->count()) * 100) : 0,
+            'venue_excluded' => $venueExcluded,
+            'venue_budget_count' => $venueBudgets->count(),
+            'venue_estimated_total' => $venueEstimatedTotal,
+            'venue_comparison_total' => $venueComparisonTotal,
+            'venue_final_total' => $venueFinalTotal,
+            'venue_separated_amount' => $venueSeparatedAmount,
         ];
+    }
+
+    protected function isVenueBudget(CategoryBudget $budget): bool
+    {
+        $category = $budget->category;
+
+        return strcasecmp((string) ($category?->label ?? ''), 'Venue') === 0
+            || strcasecmp((string) ($category?->label_it ?? ''), 'Location') === 0;
     }
 
     public function getBudgetRows(): Collection

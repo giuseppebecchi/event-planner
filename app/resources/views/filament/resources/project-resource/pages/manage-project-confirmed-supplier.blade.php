@@ -1740,8 +1740,9 @@
                                         $timeLabel = $item->due_date
                                             ? $item->due_date->format('M j, Y')
                                             : ($item->anticipation ?: 'No timeframe');
-                                        $titleLabel = trim((string) ($checklistForms[$item->id]['title'] ?? $item->title ?? ''));
-                                        $responseLabel = trim((string) ($checklistForms[$item->id]['response'] ?? $item->response ?? ''));
+                                        $titleLabel = trim(strip_tags((string) ($checklistForms[$item->id]['title'] ?? $item->title ?? '')));
+                                        $detailsLabel = trim(strip_tags((string) ($checklistForms[$item->id]['details'] ?? $item->details ?? '')));
+                                        $responseLabel = trim(strip_tags((string) ($checklistForms[$item->id]['response'] ?? $item->response ?? '')));
                                     @endphp
 
                                     <div class="wm-checklist-row {{ $item->completed ? 'is-completed' : '' }} {{ $isExpanded ? 'is-expanded' : '' }}" wire:key="supplier-checklist-item-{{ $item->id }}">
@@ -1764,8 +1765,8 @@
                                                 <button type="button" class="wm-checklist-summary-row" wire:click="expandChecklistItem({{ $item->id }})">
                                                     <span class="wm-checklist-summary-copy">
                                                         <span class="wm-checklist-summary-title">{{ $titleLabel !== '' ? $titleLabel : '(Unnamed Task)' }}</span>
-                                                        @if (filled($checklistForms[$item->id]['details'] ?? $item->details))
-                                                            <span class="wm-checklist-summary-details">{{ trim((string) ($checklistForms[$item->id]['details'] ?? $item->details)) }}</span>
+                                                        @if ($detailsLabel !== '')
+                                                            <span class="wm-checklist-summary-details">{{ $detailsLabel }}</span>
                                                         @endif
                                                         @if ($item->to_be_filled)
                                                             <span class="wm-checklist-summary-details">
@@ -1789,8 +1790,8 @@
                                                     @endif
 
                                                     @if ($isCustomer)
-                                                        @if (filled($checklistForms[$item->id]['details'] ?? $item->details))
-                                                            <div class="wm-checklist-summary-details">{{ trim((string) ($checklistForms[$item->id]['details'] ?? $item->details)) }}</div>
+                                                        @if ($detailsLabel !== '')
+                                                            <div class="wm-checklist-summary-details">{{ $detailsLabel }}</div>
                                                         @endif
                                                     @else
                                                         <textarea
@@ -1805,6 +1806,10 @@
                                                         <label class="wm-checklist-fill-toggle">
                                                             <input type="checkbox" wire:model.live="checklistForms.{{ $item->id }}.to_be_filled">
                                                             <span>Requires response</span>
+                                                        </label>
+                                                        <label class="wm-checklist-fill-toggle">
+                                                            <input type="checkbox" wire:model.live="checklistForms.{{ $item->id }}.insert_into_recap">
+                                                            <span>Insert into recap</span>
                                                         </label>
 
                                                         <label class="wm-checklist-supplier-field">

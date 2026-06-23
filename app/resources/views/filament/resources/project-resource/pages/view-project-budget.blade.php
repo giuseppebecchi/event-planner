@@ -331,6 +331,30 @@
             font-weight: 700;
         }
 
+        .wm-budget-venue-note {
+            margin-top: 1rem;
+            padding: 0.85rem 0.95rem;
+            border-radius: 0.95rem;
+            border: 1px solid rgba(201, 169, 106, 0.34);
+            background: rgba(201, 169, 106, 0.09);
+            color: #5f5953;
+        }
+
+        .wm-budget-venue-note strong {
+            display: block;
+            color: #8b6423;
+            font-size: 0.74rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .wm-budget-venue-note span {
+            display: block;
+            margin-top: 0.28rem;
+            font-size: 0.84rem;
+            line-height: 1.5;
+        }
+
         .wm-budget-layout {
             display: block;
         }
@@ -570,7 +594,7 @@
                 <p class="wm-budget-kicker">Budget recap</p>
                 <h3 class="wm-budget-total">EUR {{ number_format($budgetSummary['estimated_total'], 2, ',', '.') }}</h3>
                 <p class="wm-budget-hero-text">
-                    Track each service category from the initial estimate to the working comparison and the final accepted quote.
+                    Track each service category from the initial estimate to the working comparison and the final accepted quote{{ $budgetSummary['venue_excluded'] ? ', excluding the venue cost from recap totals' : '' }}.
                     Categories with an accepted proposal are highlighted in green.
                 </p>
 
@@ -616,6 +640,19 @@
                         <p class="wm-budget-mini-value">EUR {{ number_format($budgetSummary['comparison_total'], 2, ',', '.') }}</p>
                     </div>
                 </div>
+
+                @if ($budgetSummary['venue_excluded'])
+                    <div class="wm-budget-venue-note">
+                        <strong>Venue separated</strong>
+                        <span>
+                            Venue cost is shown in the table but excluded from these budget totals.
+                            Couple budget remains the full budget amount:
+                            {{ $budgetSummary['couple_budget'] !== null ? 'EUR ' . number_format($budgetSummary['couple_budget'], 2, ',', '.') : 'not defined' }}.
+                            Current venue amount:
+                            EUR {{ number_format($budgetSummary['venue_separated_amount'], 2, ',', '.') }}.
+                        </span>
+                    </div>
+                @endif
             </aside>
         </section>
 
@@ -624,7 +661,7 @@
                 <div class="wm-budget-table-header">
                     <div class="wm-budget-table-heading">
                         <h3 class="wm-budget-table-title">Service categories</h3>
-                        <span class="wm-budget-table-note">{{ $budgetSummary['categories_count'] }} categories</span>
+                        <span class="wm-budget-table-note">{{ $budgetSummary['all_categories_count'] }} categories</span>
                     </div>
 
                     @if (! $isCustomer && $this->hasAvailableServiceCategories())
@@ -709,6 +746,13 @@
                                         <td>
                                             <div class="wm-budget-actions">
                                                 @if (! $isCustomer)
+                                                    <button
+                                                        type="button"
+                                                        class="wm-budget-action"
+                                                        wire:click="mountAction('editBudgetCategory', { budget: {{ $budget->id }} })"
+                                                    >
+                                                        Edit budget
+                                                    </button>
                                                     <a
                                                         href="{{ \App\Filament\Resources\ProjectResource::getUrl('budget-scouting', ['record' => $record, 'categoryBudget' => $budget]) }}"
                                                         class="wm-budget-action"

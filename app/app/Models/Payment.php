@@ -25,6 +25,7 @@ class Payment extends Model
         'due_date',
         'payment_status',
         'paid_at',
+        'payment_reminder_sent_at',
         'invoice_reference',
         'payment_receipt_document_id',
         'notes',
@@ -34,6 +35,7 @@ class Payment extends Model
         'amount' => 'decimal:2',
         'due_date' => 'date',
         'paid_at' => 'date',
+        'payment_reminder_sent_at' => 'datetime',
     ];
 
     public function project(): BelongsTo

@@ -386,6 +386,9 @@
         }
 
         .wm-payments-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             min-height: 2.1rem;
             border: 1px solid #ddd2c5;
             border-radius: 999px;
@@ -396,6 +399,20 @@
             font-weight: 800;
             cursor: pointer;
             white-space: nowrap;
+            text-decoration: none;
+        }
+
+        .wm-payments-head-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 0.45rem;
+        }
+
+        .wm-payments-toggle.is-download {
+            background: #2e4a62;
+            border-color: #2e4a62;
+            color: #fff;
         }
 
         .wm-payments-kpis {
@@ -648,9 +665,14 @@
                         <p class="wm-supplier-label">Payment schedule</p>
                         <h3 class="wm-payments-title">Upcoming deadlines</h3>
                     </div>
-                    <button type="button" class="wm-payments-toggle" wire:click="$toggle('hidePaidPayments')">
-                        {{ $this->hidePaidPayments ? 'Show paid' : 'Hide paid' }}
-                    </button>
+                    <div class="wm-payments-head-actions">
+                        <a class="wm-payments-toggle is-download" href="{{ route('admin.projects.payments.pdf', ['project' => $record]) }}" target="_blank" rel="noopener">
+                            Payments PDF
+                        </a>
+                        <button type="button" class="wm-payments-toggle" wire:click="$toggle('hidePaidPayments')">
+                            {{ $this->hidePaidPayments ? 'Show paid' : 'Hide paid' }}
+                        </button>
+                    </div>
                 </div>
 
                 <div class="wm-payments-kpis">

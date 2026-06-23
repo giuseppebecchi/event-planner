@@ -7,6 +7,7 @@ use App\Filament\Resources\ProjectResource;
 use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDateEditor;
 use App\Models\CategoryBudgetSupplier;
 use App\Models\Project;
+use App\Models\ProjectChecklistOption;
 use App\Models\ProjectTimeline;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
@@ -184,6 +185,7 @@ class ViewProjectTimeline extends Page
             'partners' => $partners,
             'coverImage' => $coverImage,
             'leftRailImage' => $leftRailImage,
+            'recapChecklistItems' => $this->getRecapChecklistPdfItems(),
             'generatedAt' => now()->format('F j, Y'),
         ])->setPaper('a4', 'portrait');
 
@@ -207,6 +209,32 @@ class ViewProjectTimeline extends Page
             'suppliers' => $timelineItems->whereNotNull('supplier_id')->pluck('supplier_id')->unique()->count(),
             'notes' => $items->filter(fn (ProjectTimeline $item): bool => filled($item->notes) || $this->isDailyNoteItem($item))->count(),
         ];
+    }
+
+    public function getRecapChecklistItems(): Collection
+    {
+        return $this->getRecord()
+            ->projectChecklistOptions()
+            ->with(['supplier', 'checklist.category'])
+            ->where('enabled', true)
+            ->where('insert_into_recap', true)
+            ->orderBy('due_date')
+            ->orderBy('order')
+            ->get()
+            ->filter(fn (ProjectChecklistOption $item): bool => filled($item->response) || filled($item->details) || filled($item->title))
+            ->values();
+    }
+
+    protected function getRecapChecklistPdfItems(): Collection
+    {
+        return $this->getRecapChecklistItems()
+            ->map(fn (ProjectChecklistOption $item): array => [
+                'title' => $item->title ?: 'Checklist item',
+                'response' => $item->response,
+                'details' => $item->details,
+                'supplier_name' => $item->supplier?->name,
+                'due_date' => $item->due_date?->format('F j, Y'),
+            ]);
     }
 
     public function getTimelineDays(): Collection

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\LeadResource\Pages;
 use App\Models\Lead;
 use App\Models\LeadDocument;
 use App\Models\Project;
+use App\Models\ProjectDocument;
 use App\Models\Template;
 use App\Notifications\LeadContractNotification;
 use Filament\Actions\Action;
@@ -112,6 +113,7 @@ class ViewLeadContract extends BaseLeadPhasePage
 
                             $project = Project::query()->create($this->projectPayloadFromLead($lead));
                             $project->loadMissing('lead')->initBudget();
+                            $this->copySignedContractToProject($document, $project);
 
                             return true;
                         });
@@ -201,6 +203,7 @@ class ViewLeadContract extends BaseLeadPhasePage
             'region' => $lead->desired_region,
             'estimated_guest_count' => $lead->estimated_guest_count,
             'budget_amount' => $lead->budget_amount,
+            'venue_included_in_budget' => (bool) $lead->venue_included_in_budget,
             'status' => 'confirmed',
             'private_notes' => $lead->internal_notes,
         ];
@@ -217,6 +220,34 @@ class ViewLeadContract extends BaseLeadPhasePage
             $contactName ?: (trim((string) $lead->couple_name) ?: 'Client'),
             null,
         ];
+    }
+
+    protected function copySignedContractToProject(LeadDocument $document, Project $project): void
+    {
+        $sourcePath = $document->file_path;
+        $targetPath = $sourcePath;
+
+        if (Storage::disk('public')->exists($sourcePath)) {
+            $extension = pathinfo($sourcePath, PATHINFO_EXTENSION) ?: 'pdf';
+            $targetPath = sprintf(
+                'projects/documents/%s-signed-contract.%s',
+                str($project->name ?: 'project')->slug()->value() ?: 'project',
+                $extension
+            );
+
+            if ($targetPath !== $sourcePath) {
+                Storage::disk('public')->copy($sourcePath, $targetPath);
+            }
+        }
+
+        ProjectDocument::query()->create([
+            'project_id' => $project->id,
+            'title' => $document->title ?: 'Signed contract',
+            'document_type' => ProjectDocument::TYPE_SIGNED_CONTRACT,
+            'type' => ProjectDocument::TYPE_SIGNED_CONTRACT,
+            'file_path' => $targetPath,
+            'description' => 'Signed contract copied from lead contract phase',
+        ]);
     }
 
     protected function getAsideData(): array

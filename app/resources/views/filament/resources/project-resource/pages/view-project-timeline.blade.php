@@ -877,13 +877,6 @@
         ])
 
         <div class="wm-timeline-shell">
-            <div class="wm-timeline-toolbar">
-                <button type="button" class="wm-timeline-export" wire:click="exportTimelinePdf">
-                    <x-heroicon-o-document-arrow-down />
-                    <span>Esporta PDF</span>
-                </button>
-            </div>
-
             <article class="wm-event-card wm-timeline-stream">
                 @if ($days->isEmpty())
                     <div class="wm-timeline-empty-state">

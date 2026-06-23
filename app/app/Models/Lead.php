@@ -77,6 +77,7 @@ class Lead extends Model
         'location_request_type',
         'additional_events',
         'budget_amount',
+        'venue_included_in_budget',
         'style_description',
         'status',
         'evaluation_outcome',
@@ -105,6 +106,7 @@ class Lead extends Model
     protected $casts = [
         'requested_at' => 'date',
         'budget_amount' => 'decimal:2',
+        'venue_included_in_budget' => 'boolean',
         'form_sent_at' => 'datetime',
         'form_completed_at' => 'datetime',
         'form_payload' => 'array',

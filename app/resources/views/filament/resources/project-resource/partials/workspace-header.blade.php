@@ -10,12 +10,14 @@
     $checklistUrl = \App\Filament\Resources\ProjectResource::getUrl('checklist', ['record' => $record]);
     $calendarUrl = \App\Filament\Resources\ProjectResource::getUrl('calendar', ['record' => $record]);
     $timelineUrl = \App\Filament\Resources\ProjectResource::getUrl('timeline', ['record' => $record]);
+    $recapUrl = \App\Filament\Resources\ProjectResource::getUrl('recap', ['record' => $record]);
     $layoutsUrl = \App\Filament\Resources\ProjectResource::getUrl('layouts', ['record' => $record]);
     $websiteUrl = \App\Filament\Resources\ProjectResource::getUrl('website', ['record' => $record]);
     $moodboardUrl = \App\Filament\Resources\ProjectResource::getUrl('moodboard', ['record' => $record]);
     $guestsUrl = \App\Filament\Resources\ProjectResource::getUrl('guests', ['record' => $record]);
     $budgetUrl = \App\Filament\Resources\ProjectResource::getUrl('budget', ['record' => $record]);
     $suppliersUrl = \App\Filament\Resources\ProjectResource::getUrl('suppliers', ['record' => $record]);
+    $documentsUrl = \App\Filament\Resources\ProjectResource::getUrl('documents', ['record' => $record]);
     $infoUrl = \App\Filament\Resources\ProjectResource::getUrl('edit', ['record' => $record]);
     $isCustomer = auth()->user()?->isCustomer();
 @endphp
@@ -123,6 +125,7 @@
         @endif
         <a href="{{ $budgetUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'budget' ? 'is-active' : '' }}">Budget</a>
         <a href="{{ $suppliersUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'suppliers' ? 'is-active' : '' }}">Suppliers</a>
+        <a href="{{ $documentsUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'documents' ? 'is-active' : '' }}">Documents</a>
         <a href="{{ $checklistUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'checklist' ? 'is-active' : '' }}">Checklist</a>
         @if (! $isCustomer)
             <a href="{{ $calendarUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'calendar' ? 'is-active' : '' }}">Calendar</a>
@@ -132,5 +135,6 @@
         <a href="{{ $guestsUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'guests' ? 'is-active' : '' }}">Guests</a>
         <a href="{{ $layoutsUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'layouts' ? 'is-active' : '' }}">Layout &amp; Seating</a>
         <a href="{{ $websiteUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'website' ? 'is-active' : '' }}">Website</a>
+        <a href="{{ $recapUrl }}" class="wm-event-workspace-link {{ ($activeSection ?? null) === 'recap' ? 'is-active' : '' }}">Recap</a>
     </nav>
 </section>

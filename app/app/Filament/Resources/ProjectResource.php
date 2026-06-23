@@ -162,8 +162,10 @@ class ProjectResource extends Resource
                         ->schema([
                             Components\DatePicker::make('event_date')
                                 ->label('Event date')
-                                ->native(false)
-                                ->required(),
+                                ->native(false),
+                            Components\TextInput::make('wedding_period')
+                                ->label('Wedding period or month')
+                                ->maxLength(255),
                             Components\Checkbox::make('event_spans_multiple_days')
                                 ->label('Event spans multiple days')
                                 ->live(),
@@ -200,6 +202,9 @@ class ProjectResource extends Resource
                         ->prefix('EUR')
                         ->step('0.01')
                         ->minValue(0),
+                    Components\Toggle::make('venue_included_in_budget')
+                        ->label('Venue included in budget')
+                        ->helperText('When enabled, the recap totals include Venue. When disabled, Venue stays visible in the table but is excluded from estimated, confirmed, and working totals.'),
                     Components\FileUpload::make('cover_image_path')
                         ->label('RSVP cover image')
                         ->disk('public')
@@ -219,6 +224,9 @@ class ProjectResource extends Resource
     {
         return $table
             ->columns([
+                TextColumn::make('id')
+                    ->label('ID')
+                    ->sortable(),
                 TextColumn::make('name')
                     ->label('Event')
                     ->searchable()
@@ -299,6 +307,7 @@ class ProjectResource extends Resource
             'checklist' => Pages\ViewProjectChecklist::route('/{record}/checklist'),
             'calendar' => Pages\ViewProjectCalendar::route('/{record}/calendar'),
             'timeline' => Pages\ViewProjectTimeline::route('/{record}/timeline'),
+            'recap' => Pages\ViewProjectRecap::route('/{record}/recap'),
             'layouts' => Pages\ViewProjectLayouts::route('/{record}/layouts'),
             'website' => Pages\ManageProjectWebsite::route('/{record}/website'),
             'layout-edit' => Pages\EditProjectLayout::route('/{record}/layouts/{seatingPlan}'),
@@ -310,6 +319,7 @@ class ProjectResource extends Resource
             'budget' => Pages\ViewProjectBudget::route('/{record}/budget'),
             'budget-scouting' => Pages\ManageProjectBudgetCategory::route('/{record}/budget/{categoryBudget}'),
             'suppliers' => Pages\ViewProjectSuppliers::route('/{record}/suppliers'),
+            'documents' => Pages\ViewProjectDocuments::route('/{record}/documents'),
             'supplier-manage' => Pages\ManageProjectSupplier::route('/{record}/suppliers/{proposal}/manage'),
             'budget-manage' => Pages\ManageProjectConfirmedSupplier::route('/{record}/budget/{categoryBudget}/manage'),
             'edit' => Pages\EditProject::route('/{record}/edit'),

@@ -7,6 +7,8 @@ use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDa
 use App\Models\Checklist;
 use App\Models\Project;
 use App\Models\ProjectChecklistOption;
+use Filament\Actions\Action;
+use Filament\Forms\Components\RichEditor;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
@@ -70,6 +72,62 @@ class ViewProjectChecklist extends Page
     protected function getHeaderActions(): array
     {
         return [];
+    }
+
+    public function editChecklistResponseAction(): Action
+    {
+        return Action::make('editChecklistResponse')
+            ->label('Edit response')
+            ->modalHeading('Checklist response')
+            ->modalDescription('Write the compiled response for this task. This content can include formatting.')
+            ->modalWidth(Width::FiveExtraLarge)
+            ->modalSubmitActionLabel('Save response')
+            ->modalCancelActionLabel('Cancel')
+            ->fillForm(function (array $arguments): array {
+                $item = $this->findChecklistItem((int) ($arguments['item'] ?? 0));
+
+                return [
+                    'response' => $item->response ?? '',
+                ];
+            })
+            ->form([
+                RichEditor::make('response')
+                    ->label('Response')
+                    ->hiddenLabel()
+                    ->toolbarButtons([
+                        'bold',
+                        'italic',
+                        'underline',
+                        'strike',
+                        'h2',
+                        'h3',
+                        'bulletList',
+                        'orderedList',
+                        'blockquote',
+                        'link',
+                        'undo',
+                        'redo',
+                    ])
+                    ->columnSpanFull(),
+            ])
+            ->action(function (array $data, array $arguments): void {
+                $item = $this->findChecklistItem((int) ($arguments['item'] ?? 0));
+
+                if (! $item->to_be_filled) {
+                    return;
+                }
+
+                $item->forceFill([
+                    'response' => $this->normalizeHtmlResponse($data['response'] ?? null),
+                ])->save();
+
+                $this->syncChecklistForm($item->fresh());
+
+                Notification::make()
+                    ->title('Response saved')
+                    ->success()
+                    ->send();
+            });
     }
 
     public function getChecklistSummary(): array
@@ -176,6 +234,7 @@ class ViewProjectChecklist extends Page
             'title' => ['nullable', 'string'],
             'details' => ['nullable', 'string'],
             'to_be_filled' => ['nullable', 'boolean'],
+            'insert_into_recap' => ['nullable', 'boolean'],
             'supplier_id' => ['nullable', 'integer', Rule::in(array_keys($this->getSupplierOptions()))],
         ])->validate();
 
@@ -183,6 +242,7 @@ class ViewProjectChecklist extends Page
             'title' => trim((string) ($data['title'] ?? '')),
             'details' => filled($data['details'] ?? null) ? trim((string) $data['details']) : null,
             'to_be_filled' => (bool) ($data['to_be_filled'] ?? false),
+            'insert_into_recap' => (bool) ($data['insert_into_recap'] ?? false),
             'supplier_id' => filled($data['supplier_id'] ?? null) ? (int) $data['supplier_id'] : null,
         ])->save();
 
@@ -191,7 +251,7 @@ class ViewProjectChecklist extends Page
 
     public function updatedChecklistForms(mixed $value, string $name): void
     {
-        if (! preg_match('/^(\d+)\.(title|details|to_be_filled|supplier_id|response|anticipation_value|anticipation_unit|exact_due_date)$/', $name, $matches)) {
+        if (! preg_match('/^(\d+)\.(title|details|to_be_filled|insert_into_recap|supplier_id|response|anticipation_value|anticipation_unit|exact_due_date)$/', $name, $matches)) {
             return;
         }
 
@@ -205,7 +265,7 @@ class ViewProjectChecklist extends Page
             return;
         }
 
-        if (in_array($matches[2], ['title', 'details', 'to_be_filled', 'supplier_id'], true)) {
+        if (in_array($matches[2], ['title', 'details', 'to_be_filled', 'insert_into_recap', 'supplier_id'], true)) {
             $this->saveChecklistItem((int) $matches[1]);
 
             return;
@@ -224,7 +284,7 @@ class ViewProjectChecklist extends Page
         ])->validate();
 
         $item->forceFill([
-            'response' => filled($data['response'] ?? null) ? trim((string) $data['response']) : null,
+            'response' => $this->normalizeHtmlResponse($data['response'] ?? null),
         ])->save();
 
         $this->syncChecklistForm($item->fresh());
@@ -235,7 +295,7 @@ class ViewProjectChecklist extends Page
         $item = $this->findChecklistItem($itemId);
         $data = $this->checklistForms[$itemId] ?? [];
         $response = filled($data['response'] ?? null)
-            ? trim((string) $data['response'])
+            ? $this->normalizeHtmlResponse($data['response'])
             : null;
 
         if ($completed && $item->to_be_filled && blank($response)) {
@@ -285,6 +345,7 @@ class ViewProjectChecklist extends Page
             'response' => null,
             'default' => false,
             'to_be_filled' => false,
+            'insert_into_recap' => false,
             'anticipation' => null,
             'assigned_to' => $assignedTo,
             'due_date' => null,
@@ -480,6 +541,7 @@ class ViewProjectChecklist extends Page
             'supplier_id' => $item->supplier_id ?? '',
             'completed' => (bool) $item->completed,
             'to_be_filled' => (bool) $item->to_be_filled,
+            'insert_into_recap' => (bool) $item->insert_into_recap,
             'due_date_mode' => $item->anticipation ? 'relative' : 'exact',
             'anticipation_value' => $anticipationValue,
             'anticipation_unit' => $anticipationUnit ?? 'weeks',
@@ -503,6 +565,13 @@ class ViewProjectChecklist extends Page
             is_numeric($parts[0]) ? (string) ((int) $parts[0]) : '',
             trim((string) $parts[1]),
         ];
+    }
+
+    protected function normalizeHtmlResponse(mixed $value): ?string
+    {
+        $html = trim((string) ($value ?? ''));
+
+        return trim(strip_tags($html)) !== '' ? $html : null;
     }
 
     protected function getInitials(string $label): string

@@ -5,6 +5,7 @@ use App\Http\Controllers\LeadBudgetPdfController;
 use App\Http\Controllers\LeadProposalPdfController;
 use App\Http\Controllers\ProjectBudgetProposalPdfController;
 use App\Http\Controllers\ProjectBudgetComparisonPdfController;
+use App\Http\Controllers\ProjectPaymentsPdfController;
 use App\Http\Controllers\ProjectSeatingPlanPdfController;
 use App\Http\Controllers\PublicLeadFormController;
 use App\Http\Controllers\PublicGuestRsvpController;
@@ -47,6 +48,10 @@ Route::get('/admin/projects/{project}/budget/{categoryBudget}/proposals.pdf', Pr
 Route::get('/admin/projects/{project}/budget/{categoryBudget}/comparison.pdf', ProjectBudgetComparisonPdfController::class)
     ->middleware('auth')
     ->name('admin.projects.budget.comparison.pdf');
+
+Route::get('/admin/projects/{project}/payments.pdf', ProjectPaymentsPdfController::class)
+    ->middleware('auth')
+    ->name('admin.projects.payments.pdf');
 
 Route::get('/admin/projects/{project}/layouts/{seatingPlan}/seating-plan.pdf', ProjectSeatingPlanPdfController::class)
     ->middleware('auth')

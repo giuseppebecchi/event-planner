@@ -627,7 +627,7 @@
             flex-direction: column;
             align-items: flex-end;
             gap: 0.55rem;
-            min-width: 8.5rem;
+            min-width: 10.8rem;
             padding-top: 0.4rem;
         }
 
@@ -657,6 +657,43 @@
 
         .wm-checklist-action.is-delete {
             color: #a16c63;
+        }
+
+        .wm-checklist-response-trigger {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.42rem;
+            min-height: 2.15rem;
+            max-width: 10.8rem;
+            border: 1px solid rgba(199, 62, 62, 0.36);
+            border-radius: 999px;
+            background: rgba(199, 62, 62, 0.1);
+            color: #a33a3a;
+            padding: 0 0.68rem;
+            font-size: 0.68rem;
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .wm-checklist-response-trigger svg {
+            width: 1rem;
+            height: 1rem;
+            flex: 0 0 auto;
+        }
+
+        .wm-checklist-response-trigger.is-filled {
+            border-color: rgba(46, 74, 98, 0.24);
+            background: rgba(46, 74, 98, 0.09);
+            color: #2e4a62;
+        }
+
+        .wm-checklist-response-trigger:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(92, 70, 49, 0.08);
         }
 
         .wm-checklist-divider {
@@ -742,6 +779,7 @@
             border-color: #d93025;
             color: #d93025;
         }
+
 
         @media (max-width: 1100px) {
             .wm-checklist-summary,
@@ -866,8 +904,9 @@
                                     $timeLabel = $item->due_date
                                         ? $item->due_date->format('M j, Y')
                                         : ($item->anticipation ?: 'No timeframe');
-                                    $titleLabel = trim((string) ($checklistForms[$item->id]['title'] ?? $item->title ?? ''));
-                                    $responseLabel = trim((string) ($checklistForms[$item->id]['response'] ?? $item->response ?? ''));
+                                    $titleLabel = trim(strip_tags((string) ($checklistForms[$item->id]['title'] ?? $item->title ?? '')));
+                                    $detailsLabel = trim(strip_tags((string) ($checklistForms[$item->id]['details'] ?? $item->details ?? '')));
+                                    $responseLabel = trim(strip_tags((string) ($checklistForms[$item->id]['response'] ?? $item->response ?? '')));
                                 @endphp
 
                                 <div class="wm-checklist-item {{ $item->completed ? 'is-completed' : '' }} {{ $isExpanded ? 'is-expanded' : '' }}" wire:key="checklist-item-{{ $item->id }}">
@@ -883,7 +922,7 @@
                                         class="wm-checklist-main"
                                         @if ($isExpanded)
                                             x-data="{ mode: @js($checklistForms[$item->id]['due_date_mode'] ?? 'relative') }"
-                                            x-on:mousedown.window="if (! $el.contains($event.target) && ! $event.target.closest('[data-checklist-delete-modal]')) { $wire.collapseChecklistItem() }"
+                                            x-on:mousedown.window="if (! $el.contains($event.target) && ! $event.target.closest('[data-checklist-delete-modal]') && ! $event.target.closest('[data-checklist-response-control]')) { $wire.collapseChecklistItem() }"
                                         @endif
                                     >
                                         @if (! $isExpanded)
@@ -894,13 +933,8 @@
                                             >
                                                 <span class="wm-checklist-summary-copy">
                                                     <span class="wm-checklist-summary-title">{{ $titleLabel !== '' ? $titleLabel : '(Unnamed Task)' }}</span>
-                                                    @if (filled($checklistForms[$item->id]['details'] ?? $item->details))
-                                                        <span class="wm-checklist-summary-details">{{ trim((string) ($checklistForms[$item->id]['details'] ?? $item->details)) }}</span>
-                                                    @endif
-                                                    @if ($item->to_be_filled)
-                                                        <span class="wm-checklist-summary-details">
-                                                            {{ $responseLabel !== '' ? $responseLabel : 'Response required' }}
-                                                        </span>
+                                                    @if ($detailsLabel !== '')
+                                                        <span class="wm-checklist-summary-details">{{ $detailsLabel }}</span>
                                                     @endif
                                                 </span>
                                                 <span class="wm-checklist-time">{{ $timeLabel }}</span>
@@ -919,8 +953,8 @@
                                                 @endif
 
                                                 @if ($isCustomer)
-                                                    @if (filled($checklistForms[$item->id]['details'] ?? $item->details))
-                                                        <div class="wm-checklist-summary-details">{{ trim((string) ($checklistForms[$item->id]['details'] ?? $item->details)) }}</div>
+                                                    @if ($detailsLabel !== '')
+                                                        <div class="wm-checklist-summary-details">{{ $detailsLabel }}</div>
                                                     @endif
                                                 @else
                                                     <textarea
@@ -939,6 +973,13 @@
                                                         >
                                                         <span>Requires response</span>
                                                     </label>
+                                                    <label class="wm-checklist-fill-toggle">
+                                                        <input
+                                                            type="checkbox"
+                                                            wire:model.live="checklistForms.{{ $item->id }}.insert_into_recap"
+                                                        >
+                                                        <span>Insert into recap</span>
+                                                    </label>
                                                 @endif
 
                                                 @if (! $isCustomer)
@@ -954,19 +995,6 @@
                                                             @endforeach
                                                         </select>
                                                     </label>
-                                                @endif
-
-                                                @if ($item->to_be_filled || (bool) ($checklistForms[$item->id]['to_be_filled'] ?? false))
-                                                    <div class="wm-checklist-response-box">
-                                                        <label class="wm-checklist-response-label" for="checklist-response-{{ $item->id }}">Response</label>
-                                                        <textarea
-                                                            id="checklist-response-{{ $item->id }}"
-                                                            class="wm-checklist-response-input"
-                                                            rows="3"
-                                                            placeholder="Write the response"
-                                                            wire:model.live.debounce.400ms="checklistForms.{{ $item->id }}.response"
-                                                        ></textarea>
-                                                    </div>
                                                 @endif
 
                                                 @if (! $isCustomer)
@@ -1034,6 +1062,19 @@
                                     </div>
 
                                     <div class="wm-checklist-side">
+                                        @if ($item->to_be_filled || (bool) ($checklistForms[$item->id]['to_be_filled'] ?? false))
+                                            <button
+                                                type="button"
+                                                data-checklist-response-control
+                                                class="wm-checklist-response-trigger {{ $responseLabel !== '' ? 'is-filled' : '' }}"
+                                                wire:click.stop="mountAction('editChecklistResponse', { item: {{ $item->id }} })"
+                                                x-on:mousedown.stop
+                                            >
+                                                <x-heroicon-o-pencil-square />
+                                                <span>{{ $responseLabel !== '' ? 'Edit Response' : 'Insert response' }}</span>
+                                            </button>
+                                        @endif
+
                                         @if ($isExpanded && ! $isCustomer)
                                             <div class="wm-checklist-actions">
                                                 <button
@@ -1085,5 +1126,6 @@
                 </div>
             </div>
         @endif
+
     </div>
 </x-filament-panels::page>
