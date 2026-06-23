@@ -57,6 +57,7 @@ class PaymentReminderNotification extends Notification
     protected function renderTemplate(string $content): string
     {
         $replacements = [
+            'couple_names' => e($this->coupleNames()),
             'couples_name' => e($this->couplesName()),
             'supplier_name' => e($this->payment->supplier?->name ?: 'the supplier'),
             'date' => e($this->payment->due_date?->format('F j, Y') ?: 'the due date'),
@@ -73,6 +74,11 @@ class PaymentReminderNotification extends Notification
     }
 
     protected function couplesName(): string
+    {
+        return $this->coupleNames();
+    }
+
+    protected function coupleNames(): string
     {
         $project = $this->payment->project;
 
