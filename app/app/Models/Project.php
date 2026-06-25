@@ -47,11 +47,13 @@ class Project extends Model
         'lead_id',
         'name',
         'alias',
-        'partner_one_name',
-        'partner_two_name',
-        'reference_email',
-        'partner_2_reference_email',
-        'primary_phone',
+        'first_name',
+        'last_name',
+        'email',
+        'phone',
+        'secondary_first_name',
+        'secondary_last_name',
+        'secondary_email',
         'secondary_phone',
         'nationality',
         'preferred_language',
@@ -70,6 +72,7 @@ class Project extends Model
         'status',
         'logistics_notes',
         'cover_image_path',
+        'recap_left_rail_image_path',
         'rsvp_configuration',
         'rsvp_submissions_locked',
         'website_json',
@@ -137,6 +140,23 @@ class Project extends Model
         if (! $this->event_end_date) {
             $this->event_end_date = $this->event_start_date;
         }
+    }
+
+    public function mainContactName(): string
+    {
+        return trim(collect([$this->first_name, $this->last_name])->filter()->implode(' '));
+    }
+
+    public function secondaryContactName(): string
+    {
+        return trim(collect([$this->secondary_first_name, $this->secondary_last_name])->filter()->implode(' '));
+    }
+
+    public function coupleNames(): string
+    {
+        return collect([$this->mainContactName(), $this->secondaryContactName()])
+            ->filter()
+            ->implode(' & ');
     }
 
     public function getEventSpansMultipleDaysAttribute(): bool
@@ -655,7 +675,7 @@ class Project extends Model
 
     public static function defaultWebsiteConfiguration(?Project $project = null): array
     {
-        $partners = trim(collect([$project?->partner_one_name, $project?->partner_two_name])->filter()->implode(' & '));
+        $partners = $project?->coupleNames() ?: '';
         $date = $project?->event_date?->format('F j, Y') ?? '';
         $location = trim(collect([$project?->locality, $project?->region])->filter()->implode(', '));
 

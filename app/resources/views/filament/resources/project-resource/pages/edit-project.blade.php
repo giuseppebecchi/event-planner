@@ -323,31 +323,6 @@
             <form wire:submit="save">
                 {{ $this->form }}
 
-                @if (! auth()->user()?->isCustomer())
-                    <div class="wm-credential-panel">
-                        <p class="wm-credential-title">Customer portal credentials</p>
-                        <div class="wm-credential-actions">
-                            <x-filament::button
-                                type="button"
-                                size="sm"
-                                wire:click="sendCustomerCredentials('reference_email')"
-                                wire:confirm="Create/link a Customer user and send credentials to the reference email?"
-                            >
-                                Send Credential
-                            </x-filament::button>
-                            <x-filament::button
-                                type="button"
-                                size="sm"
-                                color="gray"
-                                wire:click="sendCustomerCredentials('partner_2_reference_email')"
-                                wire:confirm="Create/link a Customer user and send credentials to the partner 2 reference email?"
-                            >
-                                Send Partner 2 Credential
-                            </x-filament::button>
-                        </div>
-                    </div>
-                @endif
-
                 <div class="wm-edit-form-actions">
                     <x-filament::button type="submit">
                         Save changes

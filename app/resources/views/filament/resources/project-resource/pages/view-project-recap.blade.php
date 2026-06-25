@@ -3,6 +3,19 @@
         $record = $this->getRecord();
         $days = $this->getTimelineDays();
         $recapChecklistItems = $this->getRecapChecklistItems();
+        $seatingPlans = $this->getRecapSeatingPlans();
+        $confirmedSuppliers = $this->getRecapConfirmedSuppliers();
+        $railImageUrl = $this->getRecapRailImageUrl();
+        $coverActivities = $days
+            ->flatMap(fn (array $day) => $day['items'])
+            ->filter(fn ($item) => (bool) $item->cover_activity)
+            ->values();
+        $dateRange = $record->event_start_date
+            ? ($record->event_end_date && ! $record->event_start_date->isSameDay($record->event_end_date)
+                ? $record->event_start_date->format('F j') . ' - ' . $record->event_end_date->format('F j, Y')
+                : $record->event_start_date->format('F j, Y'))
+            : ($record->wedding_period ?: 'Date to define');
+        $location = collect([$record->locality, $record->region])->filter()->implode(', ');
     @endphp
 
     <style>
@@ -312,6 +325,91 @@
             color: #8b847d;
             font-size: 0.88rem;
         }
+        .wm-recap-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.8rem; }
+        .wm-recap-image-control {
+            display: grid;
+            gap: 0.35rem;
+            max-width: 28rem;
+            padding: 0.75rem 0.9rem;
+            border: 1px solid #e3d8ca;
+            border-radius: 0.95rem;
+            background: #fbf8f4;
+        }
+        .wm-recap-upload { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; color: #4f473f; font-size: 0.78rem; font-weight: 900; }
+        .wm-recap-upload-label { letter-spacing: 0.08em; text-transform: uppercase; }
+        .wm-recap-help { margin: 0; color: #81776d; font-size: 0.74rem; line-height: 1.35; }
+        .wm-recap-file { max-width: 16rem; font-size: 0.78rem; }
+        .wm-recap-reset { border: 1px solid #d8ccb9; border-radius: 999px; padding: 0.62rem 0.85rem; background: #fff; color: #5f574f; font-size: 0.78rem; font-weight: 800; cursor: pointer; }
+        .wm-recap-preview-frame {
+            padding: 2rem clamp(1rem, 4vw, 3.5rem);
+            border-radius: 1.2rem;
+            background: #eee8df;
+            border: 1px solid #e1d7ca;
+        }
+        .wm-recap-preview-stack {
+            display: grid;
+            justify-items: center;
+            gap: 1.6rem;
+            max-width: 66rem;
+            margin: 0 auto;
+        }
+        .wm-recap-pdf-page {
+            display: grid;
+            grid-template-columns: 7.5rem minmax(0, 1fr);
+            width: min(100%, 52rem);
+            aspect-ratio: 210 / 297;
+            min-height: 42rem;
+            border: 1px solid #ded4c9;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            background: #fcfaf6;
+            box-shadow: 0 16px 34px rgba(45, 42, 38, 0.08);
+        }
+        .wm-recap-rail {
+            background-image: var(--rail-image);
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            min-height: 100%;
+        }
+        .wm-recap-rail span {
+            position: absolute;
+            left: 1rem;
+            right: 1rem;
+            bottom: 1.2rem;
+            color: rgba(255,255,255,0.92);
+            font-size: 0.62rem;
+            font-weight: 900;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+        .wm-recap-paper { padding: 2.2rem 2.6rem 2.5rem; position: relative; }
+        .wm-recap-cover-title { margin: 0; max-width: 30rem; color: #1a1410; font-family: 'Cinzel', serif; font-size: clamp(2.4rem, 5vw, 4rem); line-height: 0.95; }
+        .wm-recap-cover-meta { margin-top: 1.35rem; color: #211c17; font-size: 1.2rem; letter-spacing: 0.22em; text-transform: uppercase; }
+        .wm-recap-cover-submeta { margin-top: 0.35rem; color: #211c17; font-size: 0.92rem; letter-spacing: 0.18em; text-transform: uppercase; }
+        .wm-recap-cover-label { margin-top: 4rem; color: #231d18; font-size: 1rem; font-style: italic; letter-spacing: 0.12em; text-transform: uppercase; }
+        .wm-recap-cover-list { margin-top: 1.3rem; }
+        .wm-recap-cover-row { display: grid; grid-template-columns: 7rem 2rem 4.5rem minmax(0, 1fr); align-items: center; gap: 1rem; min-height: 4.4rem; }
+        .wm-recap-cover-time { text-align: right; color: #1f1914; font-size: 1rem; letter-spacing: 0.08em; }
+        .wm-recap-cover-line { width: 2px; height: 100%; background: #26201b; justify-self: center; }
+        .wm-recap-cover-icon { width: 3.1rem; height: 3.1rem; object-fit: contain; justify-self: center; }
+        .wm-recap-cover-activity { color: #1f1914; font-size: 1rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+        .wm-recap-section-band { display: inline-block; margin-bottom: 1rem; padding: 0.65rem 0.95rem; background: #efcbbb; color: #261e18; font-size: 0.72rem; font-weight: 900; letter-spacing: 0.16em; text-transform: uppercase; }
+        .wm-recap-pdf-day + .wm-recap-pdf-day { margin-top: 1.8rem; }
+        .wm-recap-pdf-title { margin: 0; color: #1f1914; font-size: 1.15rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
+        .wm-recap-pdf-day .wm-recap-row { grid-template-columns: 6.4rem minmax(0, 1fr); gap: 1rem; border-top: 0; padding: 0.7rem 0; }
+        .wm-recap-pdf-day .wm-recap-time { text-align: right; color: #4d4339; }
+        .wm-recap-pdf-day .wm-recap-row > div:last-child { border-left: 2px solid #c7a56a; padding-left: 1rem; }
+        .wm-recap-seat-card { border-top: 1px solid #e8ded1; padding-top: 1rem; margin-top: 1rem; }
+        .wm-recap-seat-card:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+        .wm-recap-seat-preview { margin-top: 0.8rem; padding: 0.75rem; background: #fff; border: 1px solid #eadfd2; border-radius: 0.5rem; }
+        .wm-recap-seat-preview img { width: 100%; max-height: 26rem; object-fit: contain; }
+        .wm-recap-seat-table,
+        .wm-recap-suppliers-table { width: 100%; margin-top: 0.8rem; border-collapse: collapse; font-size: 0.82rem; }
+        .wm-recap-seat-table td,
+        .wm-recap-suppliers-table td,
+        .wm-recap-suppliers-table th { padding: 0.55rem 0.65rem; border-bottom: 1px solid #eee4da; text-align: left; vertical-align: top; }
+        .wm-recap-suppliers-table th { background: #f1e5d9; color: #342d26; font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; }
         @media (max-width: 1100px) {
             .wm-event-top-head,
             .wm-event-date-grid,
@@ -324,6 +422,9 @@
             }
             .wm-event-summary-chip,
             .wm-event-countdown { width: 100%; }
+            .wm-recap-pdf-page { grid-template-columns: 4.5rem minmax(0, 1fr); }
+            .wm-recap-paper { padding: 1.35rem; }
+            .wm-recap-preview-frame { padding: 1rem 0.5rem; }
         }
     </style>
 
@@ -336,63 +437,210 @@
         <section class="wm-recap-card wm-recap-head">
             <div>
                 <p class="wm-recap-label">Recap</p>
-                <h2 class="wm-recap-title">Preview</h2>
-                <p class="wm-recap-copy">Operational preview of the timeline PDF plus checklist texts marked for recap.</p>
+                <h2 class="wm-recap-title">PDF-style Preview</h2>
+                <p class="wm-recap-copy">Operational preview with the same page flow used in the exported recap PDF.</p>
             </div>
-            <button type="button" class="wm-recap-export" wire:click="exportTimelinePdf">
-                <x-heroicon-o-document-arrow-down />
-                <span>Esporta PDF</span>
-            </button>
+            <div class="wm-recap-toolbar">
+                @if (! auth()->user()?->isCustomer())
+                    <div class="wm-recap-image-control">
+                        <label class="wm-recap-upload">
+                            <span class="wm-recap-upload-label">Replace side image</span>
+                            <input class="wm-recap-file" type="file" wire:model="recapRailImageUpload" accept="image/*">
+                        </label>
+                        <p class="wm-recap-help">Recommended: vertical image, 154 x 849 px or same ratio, JPG/PNG. It is cropped to cover the left rail.</p>
+                    </div>
+                    @if ($recapRailImageUpload)
+                        <button type="button" class="wm-recap-reset" wire:click="saveRecapRailImage">Save image</button>
+                    @endif
+                    @if ($record->recap_left_rail_image_path)
+                        <button type="button" class="wm-recap-reset" wire:click="resetRecapRailImage">Use default</button>
+                    @endif
+                @endif
+                <button type="button" class="wm-recap-export" wire:click="exportTimelinePdf">
+                    <x-heroicon-o-document-arrow-down />
+                    <span>Esporta PDF</span>
+                </button>
+            </div>
         </section>
 
-        <section class="wm-recap-layout">
-            <article class="wm-recap-card wm-recap-section">
-                <p class="wm-recap-label">Timeline</p>
-                @forelse ($days as $day)
-                    <section class="wm-recap-day">
-                        <h3 class="wm-recap-day-title">{{ $day['date']->format('l, F j, Y') }}</h3>
-                        @forelse ($day['items'] as $item)
-                            <div class="wm-recap-row">
-                                <div class="wm-recap-time">{{ $item->start_time?->format('H:i') ?? '-' }}</div>
+        <section class="wm-recap-preview-frame" style="--rail-image: url('{{ $railImageUrl }}')">
+            <div class="wm-recap-preview-stack">
+                <article class="wm-recap-pdf-page">
+                <div class="wm-recap-rail"></div>
+                <div class="wm-recap-paper">
+                    <h1 class="wm-recap-cover-title">{{ $record->name }}</h1>
+                    <div class="wm-recap-cover-meta">{{ $dateRange }}</div>
+                    @if ($location)
+                        <div class="wm-recap-cover-submeta">{{ $location }}</div>
+                    @endif
+                    @if ($record->final_guest_count || $record->estimated_guest_count)
+                        <div class="wm-recap-meta">{{ $record->final_guest_count ?: $record->estimated_guest_count }} guests</div>
+                    @endif
+                    <div class="wm-recap-cover-label">Wedding Day Timeline And Info</div>
+                    <div class="wm-recap-cover-list">
+                        @forelse ($coverActivities as $item)
+                            @php
+                                $iconFilename = match ($item->cover_activity_type) {
+                                    'CEREMONY' => 'ceremony.png',
+                                    'PHOTOS' => 'photos.png',
+                                    'APERITIVO' => 'aperitivo.png',
+                                    'DINNER' => 'dinner.png',
+                                    'CAKE CUTTING' => 'cake-cutting.png',
+                                    'FIRST DANCE' => 'first-dance.png',
+                                    'SEND OFF' => 'send-off.png',
+                                    default => null,
+                                };
+                            @endphp
+                            <div class="wm-recap-cover-row">
+                                <div class="wm-recap-cover-time">{{ $item->start_time?->format('H:i') ?? '-' }}</div>
+                                <div class="wm-recap-cover-line"></div>
                                 <div>
-                                    <p class="wm-recap-item-title">{{ $item->title }}</p>
-                                    <p class="wm-recap-meta">
-                                        {{ collect([$item->location, $item->supplier?->name])->filter()->implode(' • ') ?: 'No location or supplier set' }}
-                                    </p>
-                                    @if ($item->description)
-                                        <p class="wm-recap-text">{{ $item->description }}</p>
+                                    @if ($iconFilename)
+                                        <img class="wm-recap-cover-icon" src="{{ asset('images/timeline-icons/' . $iconFilename) }}" alt="">
                                     @endif
+                                </div>
+                                <div>
+                                    <div class="wm-recap-cover-activity">{{ $item->cover_activity_type ?: $item->title }}</div>
+                                    <div class="wm-recap-meta">{{ collect([$item->location, $item->supplier?->name])->filter()->implode(' • ') }}</div>
                                 </div>
                             </div>
                         @empty
-                            <div class="wm-recap-empty">No timeline items for this day.</div>
+                            <div class="wm-recap-empty">No cover activities selected yet.</div>
                         @endforelse
-                    </section>
-                @empty
-                    <div class="wm-recap-empty">No timeline days available.</div>
-                @endforelse
-            </article>
-
-            <aside class="wm-recap-card wm-recap-section">
-                <p class="wm-recap-label">Checklist texts</p>
-                <div class="wm-recap-checklist-list">
-                    @forelse ($recapChecklistItems as $item)
-                        <article class="wm-recap-checklist-item">
-                            <p class="wm-recap-item-title">{!! $item->title ?: 'Checklist item' !!}</p>
-                            <p class="wm-recap-meta">
-                                {{ collect([$item->supplier?->name, $item->due_date?->format('d/m/Y')])->filter()->implode(' • ') ?: 'Project checklist' }}
-                            </p>
-                            @if ($item->response)
-                                <div class="wm-recap-html">{!! $item->response !!}</div>
-                            @elseif ($item->details)
-                                <div class="wm-recap-html">{!! $item->details !!}</div>
-                            @endif
-                        </article>
-                    @empty
-                        <div class="wm-recap-empty">No checklist texts marked for recap yet.</div>
-                    @endforelse
+                    </div>
                 </div>
-            </aside>
+                </article>
+
+                @forelse ($days as $day)
+                    <article class="wm-recap-pdf-page">
+                    <div class="wm-recap-rail"><span>{{ $day['date']->format('F j, Y') }}</span></div>
+                    <div class="wm-recap-paper">
+                        <div class="wm-recap-section-band">Detailed timeline</div>
+                        <section class="wm-recap-pdf-day">
+                            <h3 class="wm-recap-pdf-title">{{ $day['date']->format('l, F j, Y') }}</h3>
+                            @forelse ($day['items'] as $item)
+                                <div class="wm-recap-row">
+                                    <div class="wm-recap-time">{{ $item->start_time?->format('H:i') ?? '-' }}</div>
+                                    <div>
+                                        <p class="wm-recap-item-title">{{ $item->title }}</p>
+                                        <p class="wm-recap-meta">{{ collect([$item->location, $item->supplier?->name])->filter()->implode(' • ') ?: 'No location or supplier set' }}</p>
+                                        @if ($item->description)
+                                            <p class="wm-recap-text">{{ $item->description }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="wm-recap-empty">No timeline items for this day.</div>
+                            @endforelse
+                        </section>
+                    </div>
+                    </article>
+                @empty
+                    <article class="wm-recap-pdf-page">
+                    <div class="wm-recap-rail"><span>Timeline recap</span></div>
+                    <div class="wm-recap-paper">
+                        <div class="wm-recap-section-band">Detailed timeline</div>
+                        <div class="wm-recap-empty">No timeline days available.</div>
+                    </div>
+                    </article>
+                @endforelse
+
+                @if ($recapChecklistItems->isNotEmpty())
+                    <article class="wm-recap-pdf-page">
+                    <div class="wm-recap-rail"><span>Checklist recap</span></div>
+                    <div class="wm-recap-paper">
+                        <div class="wm-recap-section-band">Checklist recap</div>
+                        <div class="wm-recap-checklist-list">
+                            @foreach ($recapChecklistItems as $item)
+                                <article class="wm-recap-checklist-item">
+                                    <p class="wm-recap-item-title">{!! $item->title ?: 'Checklist item' !!}</p>
+                                    <p class="wm-recap-meta">{{ collect([$item->supplier?->name, $item->due_date?->format('d/m/Y')])->filter()->implode(' • ') ?: 'Project checklist' }}</p>
+                                    @if ($item->response)
+                                        <div class="wm-recap-html">{!! $item->response !!}</div>
+                                    @elseif ($item->details)
+                                        <div class="wm-recap-html">{!! $item->details !!}</div>
+                                    @endif
+                                </article>
+                            @endforeach
+                        </div>
+                    </div>
+                    </article>
+                @endif
+
+                @foreach ($seatingPlans as $plan)
+                    <article class="wm-recap-pdf-page">
+                    <div class="wm-recap-rail"><span>{{ \App\Models\ProjectSeatingPlan::PLAN_TYPE_OPTIONS[$plan->plan_type] ?? ($plan->plan_type ?: 'Seating plan') }}</span></div>
+                    <div class="wm-recap-paper">
+                        <div class="wm-recap-section-band">Seating plan</div>
+                        <section class="wm-recap-seat-card">
+                            <h3 class="wm-recap-pdf-title">{{ $plan->name }}</h3>
+                            <p class="wm-recap-meta">{{ \App\Models\ProjectSeatingPlan::PLAN_TYPE_OPTIONS[$plan->plan_type] ?? ($plan->plan_type ?: 'Layout') }} • {{ $plan->tables->count() }} seating items</p>
+                            @if ($plan->preview_image_path)
+                                <div class="wm-recap-seat-preview">
+                                    <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($plan->preview_image_path) }}" alt="">
+                                </div>
+                            @endif
+                            @if ($plan->notes)
+                                <p class="wm-recap-text">{{ $plan->notes }}</p>
+                            @endif
+                            @if ($plan->tables->isNotEmpty())
+                                <table class="wm-recap-seat-table">
+                                    @foreach ($plan->tables as $table)
+                                        <tr>
+                                            <td>{{ $table->name ?: 'Seating item' }}</td>
+                                            <td>{{ $table->table_type ? (\App\Models\ProjectTable::TABLE_TYPE_OPTIONS[$table->table_type] ?? $table->table_type) : 'Seating' }}</td>
+                                            <td>{{ $table->seatCount() }} seats</td>
+                                        </tr>
+                                    @endforeach
+                                </table>
+                            @endif
+                        </section>
+                    </div>
+                    </article>
+                @endforeach
+
+                <article class="wm-recap-pdf-page">
+                    <div class="wm-recap-rail"><span>Confirmed suppliers</span></div>
+                    <div class="wm-recap-paper">
+                        <div class="wm-recap-section-band">Confirmed suppliers</div>
+                        <p class="wm-recap-text">Operational contacts and vendor references for the event day.</p>
+
+                        @if ($confirmedSuppliers->isNotEmpty())
+                            <table class="wm-recap-suppliers-table">
+                                <thead>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th>Supplier</th>
+                                        <th>Contact</th>
+                                        <th>Address / web</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($confirmedSuppliers as $supplier)
+                                        <tr>
+                                            <td>{{ $supplier['category'] }}</td>
+                                            <td>
+                                                <strong>{{ $supplier['name'] }}</strong>
+                                                @if ($supplier['confirmed_at'])
+                                                    <div class="wm-recap-meta">Confirmed {{ $supplier['confirmed_at'] }}</div>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                {{ collect([$supplier['contact_person'], $supplier['email'], $supplier['phone']])->filter()->implode(' • ') ?: '—' }}
+                                            </td>
+                                            <td>
+                                                {{ collect([$supplier['address'], $supplier['website']])->filter()->implode(' • ') ?: '—' }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        @else
+                            <div class="wm-recap-empty">No confirmed suppliers yet.</div>
+                        @endif
+                    </div>
+                </article>
+            </div>
         </section>
     </div>
 </x-filament-panels::page>

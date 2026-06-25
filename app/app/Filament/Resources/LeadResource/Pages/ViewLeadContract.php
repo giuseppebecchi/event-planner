@@ -190,35 +190,27 @@ class ViewLeadContract extends BaseLeadPhasePage
 
     protected function projectPayloadFromLead(Lead $lead): array
     {
-        [$partnerOneName, $partnerTwoName] = $this->partnerNamesFromLead($lead);
-
         return [
             'lead_id' => $lead->id,
             'name' => $lead->couple_name ? ('Wedding - '.$lead->couple_name) : 'Wedding project',
-            'partner_one_name' => $partnerOneName,
-            'partner_two_name' => $partnerTwoName,
-            'reference_email' => $lead->email,
-            'primary_phone' => $lead->phone,
+            'first_name' => $lead->first_name,
+            'last_name' => $lead->last_name ?: (trim((string) $lead->couple_name) ?: 'Client'),
+            'email' => $lead->email,
+            'phone' => $lead->phone,
             'nationality' => $lead->nationality,
+            'address' => $lead->address,
+            'secondary_first_name' => $lead->secondary_first_name,
+            'secondary_last_name' => $lead->secondary_last_name,
+            'secondary_email' => $lead->secondary_email,
+            'secondary_phone' => $lead->secondary_phone,
             'region' => $lead->desired_region,
+            'locality' => $lead->venue,
+            'wedding_period' => $lead->wedding_period,
             'estimated_guest_count' => $lead->estimated_guest_count,
             'budget_amount' => $lead->budget_amount,
             'venue_included_in_budget' => (bool) $lead->venue_included_in_budget,
             'status' => 'confirmed',
             'private_notes' => $lead->internal_notes,
-        ];
-    }
-
-    protected function partnerNamesFromLead(Lead $lead): array
-    {
-        $contactName = trim(collect([
-            $lead->first_name,
-            $lead->last_name,
-        ])->filter(fn ($value): bool => filled($value))->implode(' '));
-
-        return [
-            $contactName ?: (trim((string) $lead->couple_name) ?: 'Client'),
-            null,
         ];
     }
 

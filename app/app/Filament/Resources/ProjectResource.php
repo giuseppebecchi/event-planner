@@ -18,7 +18,9 @@ use Filament\Actions\ViewAction;
 use Filament\Forms\Components;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -99,123 +101,154 @@ class ProjectResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Couple profile')
-                ->columns(3)
+            Grid::make([
+                'default' => 1,
+                'xl' => 2,
+            ])
+                ->columnSpanFull()
                 ->schema([
-                    Components\Select::make('lead_id')
-                        ->label('Related lead')
-                        ->relationship('lead', 'couple_name')
-                        ->searchable()
-                        ->preload(),
-                    Components\TextInput::make('name')
-                        ->label('Event name')
-                        ->required()
-                        ->maxLength(255),
-                    Components\Select::make('status')
-                        ->label('Event status')
-                        ->options(Project::STATUS_OPTIONS)
-                        ->default('proposal')
-                        ->required(),
-                    Components\TextInput::make('partner_one_name')
-                        ->label('Partner 1')
-                        ->required()
-                        ->maxLength(255),
-                    Components\TextInput::make('partner_two_name')
-                        ->label('Partner 2')
-                        ->maxLength(255),
-                    Components\TextInput::make('preferred_language')
-                        ->label('Preferred language')
-                        ->maxLength(100),
-                    Components\TextInput::make('reference_email')
-                        ->label('Reference email')
-                        ->email()
-                        ->maxLength(255),
-                    Components\TextInput::make('partner_2_reference_email')
-                        ->label('Partner 2 reference email')
-                        ->email()
-                        ->maxLength(255),
-                    Components\TextInput::make('primary_phone')
-                        ->label('Primary phone')
-                        ->tel()
-                        ->maxLength(50),
-                    Components\TextInput::make('secondary_phone')
-                        ->label('Secondary phone')
-                        ->tel()
-                        ->maxLength(50),
-                    Components\TextInput::make('nationality')
-                        ->label('Nationality')
-                        ->maxLength(100),
-                    Components\Textarea::make('address')
-                        ->label('Address')
-                        ->rows(4)
-                        ->columnSpanFull(),
-                    Components\Textarea::make('private_notes')
-                        ->label('Private notes')
-                        ->rows(5)
-                        ->columnSpanFull(),
-                ]),
-
-            Section::make('Event')
-                ->columns(3)
-                ->schema([
-                    Grid::make(4)
-                        ->schema([
-                            Components\DatePicker::make('event_date')
-                                ->label('Event date')
-                                ->native(false),
-                            Components\TextInput::make('wedding_period')
-                                ->label('Wedding period or month')
-                                ->maxLength(255),
-                            Components\Checkbox::make('event_spans_multiple_days')
-                                ->label('Event spans multiple days')
-                                ->live(),
-                            Components\DatePicker::make('event_start_date')
-                                ->label('Start date')
-                                ->visible(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
-                                ->required(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
-                                ->native(false),
-                            Components\DatePicker::make('event_end_date')
-                                ->label('End date')
-                                ->visible(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
-                                ->required(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
-                                ->afterOrEqual('event_start_date')
-                                ->native(false),
+                    Group::make()
+                        ->columnSpan([
+                            'default' => 1,
+                            'xl' => 1,
                         ])
-                        ->columnSpanFull(),
-                    Components\TextInput::make('region')
-                        ->label('Region')
-                        ->maxLength(255),
-                    Components\TextInput::make('locality')
-                        ->label('Locality')
-                        ->maxLength(255),
-                    Components\TextInput::make('estimated_guest_count')
-                        ->label('Estimated guests')
-                        ->numeric()
-                        ->minValue(0),
-                    Components\TextInput::make('final_guest_count')
-                        ->label('Final guest count')
-                        ->numeric()
-                        ->minValue(0),
-                    Components\TextInput::make('budget_amount')
-                        ->label('Couple budget')
-                        ->numeric()
-                        ->prefix('EUR')
-                        ->step('0.01')
-                        ->minValue(0),
-                    Components\Toggle::make('venue_included_in_budget')
-                        ->label('Venue included in budget')
-                        ->helperText('When enabled, the recap totals include Venue. When disabled, Venue stays visible in the table but is excluded from estimated, confirmed, and working totals.'),
-                    Components\FileUpload::make('cover_image_path')
-                        ->label('RSVP cover image')
-                        ->disk('public')
-                        ->directory('projects/covers')
-                        ->image()
-                        ->imageEditor()
-                        ->columnSpanFull(),
-                    Components\Textarea::make('logistics_notes')
-                        ->label('Logistics notes')
-                        ->rows(6)
-                        ->columnSpanFull(),
+                        ->schema([
+                            Section::make('Event info')
+                                ->columns(4)
+                                ->schema([
+                                    Components\TextInput::make('name')
+                                        ->label('Event name')
+                                        ->required()
+                                        ->maxLength(255),
+                                    Components\Select::make('status')
+                                        ->label('Event status')
+                                        ->options(Project::STATUS_OPTIONS)
+                                        ->default('proposal')
+                                        ->required(),
+                                    Components\Select::make('preferred_language')
+                                        ->label('Language')
+                                        ->options([
+                                            'English' => 'English',
+                                            'Italian' => 'Italian',
+                                            'French' => 'French',
+                                        ])
+                                        ->searchable(),
+                                    Components\Select::make('lead_id')
+                                        ->label('Related lead')
+                                        ->relationship('lead', 'couple_name')
+                                        ->searchable()
+                                        ->preload(),
+                                    Grid::make(4)
+                                        ->schema([
+                                            Components\DatePicker::make('event_date')
+                                                ->label('Event date')
+                                                ->native(false),
+                                            Components\TextInput::make('wedding_period')
+                                                ->label('Wedding period or month')
+                                                ->maxLength(255),
+                                            Components\Checkbox::make('event_spans_multiple_days')
+                                                ->label('Event spans multiple days')
+                                                ->live(),
+                                            Components\DatePicker::make('event_start_date')
+                                                ->label('Start date')
+                                                ->visible(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
+                                                ->required(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
+                                                ->native(false),
+                                            Components\DatePicker::make('event_end_date')
+                                                ->label('End date')
+                                                ->visible(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
+                                                ->required(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
+                                                ->afterOrEqual('event_start_date')
+                                                ->native(false),
+                                        ])
+                                        ->columnSpanFull(),
+                                    Components\TextInput::make('region')
+                                        ->label('Region')
+                                        ->maxLength(255),
+                                    Components\TextInput::make('locality')
+                                        ->label('Locality')
+                                        ->maxLength(255),
+                                    Components\TextInput::make('estimated_guest_count')
+                                        ->label('Estimated guests')
+                                        ->numeric()
+                                        ->minValue(0),
+                                    Components\TextInput::make('final_guest_count')
+                                        ->label('Final guest count')
+                                        ->numeric()
+                                        ->minValue(0),
+                                    Components\TextInput::make('budget_amount')
+                                        ->label('Couple budget')
+                                        ->numeric()
+                                        ->prefix('EUR')
+                                        ->step('0.01')
+                                        ->minValue(0),
+                                    Components\Toggle::make('venue_included_in_budget')
+                                        ->label('Venue included in budget'),
+                                    Components\TextInput::make('logistics_notes')
+                                        ->label('Logistics notes')
+                                        ->columnSpan(2),
+                                    Components\TextInput::make('private_notes')
+                                        ->label('Private notes')
+                                        ->columnSpan(2),
+                                ]),
+                        ]),
+
+                    Group::make()
+                        ->columnSpan([
+                            'default' => 1,
+                            'xl' => 1,
+                        ])
+                        ->schema([
+                            Section::make('Main Contact')
+                                ->description('Primary communication details for the couple.')
+                                ->icon('heroicon-o-envelope')
+                                ->columns(4)
+                                ->schema([
+                                    Components\TextInput::make('first_name')
+                                        ->label('First name')
+                                        ->maxLength(255),
+                                    Components\TextInput::make('last_name')
+                                        ->label('Last name')
+                                        ->required()
+                                        ->maxLength(255),
+                                    Components\TextInput::make('email')
+                                        ->label('Email')
+                                        ->email()
+                                        ->maxLength(255),
+                                    Components\TextInput::make('phone')
+                                        ->label('Phone')
+                                        ->tel()
+                                        ->maxLength(50),
+                                    Components\TextInput::make('nationality')
+                                        ->label('Nationality')
+                                        ->maxLength(100),
+                                    Components\TextInput::make('address')
+                                        ->label('Address')
+                                        ->columnSpan(2),
+                                ]),
+                            Section::make('Partner Contact')
+                                ->description('Secondary communication details for the partner.')
+                                ->icon('heroicon-o-user-plus')
+                                ->columns(4)
+                                ->schema([
+                                    Components\TextInput::make('secondary_first_name')
+                                        ->label('First name')
+                                        ->maxLength(255),
+                                    Components\TextInput::make('secondary_last_name')
+                                        ->label('Last name')
+                                        ->maxLength(255),
+                                    Components\TextInput::make('secondary_email')
+                                        ->label('Email')
+                                        ->email()
+                                        ->maxLength(255),
+                                    Components\TextInput::make('secondary_phone')
+                                        ->label('Phone')
+                                        ->tel()
+                                        ->maxLength(50),
+                                ]),
+                            View::make('filament.resources.project-resource.pages.partials.customer-credentials')
+                                ->visible(fn (string $operation): bool => $operation === 'edit'),
+                        ]),
                 ]),
         ]);
     }
@@ -234,11 +267,13 @@ class ProjectResource extends Resource
                 TextColumn::make('lead.couple_name')
                     ->label('Lead')
                     ->searchable(),
-                TextColumn::make('partner_one_name')
+                TextColumn::make('last_name')
                     ->label('Partner 1')
+                    ->state(fn (Project $record): string => $record->mainContactName())
                     ->searchable(),
-                TextColumn::make('partner_two_name')
+                TextColumn::make('secondary_last_name')
                     ->label('Partner 2')
+                    ->state(fn (Project $record): string => $record->secondaryContactName())
                     ->searchable(),
                 TextColumn::make('region')
                     ->label('Region')

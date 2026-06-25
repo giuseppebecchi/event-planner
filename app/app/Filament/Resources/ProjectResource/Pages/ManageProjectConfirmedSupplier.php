@@ -519,7 +519,7 @@ class ManageProjectConfirmedSupplier extends Page
     {
         $items = $this->getSupplierChecklistItems();
         $record = $this->getRecord();
-        $clientLabel = collect([$record->partner_one_name, $record->partner_two_name])->filter()->implode(' & ');
+        $clientLabel = $record->coupleNames();
         $supplierName = $this->proposalRecord->supplier?->name ?? 'Supplier';
         $supplierSubtitle = $this->proposalRecord->supplier?->category?->label_it ?? ($this->proposalRecord->supplier?->category?->label ?? 'supplier');
 

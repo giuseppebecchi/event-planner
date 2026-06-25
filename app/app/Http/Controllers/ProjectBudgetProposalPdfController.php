@@ -35,7 +35,7 @@ class ProjectBudgetProposalPdfController extends Controller
             'proposals' => $proposals,
             'usesFallback' => $shortlisted->isEmpty(),
             'dateRange' => $this->projectDateRangeLabel($project),
-            'partners' => collect([$project->partner_one_name, $project->partner_two_name])->filter()->implode(' & '),
+            'partners' => $project->coupleNames(),
             'coverBackground' => $this->publicImageDataUri('images/bg.jpg'),
             'logo' => $this->publicImageDataUri('images/logo-positive.png'),
             'imageResolver' => fn (?string $path): ?string => $this->storageImageDataUri($path),

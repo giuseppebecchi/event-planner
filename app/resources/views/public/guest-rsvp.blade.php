@@ -71,7 +71,7 @@
                     : $project->event_start_date->format('F j, Y'))
                 : 'Date to be defined';
             $locationLabel = collect([$project->locality, $project->region])->filter()->implode(', ');
-            $partnerLabel = collect([$project->partner_one_name, $project->partner_two_name])->filter()->implode(' & ');
+            $partnerLabel = $project->coupleNames();
         @endphp
         <section class="hero" style="{{ $coverUrl ? '--cover-image: url(' . $coverUrl . ')' : '' }}">
             <div class="hero-image">

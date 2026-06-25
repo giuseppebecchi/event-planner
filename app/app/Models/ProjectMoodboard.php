@@ -8,10 +8,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProjectMoodboard extends Model
 {
+    public const SOURCE_UPLOAD = 'upload';
+    public const SOURCE_PINTEREST = 'pinterest';
+
     protected $fillable = [
         'project_id',
         'title',
         'board_type',
+        'source_type',
+        'pinterest_board_url',
         'notes',
         'sort_order',
     ];

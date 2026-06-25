@@ -430,6 +430,63 @@
             cursor: pointer;
         }
 
+        .wm-rsvp-cover {
+            display: grid;
+            grid-template-columns: minmax(14rem, 22rem) minmax(0, 1fr);
+            gap: 1rem;
+            align-items: start;
+            padding: 1rem;
+        }
+
+        .wm-rsvp-cover-preview {
+            display: grid;
+            place-items: center;
+            min-height: 12rem;
+            border: 1px solid #eadfce;
+            border-radius: 0.9rem;
+            background: #fbf7f0;
+            color: #8b8178;
+            overflow: hidden;
+        }
+
+        .wm-rsvp-cover-preview img {
+            width: 100%;
+            height: 100%;
+            min-height: 12rem;
+            object-fit: cover;
+        }
+
+        .wm-rsvp-cover-tools {
+            display: grid;
+            gap: 0.8rem;
+        }
+
+        .wm-rsvp-cover-title {
+            margin: 0;
+            color: #2d2a26;
+            font-size: 0.9rem;
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .wm-rsvp-cover-help {
+            margin: 0;
+            color: #746d66;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .wm-rsvp-file-input {
+            display: block;
+            width: 100%;
+            border: 1px solid #ddd2c5;
+            border-radius: 0.45rem;
+            background: #fff;
+            padding: 0.65rem 0.78rem;
+            color: #2d2a26;
+        }
+
         @media (max-width: 960px) {
             .wm-rsvp-shell {
                 width: min(100%, calc(100% - 1rem));
@@ -450,6 +507,7 @@
             }
 
             .wm-rsvp-head,
+            .wm-rsvp-cover,
             .wm-rsvp-grid,
             .wm-rsvp-options-row {
                 grid-template-columns: minmax(0, 1fr);
@@ -496,6 +554,46 @@
                         <x-heroicon-o-check />
                         <span>Save</span>
                     </button>
+                </div>
+            </section>
+
+            <section class="wm-event-card wm-rsvp-cover">
+                <div class="wm-rsvp-cover-preview">
+                    @if ($rsvpCoverImage)
+                        <img src="{{ $rsvpCoverImage->temporaryUrl() }}" alt="">
+                    @elseif ($record->cover_image_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($record->cover_image_path))
+                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($record->cover_image_path) }}" alt="">
+                    @else
+                        <span>No RSVP cover image</span>
+                    @endif
+                </div>
+
+                <div class="wm-rsvp-cover-tools">
+                    <div>
+                        <h3 class="wm-rsvp-cover-title">RSVP cover image</h3>
+                        <p class="wm-rsvp-cover-help">Used as the hero image on the RSVP page. Recommended ratio: 16:9 or 4:3, at least 1600px wide.</p>
+                    </div>
+
+                    <input type="file" class="wm-rsvp-file-input" wire:model="rsvpCoverImage" accept="image/*">
+
+                    @error('rsvpCoverImage')
+                        <p class="wm-rsvp-cover-help">{{ $message }}</p>
+                    @enderror
+
+                    <div class="wm-rsvp-actions" wire:loading.remove wire:target="rsvpCoverImage,saveRsvpCoverImage,removeRsvpCoverImage">
+                        <button type="button" class="wm-rsvp-button" wire:click="saveRsvpCoverImage" @disabled(! $rsvpCoverImage)>
+                            <x-heroicon-o-check />
+                            <span>Save image</span>
+                        </button>
+                        @if ($record->cover_image_path)
+                            <button type="button" class="wm-rsvp-button is-secondary" wire:click="removeRsvpCoverImage">
+                                <x-heroicon-o-trash />
+                                <span>Remove image</span>
+                            </button>
+                        @endif
+                    </div>
+
+                    <p class="wm-rsvp-cover-help" wire:loading wire:target="rsvpCoverImage,saveRsvpCoverImage,removeRsvpCoverImage">Uploading image...</p>
                 </div>
             </section>
 

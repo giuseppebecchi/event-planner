@@ -37,9 +37,9 @@ class LeadBudgetPdfController extends Controller
         $project = $lead->project;
 
         return [
-            'couple' => $lead->couple_name ?: trim(collect([$project?->partner_one_name, $project?->partner_two_name])->filter()->implode(' & ')) ?: 'Client',
-            'email' => $project?->reference_email ?: $lead->email,
-            'phone' => $project?->primary_phone ?: $lead->phone,
+            'couple' => $lead->couple_name ?: ($project?->coupleNames() ?: '') ?: 'Client',
+            'email' => $project?->email ?: $lead->email,
+            'phone' => $project?->phone ?: $lead->phone,
             'date' => $project?->event_start_date?->format('F jS Y') ?: $lead->wedding_period ?: 'To be confirmed',
             'location' => $project?->locality ?: $project?->region ?: $lead->desired_region ?: 'Italy',
             'guests' => $project?->estimated_guest_count ?? $lead->estimated_guest_count,

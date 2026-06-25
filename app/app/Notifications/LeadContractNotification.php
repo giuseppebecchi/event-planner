@@ -70,7 +70,7 @@ class LeadContractNotification extends Notification
 
         return $this->lead->couple_name
             ?: trim(collect([$this->lead->first_name, $this->lead->last_name])->filter()->implode(' '))
-            ?: trim(collect([$project?->partner_one_name, $project?->partner_two_name])->filter()->implode(' & '))
+            ?: ($project?->coupleNames() ?: '')
             ?: $this->lead->email
             ?: 'Client';
     }

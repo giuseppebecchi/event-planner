@@ -169,11 +169,16 @@ class ViewProjectTimeline extends Page
 
         $dateRange = $this->getProjectDateRangeLabel($project);
         $location = collect([$project->locality, $project->region])->filter()->implode(', ');
-        $partners = collect([$project->partner_one_name, $project->partner_two_name])->filter()->implode(' & ');
+        $partners = $project->coupleNames();
         $coverImage = filled($project->cover_image_path)
             ? $this->imagePathToDataUri($project->cover_image_path)
             : null;
-        $leftRailImage = $this->localFileToDataUri(public_path('images/pdf/timeline-left-rail.png'));
+        $leftRailImage = filled($project->recap_left_rail_image_path)
+            ? $this->imagePathToDataUri($project->recap_left_rail_image_path)
+            : $this->localFileToDataUri(public_path('images/pdf/timeline-left-rail.png'));
+        $seatingPlans = method_exists($this, 'recapSeatingPlanPdfItems')
+            ? $this->recapSeatingPlanPdfItems()
+            : collect();
 
         $pdf = Pdf::loadView('filament.resources.project-resource.exports.timeline-pdf', [
             'project' => $project,
@@ -186,6 +191,7 @@ class ViewProjectTimeline extends Page
             'coverImage' => $coverImage,
             'leftRailImage' => $leftRailImage,
             'recapChecklistItems' => $this->getRecapChecklistPdfItems(),
+            'seatingPlans' => $seatingPlans,
             'generatedAt' => now()->format('F j, Y'),
         ])->setPaper('a4', 'portrait');
 

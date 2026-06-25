@@ -226,7 +226,7 @@ class ViewProject extends ViewRecord
         $supplierSummary = $this->getSupplierSummary();
 
         $items = collect([
-            blank($project->reference_email) ? 'Reference email is still missing.' : null,
+            blank($project->email) ? 'Main contact email is still missing.' : null,
             blank($project->locality) && blank($project->region) ? 'Event area has not been defined yet.' : null,
             $budgetSummary['categories_count'] > 0 && $budgetSummary['confirmed_count'] === 0 ? 'No category budget is confirmed yet.' : null,
             $supplierSummary['total'] > 0 && $supplierSummary['confirmed'] === 0 ? 'No supplier proposal has been confirmed yet.' : null,

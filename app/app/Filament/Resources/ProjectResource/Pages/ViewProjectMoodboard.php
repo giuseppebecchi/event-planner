@@ -12,7 +12,9 @@ use Filament\Resources\Pages\Page;
 use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\WithFileUploads;
 
 class ViewProjectMoodboard extends Page
@@ -36,6 +38,8 @@ class ViewProjectMoodboard extends Page
 
     public array $boardForm = [
         'title' => '',
+        'source_type' => ProjectMoodboard::SOURCE_UPLOAD,
+        'pinterest_board_url' => '',
         'notes' => '',
     ];
 
@@ -127,6 +131,8 @@ class ViewProjectMoodboard extends Page
                     'title' => $board->title,
                     'subtitle' => $board->notes ?: 'Custom inspiration board',
                     'accent' => $accent,
+                    'source_type' => $board->source_type ?: ProjectMoodboard::SOURCE_UPLOAD,
+                    'pinterest_board_url' => $board->pinterest_board_url,
                     'images' => $board->images->sortByDesc('created_at')->values(),
                 ];
             })
@@ -137,6 +143,8 @@ class ViewProjectMoodboard extends Page
     {
         $this->boardForm = [
             'title' => $presetTitle,
+            'source_type' => ProjectMoodboard::SOURCE_UPLOAD,
+            'pinterest_board_url' => '',
             'notes' => '',
         ];
         $this->showBoardModal = true;
@@ -147,6 +155,8 @@ class ViewProjectMoodboard extends Page
         $this->showBoardModal = false;
         $this->boardForm = [
             'title' => '',
+            'source_type' => ProjectMoodboard::SOURCE_UPLOAD,
+            'pinterest_board_url' => '',
             'notes' => '',
         ];
     }
@@ -155,11 +165,29 @@ class ViewProjectMoodboard extends Page
     {
         $data = validator($this->boardForm, [
             'title' => ['required', 'string', 'max:255'],
+            'source_type' => ['required', 'string', 'in:' . ProjectMoodboard::SOURCE_UPLOAD . ',' . ProjectMoodboard::SOURCE_PINTEREST],
+            'pinterest_board_url' => ['nullable', 'required_if:source_type,' . ProjectMoodboard::SOURCE_PINTEREST, 'url', 'max:255'],
             'notes' => ['nullable', 'string'],
         ])->validate();
 
+        $sourceType = $data['source_type'];
+        $pinterestBoardUrl = $sourceType === ProjectMoodboard::SOURCE_PINTEREST
+            ? $this->normalizePinterestBoardUrl((string) $data['pinterest_board_url'])
+            : null;
+
+        if (
+            $sourceType === ProjectMoodboard::SOURCE_PINTEREST
+            && ! $this->isPinterestBoardUrl((string) $pinterestBoardUrl)
+        ) {
+            throw ValidationException::withMessages([
+                'boardForm.pinterest_board_url' => 'Paste a public Pinterest board URL.',
+            ]);
+        }
+
         $this->getRecord()->projectMoodboards()->create([
             'title' => trim((string) $data['title']),
+            'source_type' => $sourceType,
+            'pinterest_board_url' => $pinterestBoardUrl,
             'notes' => filled($data['notes'] ?? null) ? trim((string) $data['notes']) : null,
             'board_type' => 'custom',
             'sort_order' => ((int) $this->getRecord()->projectMoodboards()->max('sort_order')) + 1,
@@ -178,6 +206,14 @@ class ViewProjectMoodboard extends Page
     {
         if (! in_array($targetType, ['supplier', 'custom'], true)) {
             return;
+        }
+
+        if ($targetType === 'custom') {
+            $board = $this->getRecord()->projectMoodboards()->find($targetId);
+
+            if ($board?->source_type === ProjectMoodboard::SOURCE_PINTEREST) {
+                return;
+            }
         }
 
         $this->imageTargetType = $targetType;
@@ -323,5 +359,75 @@ class ViewProjectMoodboard extends Page
         $this->record = $this->resolveRecord($this->getRecord()->getKey());
         $this->getRecord()->unsetRelation('projectImages');
         $this->getRecord()->unsetRelation('projectMoodboards');
+    }
+
+    protected function normalizePinterestBoardUrl(string $url): string
+    {
+        $url = $this->resolvePinterestUrl(trim($url));
+        $parts = parse_url($url);
+
+        if (! is_array($parts)) {
+            return $url;
+        }
+
+        $scheme = $parts['scheme'] ?? 'https';
+        $host = $parts['host'] ?? 'www.pinterest.com';
+        $path = rtrim($parts['path'] ?? '', '/') . '/';
+        $query = filled($parts['query'] ?? null) ? '?' . $parts['query'] : '';
+
+        return $scheme . '://' . $host . $path . $query;
+    }
+
+    protected function resolvePinterestUrl(string $url): string
+    {
+        $host = mb_strtolower((string) (parse_url($url, PHP_URL_HOST) ?? ''));
+
+        if ($host !== 'pin.it') {
+            return $url;
+        }
+
+        $effectiveUrl = $url;
+
+        try {
+            Http::timeout(8)
+                ->withOptions([
+                    'allow_redirects' => ['max' => 5],
+                    'on_stats' => function ($stats) use (&$effectiveUrl): void {
+                        if (method_exists($stats, 'getEffectiveUri')) {
+                            $effectiveUrl = (string) $stats->getEffectiveUri();
+                        }
+                    },
+                ])
+                ->get($url);
+        } catch (\Throwable) {
+            return $url;
+        }
+
+        return $effectiveUrl;
+    }
+
+    protected function isPinterestBoardUrl(string $url): bool
+    {
+        $parts = parse_url(trim($url));
+
+        if (! is_array($parts)) {
+            return false;
+        }
+
+        $host = mb_strtolower((string) ($parts['host'] ?? ''));
+
+        if (! str_contains($host, 'pinterest.')) {
+            return false;
+        }
+
+        $segments = collect(explode('/', trim((string) ($parts['path'] ?? ''), '/')))
+            ->filter()
+            ->values();
+
+        if ($segments->count() < 2) {
+            return false;
+        }
+
+        return ! in_array(mb_strtolower((string) $segments->first()), ['pin', 'search', 'ideas', 'today'], true);
     }
 }

@@ -152,7 +152,7 @@ class ViewProjectChecklist extends Page
     {
         $items = $this->getManagedChecklistItems();
         $record = $this->getRecord();
-        $clientLabel = collect([$record->partner_one_name, $record->partner_two_name])->filter()->implode(' & ');
+        $clientLabel = $record->coupleNames();
 
         $sections = collect([
             [
@@ -586,7 +586,7 @@ class ViewProjectChecklist extends Page
 
     protected function getClientInitials(Project $project): string
     {
-        $initials = collect([$project->partner_one_name, $project->partner_two_name])
+        $initials = collect([$project->mainContactName(), $project->secondaryContactName()])
             ->filter(fn ($name): bool => filled($name))
             ->map(fn (string $name): string => mb_strtoupper(mb_substr(trim($name), 0, 1)))
             ->values();

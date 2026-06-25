@@ -643,6 +643,45 @@
             resize: vertical;
         }
 
+        .wm-moodboard-error {
+            margin-top: 0.35rem;
+            color: #b42318;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .wm-moodboard-source {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.7rem;
+        }
+
+        .wm-moodboard-source-option {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            min-height: 2.8rem;
+            padding: 0.75rem 0.9rem;
+            border: 1px solid #ddd1c3;
+            border-radius: 0.95rem;
+            background: #fff;
+            color: #4f453b;
+            font-weight: 700;
+        }
+
+        .wm-moodboard-pinterest-embed {
+            margin-top: 1rem;
+            overflow: hidden;
+            border-radius: 1.1rem;
+            border: 1px solid #eadfd2;
+            background: #fff;
+            min-height: 28rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 0.8rem;
+        }
+
         .wm-moodboard-toggle {
             display: inline-flex;
             align-items: center;
@@ -861,23 +900,40 @@
                                         <h3 class="wm-moodboard-board-title">{{ $board['title'] }}</h3>
                                         <p class="wm-moodboard-board-subtitle">{{ $board['subtitle'] }}</p>
                                         <div class="wm-moodboard-board-meta">
-                                            <span class="wm-moodboard-tag">{{ $board['images']->count() }} images</span>
-                                            <span class="wm-moodboard-tag">Custom board</span>
+                                            @if ($board['source_type'] === \App\Models\ProjectMoodboard::SOURCE_PINTEREST)
+                                                <span class="wm-moodboard-tag">Pinterest</span>
+                                                <span class="wm-moodboard-tag">Embedded board</span>
+                                            @else
+                                                <span class="wm-moodboard-tag">{{ $board['images']->count() }} images</span>
+                                                <span class="wm-moodboard-tag">Upload board</span>
+                                            @endif
                                         </div>
                                     </div>
 
                                     <div class="wm-moodboard-board-actions">
-                                        <button type="button" class="wm-moodboard-link" wire:click="openImageModal('custom', {{ $board['id'] }})">
-                                            <x-heroicon-o-photo />
-                                            <span>Add image</span>
-                                        </button>
+                                        @if ($board['source_type'] !== \App\Models\ProjectMoodboard::SOURCE_PINTEREST)
+                                            <button type="button" class="wm-moodboard-link" wire:click="openImageModal('custom', {{ $board['id'] }})">
+                                                <x-heroicon-o-photo />
+                                                <span>Add image</span>
+                                            </button>
+                                        @endif
                                         <button type="button" class="wm-moodboard-icon-button is-danger" wire:click="promptDeleteBoard({{ $board['id'] }})">
                                             <x-heroicon-o-trash />
                                         </button>
                                     </div>
                                 </div>
 
-                                @if ($board['images']->isEmpty())
+                                @if ($board['source_type'] === \App\Models\ProjectMoodboard::SOURCE_PINTEREST)
+                                    <div class="wm-moodboard-pinterest-embed" wire:ignore>
+                                        <a
+                                            data-pin-do="embedBoard"
+                                            data-pin-board-width="900"
+                                            data-pin-scale-height="640"
+                                            data-pin-scale-width="160"
+                                            href="{{ $board['pinterest_board_url'] }}"
+                                        ></a>
+                                    </div>
+                                @elseif ($board['images']->isEmpty())
                                     <div class="wm-moodboard-empty">This board is ready. Add the first image to start shaping its direction.</div>
                                 @else
                                     <div class="wm-moodboard-masonry">
@@ -923,7 +979,34 @@
                 <div class="wm-moodboard-field">
                     <label for="moodboard-title">Board title</label>
                     <input id="moodboard-title" type="text" class="wm-moodboard-input" wire:model="boardForm.title">
+                    @error('boardForm.title')
+                        <p class="wm-moodboard-error">{{ $message }}</p>
+                    @enderror
                 </div>
+
+                <div class="wm-moodboard-field">
+                    <label>Source</label>
+                    <div class="wm-moodboard-source">
+                        <label class="wm-moodboard-source-option">
+                            <input type="radio" value="{{ \App\Models\ProjectMoodboard::SOURCE_UPLOAD }}" wire:model.live="boardForm.source_type">
+                            <span>Upload</span>
+                        </label>
+                        <label class="wm-moodboard-source-option">
+                            <input type="radio" value="{{ \App\Models\ProjectMoodboard::SOURCE_PINTEREST }}" wire:model.live="boardForm.source_type">
+                            <span>Pinterest</span>
+                        </label>
+                    </div>
+                </div>
+
+                @if (($boardForm['source_type'] ?? \App\Models\ProjectMoodboard::SOURCE_UPLOAD) === \App\Models\ProjectMoodboard::SOURCE_PINTEREST)
+                    <div class="wm-moodboard-field">
+                        <label for="moodboard-pinterest-url">Pinterest board URL</label>
+                        <input id="moodboard-pinterest-url" type="url" class="wm-moodboard-input" wire:model="boardForm.pinterest_board_url">
+                        @error('boardForm.pinterest_board_url')
+                            <p class="wm-moodboard-error">{{ $message }}</p>
+                        @enderror
+                    </div>
+                @endif
 
                 <div class="wm-moodboard-field">
                     <label for="moodboard-notes">Notes</label>
@@ -1026,4 +1109,23 @@
             </div>
         @endif
     </div>
+
+    @once
+        <script async defer src="https://assets.pinterest.com/js/pinit.js" data-pin-build="wmBuildPinterestWidgets"></script>
+    @endonce
+
+    <script>
+        (() => {
+            const buildPinterestWidgets = () => {
+                window.wmBuildPinterestWidgets?.();
+            };
+
+            document.addEventListener('DOMContentLoaded', buildPinterestWidgets);
+            document.addEventListener('livewire:navigated', buildPinterestWidgets);
+
+            document.addEventListener('livewire:init', () => {
+                window.Livewire?.hook?.('morph.updated', buildPinterestWidgets);
+            });
+        })();
+    </script>
 </x-filament-panels::page>

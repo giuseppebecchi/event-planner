@@ -57,7 +57,7 @@ class EditProject extends EditRecord
 
     public function sendCustomerCredentials(string $field): void
     {
-        if (! in_array($field, ['reference_email', 'partner_2_reference_email'], true)) {
+        if (! in_array($field, ['email', 'secondary_email'], true)) {
             abort(404);
         }
 

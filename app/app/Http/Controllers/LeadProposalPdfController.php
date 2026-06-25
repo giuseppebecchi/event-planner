@@ -38,7 +38,7 @@ class LeadProposalPdfController extends Controller
         $planningRows = $this->planningRows($lead);
 
         return [
-            'couple_name' => $lead->couple_name ?: trim(collect([$project?->partner_one_name, $project?->partner_two_name])->filter()->implode(' & ')),
+            'couple_name' => $lead->couple_name ?: ($project?->coupleNames() ?: ''),
             'proposal_title' => Str::upper(sprintf("Wedding in %s\n%s", $region, $period)),
             'offer_title' => Str::upper($this->mainOfferLabel($mainOffer, $guestText)),
             'main_fee' => $mainFee ?: $this->money($project?->budget_amount ?? $lead->budget_amount) ?: 'Tuscany: 6900 euros',

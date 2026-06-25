@@ -1,0 +1,38 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        if (! Schema::hasColumn('project_moodboards', 'source_type')) {
+            Schema::table('project_moodboards', function (Blueprint $table): void {
+                $table->string('source_type')->default('upload')->after('board_type');
+            });
+        }
+
+        if (! Schema::hasColumn('project_moodboards', 'pinterest_board_url')) {
+            Schema::table('project_moodboards', function (Blueprint $table): void {
+                $table->string('pinterest_board_url')->nullable()->after('source_type');
+            });
+        }
+    }
+
+    public function down(): void
+    {
+        if (Schema::hasColumn('project_moodboards', 'pinterest_board_url')) {
+            Schema::table('project_moodboards', function (Blueprint $table): void {
+                $table->dropColumn('pinterest_board_url');
+            });
+        }
+
+        if (Schema::hasColumn('project_moodboards', 'source_type')) {
+            Schema::table('project_moodboards', function (Blueprint $table): void {
+                $table->dropColumn('source_type');
+            });
+        }
+    }
+};

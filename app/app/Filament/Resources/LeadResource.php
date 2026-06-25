@@ -18,6 +18,8 @@ use Filament\Forms\Components;
 use Filament\Navigation\NavigationItem;
 use Filament\Resources\Resource;
 use Filament\Resources\Pages\Page;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -58,76 +60,117 @@ class LeadResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Inquiry')
-                ->description('Capture the first contact and qualification details.')
-                ->icon('heroicon-o-sparkles')
-                ->columns(3)
+            Grid::make([
+                'default' => 1,
+                'xl' => 2,
+            ])
+                ->columnSpanFull()
                 ->schema([
-                    Components\DatePicker::make('requested_at')
-                        ->label('Inquiry date')
-                        ->native(false),
-                    Components\Select::make('source')
-                        ->label('Source')
-                        ->options(Lead::SOURCE_OPTIONS)
-                        ->searchable(),
-                    Components\TextInput::make('couple_name')
-                        ->label('Couple name')
-                        ->required()
-                        ->maxLength(255),
-                    Components\TextInput::make('budget_amount')
-                        ->label('Estimated budget')
-                        ->numeric()
-                        ->prefix('EUR')
-                        ->step(0.01)
-                        ->minValue(0),
-                    Components\Toggle::make('venue_included_in_budget')
-                        ->label('Venue included in budget')
-                        ->helperText('When converted into a project, enabled means the recap totals include Venue; disabled means Venue is tracked separately from estimated, confirmed, and working totals.'),
-                    Components\Select::make('status')
-                        ->label('Lead status')
-                        ->options(Lead::STATUS_OPTIONS)
-                        ->default('new')
-                        ->required(),
-                    Components\Select::make('evaluation_outcome')
-                        ->label('Evaluation outcome')
-                        ->options(Lead::EVALUATION_OUTCOME_OPTIONS)
-                        ->default('maybe')
-                        ->required(),
-                    Components\TextInput::make('estimated_guest_count')
-                        ->label('Estimated guests')
-                        ->numeric()
-                        ->minValue(0),
-                    Components\TextInput::make('wedding_period')
-                        ->label('Wedding period or month')
-                        ->maxLength(255),
-                    Components\TextInput::make('desired_region')
-                        ->label('Preferred region')
-                        ->maxLength(255),
-                ]),
+                    Section::make('Inquiry')
+                        ->description('Capture the first contact and qualification details.')
+                        ->icon('heroicon-o-sparkles')
+                        ->columnSpan([
+                            'default' => 1,
+                            'xl' => 1,
+                        ])
+                        ->columns(3)
+                        ->schema([
+                            Components\DatePicker::make('requested_at')
+                                ->label('Inquiry date')
+                                ->native(false),
+                            Components\Select::make('source')
+                                ->label('Source')
+                                ->options(Lead::SOURCE_OPTIONS)
+                                ->searchable(),
+                            Components\TextInput::make('couple_name')
+                                ->label('Couple name')
+                                ->required()
+                                ->maxLength(255),
+                            Components\TextInput::make('budget_amount')
+                                ->label('Estimated budget')
+                                ->numeric()
+                                ->prefix('EUR')
+                                ->step(0.01)
+                                ->minValue(0),
+                            Components\Toggle::make('venue_included_in_budget')
+                                ->label('Venue included in budget')
+                                ->helperText('If enabled, project totals include Venue; otherwise Venue is tracked separately.'),
+                            Components\Select::make('status')
+                                ->label('Lead status')
+                                ->options(Lead::STATUS_OPTIONS)
+                                ->default('new')
+                                ->required(),
+                            Components\Select::make('evaluation_outcome')
+                                ->label('Evaluation outcome')
+                                ->options(Lead::EVALUATION_OUTCOME_OPTIONS)
+                                ->default('maybe')
+                                ->required(),
+                            Components\TextInput::make('estimated_guest_count')
+                                ->label('Estimated guests')
+                                ->numeric()
+                                ->minValue(0),
+                            Components\TextInput::make('desired_region')
+                                ->label('Preferred region')
+                                ->maxLength(255),
+                            Components\TextInput::make('wedding_period')
+                                ->label('Dates, period or month')
+                                ->maxLength(255),
+                            Components\TextInput::make('wedding_date')
+                                ->label('Wedding date')
+                                ->maxLength(255),
+                        ]),
 
-            Section::make('Contacts')
-                ->description('Primary communication details for the couple.')
-                ->icon('heroicon-o-envelope')
-                ->columns(3)
-                ->schema([
-                    Components\TextInput::make('first_name')
-                        ->label('First name')
-                        ->maxLength(255),
-                    Components\TextInput::make('last_name')
-                        ->label('Last name')
-                        ->maxLength(255),
-                    Components\TextInput::make('email')
-                        ->label('Email')
-                        ->email()
-                        ->maxLength(255)
-                        ->columnSpan(1),
-                    Components\TextInput::make('phone')
-                        ->label('Phone')
-                        ->tel()
-                        ->maxLength(50),
-                    Components\TextInput::make('nationality')
-                        ->label('Nationality')
-                        ->maxLength(100),
+                    Group::make()
+                        ->columnSpan(1)
+                        ->schema([
+                            Section::make('Main Contact')
+                                ->description('Primary communication details for the couple.')
+                                ->icon('heroicon-o-envelope')
+                                ->columns(4)
+                                ->schema([
+                                    Components\TextInput::make('first_name')
+                                        ->label('First name')
+                                        ->maxLength(255),
+                                    Components\TextInput::make('last_name')
+                                        ->label('Last name')
+                                        ->maxLength(255),
+                                    Components\TextInput::make('email')
+                                        ->label('Email')
+                                        ->email()
+                                        ->maxLength(255),
+                                    Components\TextInput::make('phone')
+                                        ->label('Phone')
+                                        ->tel()
+                                        ->maxLength(50),
+                                    Components\TextInput::make('nationality')
+                                        ->label('Nationality')
+                                        ->maxLength(100),
+                                    Components\TextInput::make('address')
+                                        ->label('Address')
+                                        ->columnSpan(2),
+                                ]),
+
+                            Section::make('Partner Contact')
+                                ->description('Secondary communication details for the partner.')
+                                ->icon('heroicon-o-user-plus')
+                                ->columns(4)
+                                ->schema([
+                                    Components\TextInput::make('secondary_first_name')
+                                        ->label('First name')
+                                        ->maxLength(255),
+                                    Components\TextInput::make('secondary_last_name')
+                                        ->label('Last name')
+                                        ->maxLength(255),
+                                    Components\TextInput::make('secondary_email')
+                                        ->label('Email')
+                                        ->email()
+                                        ->maxLength(255),
+                                    Components\TextInput::make('secondary_phone')
+                                        ->label('Phone')
+                                        ->tel()
+                                        ->maxLength(50),
+                                ]),
+                        ]),
                 ]),
 
             Section::make('Ceremony and venue')
@@ -141,12 +184,18 @@ class LeadResource extends Resource
                     Components\Select::make('location_request_type')
                         ->label('Venue request')
                         ->options(Lead::LOCATION_REQUEST_TYPE_OPTIONS),
-                    Components\Textarea::make('ceremony_details')
+                    Components\TextInput::make('venue')
+                        ->label('Venue (already defined)')
+                        ->maxLength(255),
+                    Components\TextInput::make('estimated_timings')
+                        ->label('Estimated timings')
+                        ->maxLength(255),
+                    Components\TextInput::make('ceremony_details')
                         ->label('Religious ceremony details / notes')
-                        ->rows(4),
-                    Components\Textarea::make('additional_events')
+                        ->maxLength(255),
+                    Components\TextInput::make('additional_events')
                         ->label('Events before / after the wedding')
-                        ->rows(4),
+                        ->maxLength(255),
                 ]),
 
             Section::make('Style and internal notes')
@@ -154,13 +203,13 @@ class LeadResource extends Resource
                 ->icon('heroicon-o-swatch')
                 ->columns(2)
                 ->schema([
-                    Components\Textarea::make('style_description')
+                    Components\TextInput::make('style_description')
                         ->label('Wedding style')
-                        ->rows(6)
+                        ->maxLength(255)
                         ->columnSpanFull(),
                     Components\Textarea::make('internal_notes')
                         ->label('Internal notes')
-                        ->rows(6)
+                        ->rows(4)
                         ->columnSpanFull(),
                 ]),
         ]);
@@ -338,7 +387,7 @@ class LeadResource extends Resource
                     TextEntry::make('desired_region')
                         ->label('Region'),
                 ]),
-            Section::make('Contacts')
+            Section::make('Main Contact')
                 ->icon('heroicon-o-envelope')
                 ->columns(4)
                 ->schema([
@@ -352,8 +401,26 @@ class LeadResource extends Resource
                         ->label('Phone'),
                     TextEntry::make('nationality')
                         ->label('Nationality'),
+                    TextEntry::make('address')
+                        ->label('Address')
+                        ->columnSpanFull(),
                     TextEntry::make('wedding_period')
                         ->label('Wedding period'),
+                    TextEntry::make('wedding_date')
+                        ->label('Wedding date'),
+                ]),
+            Section::make('Partner Contact')
+                ->icon('heroicon-o-user-plus')
+                ->columns(4)
+                ->schema([
+                    TextEntry::make('secondary_first_name')
+                        ->label('First name'),
+                    TextEntry::make('secondary_last_name')
+                        ->label('Last name'),
+                    TextEntry::make('secondary_email')
+                        ->label('Email'),
+                    TextEntry::make('secondary_phone')
+                        ->label('Phone'),
                 ]),
             Section::make('Ceremony and venue')
                 ->icon('heroicon-o-building-library')
@@ -365,6 +432,10 @@ class LeadResource extends Resource
                     TextEntry::make('location_request_type')
                         ->label('Venue request')
                         ->formatStateUsing(fn (?string $state): ?string => $state ? (Lead::LOCATION_REQUEST_TYPE_OPTIONS[$state] ?? $state) : null),
+                    TextEntry::make('venue')
+                        ->label('Venue (already defined)'),
+                    TextEntry::make('estimated_timings')
+                        ->label('Estimated timings'),
                     TextEntry::make('additional_events')
                         ->label('Additional events')
                         ->columnSpanFull(),

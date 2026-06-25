@@ -129,8 +129,8 @@ class SendPaymentRemindersCommand extends Command
     protected function paymentRecipients(Payment $payment): Collection
     {
         return collect([
-            $payment->project?->reference_email,
-            $payment->project?->partner_2_reference_email,
+            $payment->project?->email,
+            $payment->project?->secondary_email,
         ])
             ->filter(fn ($email): bool => is_string($email) && filter_var($email, FILTER_VALIDATE_EMAIL))
             ->unique()

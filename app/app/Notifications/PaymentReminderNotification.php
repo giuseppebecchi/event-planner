@@ -86,12 +86,6 @@ class PaymentReminderNotification extends Notification
             return 'there';
         }
 
-        return collect([
-            $project->partner_one_name,
-            $project->partner_two_name,
-        ])
-            ->filter()
-            ->implode(' & ')
-            ?: $project->name;
+        return $project->coupleNames() ?: $project->name;
     }
 }

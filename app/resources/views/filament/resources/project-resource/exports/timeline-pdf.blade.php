@@ -5,21 +5,23 @@
     <title>{{ $project->name }} Timeline</title>
     <style>
         @page { margin: 0; }
+        @font-face { font-family: 'CinzelPdf'; font-style: normal; font-weight: 400; src: url('{{ public_path('fonts/pdf/Cinzel-Regular.ttf') }}') format('truetype'); }
         body { margin: 0; font-family: DejaVu Sans, sans-serif; color: #231d18; font-size: 11px; line-height: 1.55; background: #f8f4ee; }
         h1, h2, h3, p { margin: 0; }
         .page { position: relative; width: 100%; page-break-after: always; background: #f7f3ed; overflow: hidden; }
         .page:last-child { page-break-after: auto; }
-        .page-shell { position: relative; padding-left: 232px; }
-        .left-rail { position: absolute; inset: 0 auto 0 0; width: 232px; background: #e9dfd3; }
+        .page-shell { position: relative; padding-left: 136px; }
+        .left-rail { position: absolute; inset: 0 auto 0 0; width: 136px; background: #e9dfd3; }
         .left-rail.has-image { background-size: cover; background-position: center; }
+        .left-rail-image { position: absolute; inset: 0; width: 136px; height: 1046px; }
         .left-rail-overlay { position: absolute; inset: 0; background: rgba(248, 243, 237, 0.14); }
         .left-rail-copy { position: absolute; left: 28px; right: 24px; bottom: 36px; color: rgba(255, 255, 255, 0.94); font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; }
-        .page-main { position: relative; padding: 34px 48px 42px 34px; background: #fcfaf6; min-height: 1046px; }
+        .page-main { position: relative; padding: 34px 48px 42px 38px; background: #fcfaf6; min-height: 1046px; }
         .corner-flower-top, .corner-flower-bottom { position: absolute; background: radial-gradient(circle at center, rgba(230, 188, 179, 0.85) 0, rgba(230, 188, 179, 0.55) 42%, rgba(230, 188, 179, 0) 72%); pointer-events: none; }
         .corner-flower-top { top: -28px; right: -18px; width: 180px; height: 180px; }
         .corner-flower-bottom { right: -34px; bottom: -34px; width: 170px; height: 170px; background: radial-gradient(circle at center, rgba(208, 228, 220, 0.95) 0, rgba(208, 228, 220, 0.45) 44%, rgba(208, 228, 220, 0) 76%); }
-        .headline-serif { font-family: DejaVu Serif, serif; }
-        .hero-name { max-width: 500px; color: #1a1410; font-size: 42px; line-height: 0.94; font-weight: 700; letter-spacing: 0.01em; }
+        .headline-serif { font-family: 'CinzelPdf', DejaVu Serif, serif; font-weight: 400; }
+        .hero-name { max-width: 540px; color: #1a1410; font-size: 54px; line-height: 0.95; font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; }
         .hero-meta { margin-top: 18px; color: #211c17; font-size: 18px; letter-spacing: 0.28em; text-transform: uppercase; }
         .hero-submeta { margin-top: 4px; color: #211c17; font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; }
         .hero-guests { margin-top: 10px; color: #4d433a; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; }
@@ -66,6 +68,15 @@
         .recap-title { color: #1f1914; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
         .recap-meta { margin-top: 4px; color: #8c8176; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; }
         .recap-html { margin-top: 9px; color: #302923; font-size: 11px; line-height: 1.65; }
+        .seating-card { margin-top: 18px; page-break-inside: avoid; }
+        .seating-title { color: #1f1914; font-size: 15px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+        .seating-meta { margin-top: 4px; color: #8c8176; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; }
+        .seating-preview { margin-top: 12px; padding: 10px; border: 1px solid #e5d8ca; background: #fff; text-align: center; }
+        .seating-preview img { max-width: 100%; max-height: 420px; }
+        .seating-svg { width: 100%; max-height: 420px; overflow: hidden; }
+        .seating-notes { margin-top: 10px; color: #463f37; font-size: 10px; line-height: 1.5; }
+        .seating-tables { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .seating-tables td { padding: 7px 8px; border-bottom: 1px solid #eee4da; color: #4b433b; font-size: 9px; }
         .suppliers { width: 100%; border-collapse: collapse; margin-top: 10px; }
         .suppliers th { padding: 10px 8px; background: #f1e5d9; color: #342d26; font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; text-align: left; }
         .suppliers td { padding: 11px 8px; border-bottom: 1px solid #e8ded1; vertical-align: top; color: #4b433b; }
@@ -300,6 +311,53 @@
             </div>
         </section>
     @endif
+
+    @foreach (($seatingPlans ?? collect()) as $plan)
+        <section class="page">
+            <div class="page-shell">
+                <aside class="left-rail {{ $leftRailImage ? 'has-image' : '' }}" @if ($leftRailImage) style="background-image: url('{{ $leftRailImage }}')" @endif>
+                    @if ($leftRailImage)
+                        <img class="left-rail-image" src="{{ $leftRailImage }}" alt="">
+                    @endif
+                    <div class="left-rail-overlay"></div>
+                    <div class="left-rail-copy">{{ $plan['type'] }}</div>
+                </aside>
+
+                <div class="page-main">
+                    <div class="corner-flower-bottom"></div>
+                    <div class="section-band">Seating plan</div>
+                    <p class="section-copy">Layout preview and table summary included in the operational recap.</p>
+
+                    <div class="seating-card">
+                        <h3 class="seating-title">{{ $plan['name'] }}</h3>
+                        <p class="seating-meta">{{ $plan['type'] }} | {{ $plan['tables']->count() }} seating items</p>
+
+                        @if ($plan['preview'])
+                            <div class="seating-preview"><img src="{{ $plan['preview'] }}" alt=""></div>
+                        @elseif ($plan['map_svg'])
+                            <div class="seating-preview seating-svg">{!! $plan['map_svg'] !!}</div>
+                        @endif
+
+                        @if ($plan['notes'])
+                            <div class="seating-notes">{!! nl2br(e($plan['notes'])) !!}</div>
+                        @endif
+
+                        @if ($plan['tables']->isNotEmpty())
+                            <table class="seating-tables">
+                                @foreach ($plan['tables'] as $table)
+                                    <tr>
+                                        <td>{{ $table['name'] ?: 'Seating item' }}</td>
+                                        <td>{{ $table['type'] }}</td>
+                                        <td>{{ $table['seats'] }} seats</td>
+                                    </tr>
+                                @endforeach
+                            </table>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </section>
+    @endforeach
 
     <section class="page">
         <div class="page-shell">

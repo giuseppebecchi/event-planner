@@ -10,12 +10,16 @@ use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 
 class ManageProjectRsvpConfiguration extends Page
 {
     use InteractsWithRecord;
     use InteractsWithProjectDateEditor;
+    use WithFileUploads;
 
     protected static string $resource = ProjectResource::class;
 
@@ -26,6 +30,8 @@ class ManageProjectRsvpConfiguration extends Page
     protected Width|string|null $maxContentWidth = Width::Full;
 
     public array $fields = [];
+
+    public ?TemporaryUploadedFile $rsvpCoverImage = null;
 
     public function mount(int|string $record): void
     {
@@ -102,6 +108,59 @@ class ManageProjectRsvpConfiguration extends Page
     public function resetDefaults(): void
     {
         $this->fields = $this->normalizeFields(Project::defaultRsvpConfiguration()['fields']);
+    }
+
+    public function saveRsvpCoverImage(): void
+    {
+        $this->validate([
+            'rsvpCoverImage' => ['required', 'image', 'max:5120'],
+        ]);
+
+        $project = $this->getRecord();
+        $oldPath = $project->cover_image_path;
+        $path = $this->rsvpCoverImage?->store('projects/covers', 'public');
+
+        if (! $path) {
+            return;
+        }
+
+        $project->forceFill([
+            'cover_image_path' => $path,
+        ])->save();
+
+        if ($oldPath && $oldPath !== $path) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        $this->rsvpCoverImage = null;
+        $this->record = $project->fresh();
+
+        Notification::make()
+            ->title('RSVP cover image saved')
+            ->success()
+            ->send();
+    }
+
+    public function removeRsvpCoverImage(): void
+    {
+        $project = $this->getRecord();
+        $oldPath = $project->cover_image_path;
+
+        $project->forceFill([
+            'cover_image_path' => null,
+        ])->save();
+
+        if ($oldPath) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        $this->rsvpCoverImage = null;
+        $this->record = $project->fresh();
+
+        Notification::make()
+            ->title('RSVP cover image removed')
+            ->success()
+            ->send();
     }
 
     public function saveRsvpConfiguration(): void
