@@ -462,6 +462,17 @@
             background: #fff;
         }
 
+        .wm-payment-item.is-clickable {
+            cursor: pointer;
+            transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+        }
+
+        .wm-payment-item.is-clickable:hover {
+            border-color: rgba(46, 74, 98, 0.28);
+            box-shadow: 0 12px 24px rgba(45, 42, 38, 0.08);
+            transform: translateY(-1px);
+        }
+
         .wm-payment-item.is-paid {
             opacity: 0.62;
         }
@@ -549,6 +560,61 @@
         .wm-payment-status.is-overdue {
             background: rgba(197, 65, 65, 0.13);
             color: #9b2f2f;
+        }
+
+        .wm-payment-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+            align-items: center;
+        }
+
+        .wm-payment-link {
+            appearance: none;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            color: #2e4a62;
+            font-size: 0.74rem;
+            font-weight: 800;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .wm-payment-registration {
+            display: grid;
+            gap: 0.75rem;
+            margin-top: 0.2rem;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e8e3dc;
+            background: #fbf8f4;
+        }
+
+        .wm-payment-registration-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0.65rem;
+        }
+
+        .wm-payment-registration label {
+            display: block;
+            margin-bottom: 0.28rem;
+            color: #746d66;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .wm-payment-registration input {
+            width: 100%;
+            border: 1px solid #ded4c8;
+            border-radius: 0.65rem;
+            background: #fff;
+            padding: 0.55rem 0.65rem;
+            color: #2d2a26;
+            font-size: 0.82rem;
         }
 
         .wm-supplier-empty {
@@ -706,8 +772,14 @@
                                     : null;
                                 $showDueSoon = $daysUntilDue !== null && $daysUntilDue >= 0 && $daysUntilDue <= 30;
                                 $proposal = $payment->categoryBudgetSupplier;
+                                $isOpen = (bool) ($this->openPaymentRegistrations[$payment->id] ?? false);
                             @endphp
-                            <article class="wm-payment-item {{ $isPaid ? 'is-paid' : '' }} {{ $isOverdue ? 'is-overdue' : '' }}">
+                            <article
+                                class="wm-payment-item {{ ! $isPaid && ! $isOpen ? 'is-clickable' : '' }} {{ $isPaid ? 'is-paid' : '' }} {{ $isOverdue ? 'is-overdue' : '' }}"
+                                @if (! $isPaid && ! $isOpen)
+                                    wire:click="startPaymentRegistration({{ $payment->id }})"
+                                @endif
+                            >
                                 <div class="wm-payment-topline">
                                     <p class="wm-payment-title">{{ $payment->reason ?: 'Payment' }}</p>
                                     <span class="wm-payment-amount">EUR {{ number_format((float) $payment->amount, 2, ',', '.') }}</span>
@@ -729,6 +801,44 @@
                                     @endif
                                 </p>
                                 <span class="wm-payment-status {{ $isPaid ? 'is-paid' : '' }} {{ $isOverdue ? 'is-overdue' : '' }}">{{ $statusLabel }}</span>
+
+                                <div class="wm-payment-actions">
+                                    @if ($payment->paymentReceiptDocument)
+                                        <a
+                                            href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($payment->paymentReceiptDocument->file_path) }}"
+                                            target="_blank"
+                                            class="wm-payment-link"
+                                            onclick="event.stopPropagation()"
+                                        >
+                                            Open receipt
+                                        </a>
+                                    @endif
+                                    @if (! $isPaid && ! $isOpen)
+                                        <button type="button" class="wm-payment-link" wire:click.stop="startPaymentRegistration({{ $payment->id }})">
+                                            Register payment
+                                        </button>
+                                    @endif
+                                </div>
+
+                                @if (! $isPaid && $isOpen)
+                                    <div class="wm-payment-registration">
+                                        <div class="wm-payment-registration-grid">
+                                            <div>
+                                                <label for="project-payment-paid-at-{{ $payment->id }}">Payment date</label>
+                                                <input id="project-payment-paid-at-{{ $payment->id }}" type="date" wire:model="paymentCompletionForms.{{ $payment->id }}.paid_at">
+                                            </div>
+                                            <div>
+                                                <label for="project-payment-receipt-{{ $payment->id }}">Payment receipt</label>
+                                                <input id="project-payment-receipt-{{ $payment->id }}" type="file" wire:model="paymentCompletionReceiptUploads.{{ $payment->id }}">
+                                            </div>
+                                        </div>
+
+                                        <div class="wm-payment-actions">
+                                            <x-filament::button color="primary" wire:click="registerScheduledPayment({{ $payment->id }})">Confirm payment</x-filament::button>
+                                            <button type="button" class="wm-payment-link" wire:click="cancelPaymentRegistration({{ $payment->id }})">Cancel</button>
+                                        </div>
+                                    </div>
+                                @endif
                             </article>
                         @endforeach
                     </div>
