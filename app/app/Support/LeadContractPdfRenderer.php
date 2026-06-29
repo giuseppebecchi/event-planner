@@ -2,9 +2,11 @@
 
 namespace App\Support;
 
+use App\Models\Config;
 use App\Models\Lead;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class LeadContractPdfRenderer
@@ -79,6 +81,7 @@ class LeadContractPdfRenderer
             'email' => $lead->email,
             'phone' => $lead->phone,
             'nationality' => $lead->nationality,
+            'city' => $lead->city,
             'secondary_first_name' => $lead->secondary_first_name,
             'secondary_last_name' => $lead->secondary_last_name,
             'secondary_email' => $lead->secondary_email,
@@ -105,6 +108,7 @@ class LeadContractPdfRenderer
             'project_last_name' => $project?->last_name,
             'project_email' => $project?->email,
             'project_phone' => $project?->phone,
+            'project_city' => $project?->city,
             'project_secondary_first_name' => $project?->secondary_first_name,
             'project_secondary_last_name' => $project?->secondary_last_name,
             'project_secondary_email' => $project?->secondary_email,
@@ -131,15 +135,53 @@ class LeadContractPdfRenderer
             'force_majeure_credit_until' => $this->forceMajeureCreditUntil($project?->event_start_date),
         ];
 
-        return preg_replace_callback('/{{\s*([a-zA-Z0-9_]+)\s*}}/', function (array $matches) use ($values): string {
-            $value = $values[$matches[1]] ?? null;
+        return preg_replace_callback('/{{\s*([a-zA-Z0-9_-]+)\s*}}/', function (array $matches) use ($values): string {
+            $key = $matches[1];
+            $value = $values[$key] ?? null;
 
             if ($value === null || $value === '') {
+                $configHtml = $this->configPlaceholderHtml($key);
+
+                if ($configHtml !== null) {
+                    return $configHtml;
+                }
+
                 return '<span class="missing-value">To be confirmed</span>';
             }
 
             return e((string) $value);
         }, $content) ?? $content;
+    }
+
+    protected function configPlaceholderHtml(string $slug): ?string
+    {
+        $config = Config::query()
+            ->where('slug', $slug)
+            ->first();
+
+        if (! $config) {
+            return null;
+        }
+
+        if ($config->type === Config::TYPE_IMAGE && filled($config->img)) {
+            $path = Storage::disk('public')->path((string) $config->img);
+
+            if (! is_file($path)) {
+                return null;
+            }
+
+            return sprintf(
+                '<img src="%s" alt="%s" style="width:45mm;height:auto;">',
+                e($path),
+                e($config->label),
+            );
+        }
+
+        if ($config->type === Config::TYPE_TEXT && filled($config->text)) {
+            return e((string) $config->text);
+        }
+
+        return null;
     }
 
     protected function contractTotalFee(Lead $lead): ?string

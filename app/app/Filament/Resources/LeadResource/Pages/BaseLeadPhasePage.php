@@ -4,6 +4,7 @@ namespace App\Filament\Resources\LeadResource\Pages;
 
 use App\Filament\Resources\LeadResource;
 use App\Filament\Resources\LeadResource\Pages\Concerns\InteractsWithLeadPhaseContent;
+use App\Models\Config;
 use App\Models\Lead;
 use App\Models\Template;
 use Filament\Actions\Action;
@@ -12,6 +13,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 abstract class BaseLeadPhasePage extends Page
@@ -34,6 +36,11 @@ abstract class BaseLeadPhasePage extends Page
     }
 
     public function getPhaseContentHtml(): string
+    {
+        return $this->renderConfigPlaceholders($this->getRawPhaseContentHtml());
+    }
+
+    protected function getRawPhaseContentHtml(): string
     {
         /** @var Lead $lead */
         $lead = $this->getRecord();
@@ -85,7 +92,7 @@ abstract class BaseLeadPhasePage extends Page
             ->icon('heroicon-o-pencil-square')
             ->color('gray')
             ->fillForm(fn (): array => [
-                'phaseContentDraft' => $this->getPhaseContentHtml(),
+                'phaseContentDraft' => $this->getRawPhaseContentHtml(),
             ])
             ->form([
                 RichEditor::make('phaseContentDraft')
@@ -169,6 +176,7 @@ abstract class BaseLeadPhasePage extends Page
             'email' => $lead->email,
             'phone' => $lead->phone,
             'nationality' => $lead->nationality,
+            'city' => $lead->city,
             'secondary_first_name' => $lead->secondary_first_name,
             'secondary_last_name' => $lead->secondary_last_name,
             'secondary_email' => $lead->secondary_email,
@@ -195,6 +203,7 @@ abstract class BaseLeadPhasePage extends Page
             'project_last_name' => $project?->last_name,
             'project_email' => $project?->email,
             'project_phone' => $project?->phone,
+            'project_city' => $project?->city,
             'project_secondary_first_name' => $project?->secondary_first_name,
             'project_secondary_last_name' => $project?->secondary_last_name,
             'project_secondary_email' => $project?->secondary_email,
@@ -222,7 +231,7 @@ abstract class BaseLeadPhasePage extends Page
             'force_majeure_credit_until' => null,
         ];
 
-        return preg_replace_callback('/{{\s*([a-zA-Z0-9_]+)\s*}}/', function (array $matches) use ($values): string {
+        return preg_replace_callback('/{{\s*([a-zA-Z0-9_-]+)\s*}}/', function (array $matches) use ($values): string {
             $key = $matches[1];
             $value = $values[$key] ?? null;
 
@@ -241,6 +250,40 @@ abstract class BaseLeadPhasePage extends Page
         }
 
         return Carbon::parse($value)->format('F jS Y');
+    }
+
+    protected function renderConfigPlaceholders(string $content): string
+    {
+        return preg_replace_callback('/{{\s*([a-zA-Z0-9_-]+)\s*}}/', function (array $matches): string {
+            return $this->configPlaceholderHtml($matches[1]) ?? $matches[0];
+        }, $content) ?? $content;
+    }
+
+    protected function configPlaceholderHtml(string $slug): ?string
+    {
+        $config = Config::query()
+            ->where('slug', $slug)
+            ->first();
+
+        if (! $config) {
+            return null;
+        }
+
+        if ($config->type === Config::TYPE_IMAGE && filled($config->img)) {
+            $src = Storage::disk('public')->url((string) $config->img);
+
+            return sprintf(
+                '<img src="%s" alt="%s" style="max-width:220px;height:auto;">',
+                e($src),
+                e($config->label),
+            );
+        }
+
+        if ($config->type === Config::TYPE_TEXT && filled($config->text)) {
+            return e((string) $config->text);
+        }
+
+        return null;
     }
 
     protected function formatDateTime(mixed $value): ?string

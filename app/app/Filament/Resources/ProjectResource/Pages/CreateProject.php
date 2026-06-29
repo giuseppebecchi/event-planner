@@ -33,6 +33,7 @@ class CreateProject extends CreateRecord
                     'secondary_email',
                     'secondary_phone',
                     'nationality',
+                    'city',
                     'address',
                     'budget_amount',
                     'venue_included_in_budget',
@@ -50,6 +51,7 @@ class CreateProject extends CreateRecord
                 'secondary_email',
                 'secondary_phone',
                 'nationality',
+                'city',
                 'address',
             ] as $field) {
                 if (blank($data[$field] ?? null)) {

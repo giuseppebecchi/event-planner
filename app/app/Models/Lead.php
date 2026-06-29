@@ -69,6 +69,7 @@ class Lead extends Model
         'email',
         'phone',
         'nationality',
+        'city',
         'address',
         'secondary_first_name',
         'secondary_last_name',

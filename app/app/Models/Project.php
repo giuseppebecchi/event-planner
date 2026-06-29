@@ -56,6 +56,7 @@ class Project extends Model
         'secondary_email',
         'secondary_phone',
         'nationality',
+        'city',
         'preferred_language',
         'address',
         'private_notes',

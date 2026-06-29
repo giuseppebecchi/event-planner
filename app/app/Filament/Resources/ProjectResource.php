@@ -222,6 +222,9 @@ class ProjectResource extends Resource
                                     Components\TextInput::make('nationality')
                                         ->label('Nationality')
                                         ->maxLength(100),
+                                    Components\TextInput::make('city')
+                                        ->label('City')
+                                        ->maxLength(255),
                                     Components\TextInput::make('address')
                                         ->label('Address')
                                         ->columnSpan(2),

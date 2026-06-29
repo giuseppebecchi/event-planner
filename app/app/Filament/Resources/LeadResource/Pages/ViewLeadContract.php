@@ -198,6 +198,7 @@ class ViewLeadContract extends BaseLeadPhasePage
             'email' => $lead->email,
             'phone' => $lead->phone,
             'nationality' => $lead->nationality,
+            'city' => $lead->city,
             'address' => $lead->address,
             'secondary_first_name' => $lead->secondary_first_name,
             'secondary_last_name' => $lead->secondary_last_name,
