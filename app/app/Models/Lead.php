@@ -82,6 +82,7 @@ class Lead extends Model
         'ceremony_details',
         'location_request_type',
         'venue',
+        'ceremony_location',
         'estimated_timings',
         'additional_events',
         'budget_amount',

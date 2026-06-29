@@ -98,6 +98,72 @@
             margin-top: 0;
         }
 
+        .lead-phase-html--contract {
+            background: #ffffff;
+            border-color: #d7e1d4;
+            color: #1f2f2a;
+            font-size: 0.92rem;
+            line-height: 1.72;
+            text-align: justify;
+        }
+
+        .lead-phase-html--contract h1 {
+            margin: 0 0 1.5rem;
+            color: #36554d;
+            font-size: clamp(1.15rem, 2vw, 1.55rem);
+            font-weight: 400;
+            letter-spacing: 0.12em;
+            line-height: 1.35;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .lead-phase-html--contract h2 {
+            margin: 1.65rem 0 0.7rem;
+            padding: 0.62rem 0.78rem;
+            border-left: 4px solid #3f7538;
+            background: #eef6ec;
+            color: #2f4b44;
+            font-size: 1rem;
+            font-weight: 400;
+            letter-spacing: 0.1em;
+            line-height: 1.3;
+            text-transform: none;
+        }
+
+        .lead-phase-html--contract h3 {
+            margin: 1.2rem 0 0.45rem;
+            color: #2f4b44;
+            font-size: 0.95rem;
+            font-weight: 500;
+            letter-spacing: 0.06em;
+        }
+
+        .lead-phase-html--contract p {
+            margin: 0 0 0.75rem;
+        }
+
+        .lead-phase-html--contract ul,
+        .lead-phase-html--contract ol {
+            margin: 0 0 0.85rem 1.35rem;
+            padding-left: 1rem;
+        }
+
+        .lead-phase-html--contract li {
+            margin-bottom: 0.45rem;
+            padding-left: 0.15rem;
+        }
+
+        .lead-phase-html--contract strong {
+            color: #162923;
+            font-weight: 700;
+        }
+
+        .lead-phase-html--contract .missing-value {
+            color: #756325;
+            font-style: italic;
+        }
+
         .lead-phase-empty {
             min-height: 14rem;
             display: flex;
@@ -250,7 +316,7 @@
                 </div>
 
                 @if (filled($phaseContentHtml))
-                    <div class="lead-phase-html">{!! $phaseContentHtml !!}</div>
+                    <div class="lead-phase-html {{ str_contains(strtolower($phaseTitle), 'contract') ? 'lead-phase-html--contract' : '' }}">{!! $phaseContentHtml !!}</div>
                 @else
                     <div class="lead-phase-empty">{{ $phaseEmptyCopy }}</div>
                 @endif

@@ -185,10 +185,13 @@ class LeadResource extends Resource
                         ->label('Venue request')
                         ->options(Lead::LOCATION_REQUEST_TYPE_OPTIONS),
                     Components\TextInput::make('venue')
-                        ->label('Venue (already defined)')
+                        ->label('Venue/reception (already defined)')
                         ->maxLength(255),
                     Components\TextInput::make('estimated_timings')
                         ->label('Estimated timings')
+                        ->maxLength(255),
+                    Components\TextInput::make('ceremony_location')
+                        ->label('Ceremony location')
                         ->maxLength(255),
                     Components\TextInput::make('ceremony_details')
                         ->label('Religious ceremony details / notes')
@@ -433,7 +436,9 @@ class LeadResource extends Resource
                         ->label('Venue request')
                         ->formatStateUsing(fn (?string $state): ?string => $state ? (Lead::LOCATION_REQUEST_TYPE_OPTIONS[$state] ?? $state) : null),
                     TextEntry::make('venue')
-                        ->label('Venue (already defined)'),
+                        ->label('Venue/reception (already defined)'),
+                    TextEntry::make('ceremony_location')
+                        ->label('Ceremony location'),
                     TextEntry::make('estimated_timings')
                         ->label('Estimated timings'),
                     TextEntry::make('additional_events')

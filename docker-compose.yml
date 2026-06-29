@@ -1,5 +1,6 @@
 services:
   app:
+    image: ciuster/wedding-manager-app
     build:
       context: ./docker/php/
       dockerfile: Dockerfile
