@@ -94,6 +94,26 @@ class ViewLeadBudgetComposition extends Page
         $this->data['budget_wedding_planner_special_packages'] = array_values($this->data['budget_wedding_planner_special_packages']);
     }
 
+    public function getBudgetTotals(): array
+    {
+        $vendorsTotal = $this->rowsTotal($this->data['budget_vendors'] ?? []);
+        $weddingPlannerTotal = $this->rowsTotal($this->data['budget_wedding_planner'] ?? []);
+        $extraServicesTotal = $this->rowsTotal($this->data['budget_wedding_planner_extra_services'] ?? []);
+        $specialPackagesTotal = $this->rowsTotal($this->data['budget_wedding_planner_special_packages'] ?? []);
+        $grandTotal = $vendorsTotal + $weddingPlannerTotal + $extraServicesTotal + $specialPackagesTotal;
+        $clientBudget = $this->getRecord()->budget_amount !== null ? (float) $this->getRecord()->budget_amount : null;
+
+        return [
+            'vendors_total' => $vendorsTotal,
+            'wedding_planner_total' => $weddingPlannerTotal,
+            'extra_services_total' => $extraServicesTotal,
+            'special_packages_total' => $specialPackagesTotal,
+            'grand_total' => $grandTotal,
+            'client_budget' => $clientBudget,
+            'difference' => $clientBudget !== null ? $grandTotal - $clientBudget : null,
+        ];
+    }
+
     protected function getInitialData(): array
     {
         $record = $this->getRecord();
@@ -214,6 +234,21 @@ class ViewLeadBudgetComposition extends Page
             ->when($excludeWeddingPlanner, fn (Collection $rows): Collection => $rows->reject(fn (array $row): bool => $this->isWeddingPlannerRow($row)))
             ->values()
             ->all();
+    }
+
+    protected function rowsTotal(array $rows): float
+    {
+        return collect($rows)
+            ->sum(fn (array $row): float => $this->numericAmount($row['amount'] ?? null));
+    }
+
+    protected function numericAmount(mixed $value): float
+    {
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+
+        return (float) str_replace(',', '.', (string) $value);
     }
 
     protected function isWeddingPlannerRow(array $row): bool

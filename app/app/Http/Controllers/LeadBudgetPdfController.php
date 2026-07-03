@@ -92,7 +92,7 @@ class LeadBudgetPdfController extends Controller
                 ];
             })
             ->when($excludeWeddingPlanner, fn ($rows) => $rows->reject(fn (array $row): bool => $this->isWeddingPlannerRow($row)))
-            ->filter(fn (array $row): bool => $row['label'] !== '' || $row['notes'] !== '' || $row['amount'] > 0)
+            ->filter(fn (array $row): bool => $row['amount'] > 0)
             ->values()
             ->all();
     }

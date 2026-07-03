@@ -1,4 +1,9 @@
 <x-filament-panels::page>
+    @php
+        $budgetTotals = $this->getBudgetTotals();
+        $budgetDifference = $budgetTotals['difference'];
+    @endphp
+
     <style>
         .lead-budget-layout {
             display: flex;
@@ -40,6 +45,97 @@
 
         .lead-budget-panel + .lead-budget-panel {
             margin-top: 14px;
+        }
+
+        .lead-budget-recap {
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) repeat(3, minmax(0, 0.65fr));
+            gap: 12px;
+            align-items: stretch;
+            border: 1px solid #eadfd4;
+            border-radius: 18px;
+            background: #fffdf9;
+            padding: 14px;
+            box-shadow: 0 10px 24px rgba(93, 70, 55, 0.04);
+        }
+
+        .lead-budget-recap-intro {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .lead-budget-recap-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: #5d4637;
+        }
+
+        .lead-budget-recap-copy {
+            margin: 0;
+            font-size: 13px;
+            line-height: 1.55;
+            color: #8f6f57;
+        }
+
+        .lead-budget-recap-card {
+            border: 1px solid #eadfd4;
+            border-radius: 14px;
+            background: #fff8f1;
+            padding: 12px;
+        }
+
+        .lead-budget-recap-label {
+            margin: 0;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: #9e846f;
+        }
+
+        .lead-budget-recap-value {
+            margin: 6px 0 0;
+            font-size: 20px;
+            font-weight: 800;
+            line-height: 1.15;
+            color: #5d4637;
+        }
+
+        .lead-budget-recap-value.is-positive {
+            color: #2f7d45;
+        }
+
+        .lead-budget-recap-value.is-negative {
+            color: #bd5a41;
+        }
+
+        .lead-budget-breakdown {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            padding-top: 2px;
+        }
+
+        .lead-budget-breakdown-item {
+            border-top: 1px solid #f1e8df;
+            padding-top: 10px;
+        }
+
+        .lead-budget-breakdown-label {
+            margin: 0;
+            font-size: 11px;
+            color: #9e846f;
+        }
+
+        .lead-budget-breakdown-value {
+            margin: 4px 0 0;
+            font-size: 13px;
+            font-weight: 700;
+            color: #5d4637;
         }
 
         .lead-budget-panel-title {
@@ -156,7 +252,9 @@
         }
 
         @media (max-width: 1100px) {
-            .lead-budget-columns {
+            .lead-budget-columns,
+            .lead-budget-recap,
+            .lead-budget-breakdown {
                 grid-template-columns: 1fr;
             }
         }
@@ -171,6 +269,54 @@
                 </div>
             </div>
         </div>
+
+        <section class="lead-budget-recap">
+            <div class="lead-budget-recap-intro">
+                <p class="lead-budget-eyebrow">Total recap</p>
+                <h3 class="lead-budget-recap-title">Budget total summary</h3>
+                <p class="lead-budget-recap-copy">
+                    Includes vendor budget, wedding planner fee, extra services, and special packages currently entered below.
+                </p>
+            </div>
+            <div class="lead-budget-recap-card">
+                <p class="lead-budget-recap-label">Total budget</p>
+                <p class="lead-budget-recap-value">EUR {{ number_format($budgetTotals['grand_total'], 2, ',', '.') }}</p>
+            </div>
+            <div class="lead-budget-recap-card">
+                <p class="lead-budget-recap-label">Client budget</p>
+                <p class="lead-budget-recap-value">
+                    {{ $budgetTotals['client_budget'] !== null ? 'EUR ' . number_format($budgetTotals['client_budget'], 2, ',', '.') : '-' }}
+                </p>
+            </div>
+            <div class="lead-budget-recap-card">
+                <p class="lead-budget-recap-label">Difference</p>
+                <p class="lead-budget-recap-value {{ $budgetDifference !== null ? ($budgetDifference > 0 ? 'is-negative' : ($budgetDifference < 0 ? 'is-positive' : '')) : '' }}">
+                    @if ($budgetDifference === null)
+                        -
+                    @else
+                        {{ $budgetDifference === 0.0 ? 'EUR 0,00' : (($budgetDifference > 0 ? '+ ' : '- ') . 'EUR ' . number_format(abs($budgetDifference), 2, ',', '.')) }}
+                    @endif
+                </p>
+            </div>
+            <div class="lead-budget-breakdown">
+                <div class="lead-budget-breakdown-item">
+                    <p class="lead-budget-breakdown-label">Vendor budget</p>
+                    <p class="lead-budget-breakdown-value">EUR {{ number_format($budgetTotals['vendors_total'], 2, ',', '.') }}</p>
+                </div>
+                <div class="lead-budget-breakdown-item">
+                    <p class="lead-budget-breakdown-label">Wedding planner</p>
+                    <p class="lead-budget-breakdown-value">EUR {{ number_format($budgetTotals['wedding_planner_total'], 2, ',', '.') }}</p>
+                </div>
+                <div class="lead-budget-breakdown-item">
+                    <p class="lead-budget-breakdown-label">Extra services</p>
+                    <p class="lead-budget-breakdown-value">EUR {{ number_format($budgetTotals['extra_services_total'], 2, ',', '.') }}</p>
+                </div>
+                <div class="lead-budget-breakdown-item">
+                    <p class="lead-budget-breakdown-label">Special packages</p>
+                    <p class="lead-budget-breakdown-value">EUR {{ number_format($budgetTotals['special_packages_total'], 2, ',', '.') }}</p>
+                </div>
+            </div>
+        </section>
 
         <form wire:submit="save">
             <div class="lead-budget-columns">
@@ -201,7 +347,7 @@
                                         <input class="lead-budget-input" type="text" placeholder="notes" wire:model="data.budget_vendors.{{ $index }}.notes">
                                     </td>
                                     <td>
-                                        <input class="lead-budget-input" type="text" wire:model="data.budget_vendors.{{ $index }}.amount">
+                                        <input class="lead-budget-input" type="text" wire:model.live.debounce.500ms="data.budget_vendors.{{ $index }}.amount">
                                     </td>
                                 </tr>
                             @endforeach
@@ -227,7 +373,7 @@
                                 @foreach(($data['budget_wedding_planner'] ?? []) as $index => $row)
                                     <tr>
                                         <td><textarea class="lead-budget-textarea" wire:model="data.budget_wedding_planner.{{ $index }}.label"></textarea></td>
-                                        <td><input class="lead-budget-input" type="text" wire:model="data.budget_wedding_planner.{{ $index }}.amount"></td>
+                                        <td><input class="lead-budget-input" type="text" wire:model.live.debounce.500ms="data.budget_wedding_planner.{{ $index }}.amount"></td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -251,7 +397,7 @@
                                 @foreach(($data['budget_wedding_planner_extra_services'] ?? []) as $index => $row)
                                     <tr>
                                         <td><textarea class="lead-budget-textarea" wire:model="data.budget_wedding_planner_extra_services.{{ $index }}.label"></textarea></td>
-                                        <td><input class="lead-budget-input" type="text" wire:model="data.budget_wedding_planner_extra_services.{{ $index }}.amount"></td>
+                                        <td><input class="lead-budget-input" type="text" wire:model.live.debounce.500ms="data.budget_wedding_planner_extra_services.{{ $index }}.amount"></td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -278,7 +424,7 @@
                                             <textarea class="lead-budget-textarea" wire:model="data.budget_wedding_planner_special_packages.{{ $index }}.label"></textarea>
                                             <button class="lead-budget-remove" type="button" wire:click="removeSpecialPackage({{ $index }})">Remove row</button>
                                         </td>
-                                        <td><input class="lead-budget-input" type="text" wire:model="data.budget_wedding_planner_special_packages.{{ $index }}.amount"></td>
+                                        <td><input class="lead-budget-input" type="text" wire:model.live.debounce.500ms="data.budget_wedding_planner_special_packages.{{ $index }}.amount"></td>
                                     </tr>
                                 @endforeach
                             </tbody>
