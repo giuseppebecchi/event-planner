@@ -43,6 +43,7 @@ services:
       - laravel
     depends_on:
       - app
+      - adminer
 
 
   db:
@@ -72,11 +73,8 @@ services:
   adminer:
     image: adminer
     restart: always
-    ports:
-      - target: 8080
-        published: ${ADMINER_PORT:-8080}
-        protocol: tcp
-        mode: host
+    expose:
+      - "8080"
     networks:
       - laravel
     depends_on:

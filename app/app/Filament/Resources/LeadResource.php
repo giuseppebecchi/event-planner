@@ -259,6 +259,11 @@ class LeadResource extends Resource
                 TextColumn::make('desired_region')
                     ->label('Region')
                     ->searchable(),
+                TextColumn::make('wedding_date')
+                    ->label('Wedding date')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('estimated_guest_count')
                     ->label('Guests')
                     ->numeric()
