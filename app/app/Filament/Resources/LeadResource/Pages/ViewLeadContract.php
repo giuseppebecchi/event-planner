@@ -211,7 +211,8 @@ class ViewLeadContract extends BaseLeadPhasePage
             'budget_amount' => $lead->budget_amount,
             'venue_included_in_budget' => (bool) $lead->venue_included_in_budget,
             'status' => 'confirmed',
-            'private_notes' => $lead->internal_notes,
+            'style_description' => $lead->style_description,
+            'internal_notes' => $lead->internal_notes,
         ];
 
         if ($this->isIsoDate($lead->wedding_date)) {

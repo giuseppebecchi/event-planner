@@ -38,6 +38,8 @@ class CreateProject extends CreateRecord
                     'budget_amount',
                     'venue_included_in_budget',
                     'wedding_period',
+                    'style_description',
+                    'internal_notes',
                 ])
                 ->find($data['lead_id']);
 
@@ -65,6 +67,14 @@ class CreateProject extends CreateRecord
 
             if (blank($data['wedding_period'] ?? null)) {
                 $data['wedding_period'] = $lead?->wedding_period;
+            }
+
+            if (blank($data['style_description'] ?? null)) {
+                $data['style_description'] = $lead?->style_description;
+            }
+
+            if (blank($data['internal_notes'] ?? null)) {
+                $data['internal_notes'] = $lead?->internal_notes;
             }
 
             $data['venue_included_in_budget'] = (bool) ($lead?->venue_included_in_budget ?? false);
