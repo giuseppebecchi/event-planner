@@ -188,6 +188,21 @@ class ProjectResource extends Resource
                                         ->label('Logistics notes')
                                         ->columnSpan(2),
                                 ]),
+
+                            Section::make('Style and internal notes')
+                                ->description('Moodboard direction, planner notes and internal context.')
+                                ->icon('heroicon-o-swatch')
+                                ->columns(2)
+                                ->schema([
+                                    Components\TextInput::make('style_description')
+                                        ->label('Wedding style')
+                                        ->maxLength(255)
+                                        ->columnSpanFull(),
+                                    Components\Textarea::make('internal_notes')
+                                        ->label('Internal notes')
+                                        ->rows(4)
+                                        ->columnSpanFull(),
+                                ]),
                         ]),
 
                     Group::make()
@@ -249,21 +264,6 @@ class ProjectResource extends Resource
                             View::make('filament.resources.project-resource.pages.partials.customer-credentials')
                                 ->visible(fn (string $operation): bool => $operation === 'edit'),
                         ]),
-                ]),
-
-            Section::make('Style and internal notes')
-                ->description('Moodboard direction, planner notes and internal context.')
-                ->icon('heroicon-o-swatch')
-                ->columns(2)
-                ->schema([
-                    Components\TextInput::make('style_description')
-                        ->label('Wedding style')
-                        ->maxLength(255)
-                        ->columnSpanFull(),
-                    Components\Textarea::make('internal_notes')
-                        ->label('Internal notes')
-                        ->rows(4)
-                        ->columnSpanFull(),
                 ]),
         ]);
     }
