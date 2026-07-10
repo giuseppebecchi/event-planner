@@ -18,6 +18,9 @@ use Illuminate\Support\HtmlString;
 
 class ViewLeadProposal extends BaseLeadPhasePage
 {
+    protected const PROPOSAL_TEMPLATE_TUSCANY = 'tuscany';
+    protected const PROPOSAL_TEMPLATE_LAKE_COMO = 'lake_como';
+
     protected static ?string $breadcrumb = 'Proposal';
 
     protected function getPhaseContentField(): string
@@ -177,6 +180,33 @@ class ViewLeadProposal extends BaseLeadPhasePage
             });
     }
 
+    public function generatePhaseAction(): Action
+    {
+        return Action::make('generatePhase')
+            ->label($this->getGenerateActionLabel())
+            ->icon('heroicon-o-sparkles')
+            ->color('primary')
+            ->modalHeading('Confirm proposal creation')
+            ->modalDescription('Confirm the creation of the proposal? The current proposal will be deleted.')
+            ->fillForm(fn (): array => [
+                'proposal_template' => $this->proposalTemplate(),
+            ])
+            ->form([
+                Select::make('proposal_template')
+                    ->label('Template')
+                    ->options([
+                        self::PROPOSAL_TEMPLATE_TUSCANY => 'TUSCANY',
+                        self::PROPOSAL_TEMPLATE_LAKE_COMO => 'LAKE COMO',
+                    ])
+                    ->default(self::PROPOSAL_TEMPLATE_TUSCANY)
+                    ->required(),
+            ])
+            ->action(function (array $data): void {
+                $this->saveProposalTemplate((string) ($data['proposal_template'] ?? self::PROPOSAL_TEMPLATE_TUSCANY));
+                $this->generatePhaseContentFromTemplate();
+            });
+    }
+
     public function configureProposalImagesAction(): Action
     {
         return Action::make('configureProposalImages')
@@ -199,7 +229,10 @@ class ViewLeadProposal extends BaseLeadPhasePage
                 $lead = $this->getRecord();
 
                 $lead->forceFill([
-                    'proposal_images_json_config' => $this->normalizeProposalImageConfig($data['proposal_images_json_config'] ?? []),
+                    'proposal_images_json_config' => [
+                        ...$this->normalizeProposalImageConfig($data['proposal_images_json_config'] ?? []),
+                        'template' => $this->proposalTemplate(),
+                    ],
                 ])->save();
 
                 Notification::make()->title('Proposal images saved')->success()->send();
@@ -320,14 +353,54 @@ class ViewLeadProposal extends BaseLeadPhasePage
         $customPath = $this->normalizeProposalImagePath($lead->proposal_images_json_config[$key] ?? null);
         $url = filled($customPath) && Storage::disk('public')->exists($customPath)
             ? Storage::disk('public')->url($customPath)
-            : asset('images/proposal/'.$slot['default']);
+            : asset($this->proposalDefaultImagePath($slot['default']));
 
         return sprintf(
-            '<div style="display:grid;gap:.5rem;"><img src="%s" alt="%s" style="width:100%%;max-width:260px;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid #e5ded6;"><span style="font-size:12px;color:#7b7167;">%s</span></div>',
+            '<div style="display:grid;gap:.5rem;"><img src="%s" alt="%s" style="width:100%%;max-width:260px;aspect-ratio:4/3;object-fit:contain;background:#f8f4ef;border-radius:8px;border:1px solid #e5ded6;"><span style="font-size:12px;color:#7b7167;">%s</span></div>',
             e($url),
             e($slot['label']),
             filled($customPath) ? 'Current: custom image' : 'Current: default image'
         );
+    }
+
+    protected function proposalTemplate(): string
+    {
+        /** @var Lead $lead */
+        $lead = $this->getRecord();
+        $template = (string) ($lead->proposal_images_json_config['template'] ?? self::PROPOSAL_TEMPLATE_TUSCANY);
+
+        return in_array($template, [self::PROPOSAL_TEMPLATE_TUSCANY, self::PROPOSAL_TEMPLATE_LAKE_COMO], true)
+            ? $template
+            : self::PROPOSAL_TEMPLATE_TUSCANY;
+    }
+
+    protected function saveProposalTemplate(string $template): void
+    {
+        /** @var Lead $lead */
+        $lead = $this->getRecord();
+        $template = in_array($template, [self::PROPOSAL_TEMPLATE_TUSCANY, self::PROPOSAL_TEMPLATE_LAKE_COMO], true)
+            ? $template
+            : self::PROPOSAL_TEMPLATE_TUSCANY;
+
+        $lead->forceFill([
+            'proposal_images_json_config' => [
+                ...(is_array($lead->proposal_images_json_config) ? $lead->proposal_images_json_config : []),
+                'template' => $template,
+            ],
+        ])->save();
+    }
+
+    protected function proposalDefaultImagePath(string $filename): string
+    {
+        if ($this->proposalTemplate() === self::PROPOSAL_TEMPLATE_LAKE_COMO) {
+            $lakeComoPath = 'images/proposal/lake-como/'.$filename;
+
+            if (is_file(public_path($lakeComoPath))) {
+                return $lakeComoPath;
+            }
+        }
+
+        return 'images/proposal/'.$filename;
     }
 
     protected function proposalImageSlots(): array

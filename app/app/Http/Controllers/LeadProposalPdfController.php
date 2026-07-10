@@ -11,6 +11,9 @@ use Illuminate\Support\Str;
 
 class LeadProposalPdfController extends Controller
 {
+    protected const PROPOSAL_TEMPLATE_TUSCANY = 'tuscany';
+    protected const PROPOSAL_TEMPLATE_LAKE_COMO = 'lake_como';
+
     public function __invoke(Lead $lead)
     {
         $lead->loadMissing('project');
@@ -39,9 +42,9 @@ class LeadProposalPdfController extends Controller
 
         return [
             'couple_name' => $lead->couple_name ?: ($project?->coupleNames() ?: ''),
-            'proposal_title' => Str::upper(sprintf("Wedding in %s\n%s", $region, $period)),
+            'proposal_title' => $this->proposalTitle($lead, $region, $period),
             'offer_title' => Str::upper($this->mainOfferLabel($mainOffer, $guestText)),
-            'main_fee' => $mainFee ?: $this->money($project?->budget_amount ?? $lead->budget_amount) ?: 'Tuscany: 6900 euros',
+            'main_fee' => $mainFee ?: $this->money($project?->budget_amount ?? $lead->budget_amount) ?: $this->defaultMainFee($lead),
             'planning_rows_left' => $planningRows->get(0, []),
             'planning_rows_right' => $planningRows->get(1, []),
             'extra_rows' => $extraRows ?: $this->defaultExtraRows(),
@@ -248,6 +251,22 @@ class LeadProposalPdfController extends Controller
         return Carbon::parse($value)->format('F Y');
     }
 
+    protected function proposalTitle(Lead $lead, string $region, string $period): string
+    {
+        if ($this->proposalTemplate($lead) === self::PROPOSAL_TEMPLATE_LAKE_COMO) {
+            return Str::upper(sprintf("Wedding Lake Como\n%s", $period));
+        }
+
+        return Str::upper(sprintf("Wedding in %s\n%s", $region, $period));
+    }
+
+    protected function defaultMainFee(Lead $lead): string
+    {
+        return $this->proposalTemplate($lead) === self::PROPOSAL_TEMPLATE_LAKE_COMO
+            ? 'Lake Como: 6900 euros'
+            : 'Tuscany: 6900 euros';
+    }
+
     protected function proposalImages(Lead $lead): array
     {
         $defaults = [
@@ -271,16 +290,39 @@ class LeadProposalPdfController extends Controller
         $config = is_array($lead->proposal_images_json_config) ? $lead->proposal_images_json_config : [];
 
         return collect($defaults)
-            ->map(function (string $defaultPath, string $key) use ($config): string {
+            ->map(function (string $defaultPath, string $key) use ($config, $lead): string {
                 if (in_array($key, ['logo', 'social_block'], true)) {
                     return public_path($defaultPath);
                 }
 
                 $customPath = $this->customProposalImagePath($config[$key] ?? null);
 
-                return $customPath ?: public_path($defaultPath);
+                return $customPath ?: public_path($this->defaultProposalImagePath($lead, basename($defaultPath)));
             })
             ->all();
+    }
+
+    protected function proposalTemplate(Lead $lead): string
+    {
+        $config = is_array($lead->proposal_images_json_config) ? $lead->proposal_images_json_config : [];
+        $template = (string) ($config['template'] ?? self::PROPOSAL_TEMPLATE_TUSCANY);
+
+        return in_array($template, [self::PROPOSAL_TEMPLATE_TUSCANY, self::PROPOSAL_TEMPLATE_LAKE_COMO], true)
+            ? $template
+            : self::PROPOSAL_TEMPLATE_TUSCANY;
+    }
+
+    protected function defaultProposalImagePath(Lead $lead, string $filename): string
+    {
+        if ($this->proposalTemplate($lead) === self::PROPOSAL_TEMPLATE_LAKE_COMO) {
+            $lakeComoPath = 'images/proposal/lake-como/'.$filename;
+
+            if (is_file(public_path($lakeComoPath))) {
+                return $lakeComoPath;
+            }
+        }
+
+        return 'images/proposal/'.$filename;
     }
 
     protected function customProposalImagePath(mixed $value): ?string

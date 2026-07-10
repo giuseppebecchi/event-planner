@@ -29,6 +29,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Carbon;
 
 class ProjectResource extends Resource
 {
@@ -153,12 +154,15 @@ class ProjectResource extends Resource
                                                 ->label('Start date')
                                                 ->visible(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
                                                 ->required(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
+                                                ->live()
                                                 ->native(false),
                                             Components\DatePicker::make('event_end_date')
                                                 ->label('End date')
                                                 ->visible(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
                                                 ->required(fn (callable $get): bool => (bool) $get('event_spans_multiple_days'))
                                                 ->afterOrEqual('event_start_date')
+                                                ->minDate(fn (callable $get): ?string => filled($get('event_start_date')) ? (string) $get('event_start_date') : null)
+                                                ->defaultFocusedDate(fn (callable $get): ?string => filled($get('event_start_date')) ? Carbon::parse($get('event_start_date'))->addDay()->toDateString() : null)
                                                 ->native(false),
                                         ])
                                         ->columnSpanFull(),
@@ -346,6 +350,15 @@ class ProjectResource extends Resource
         unset($data['event_spans_multiple_days']);
 
         return $data;
+    }
+
+    public static function eventSpansMultipleDaysFromFormData(array $data): bool
+    {
+        if (blank($data['event_start_date'] ?? null) || blank($data['event_end_date'] ?? null)) {
+            return false;
+        }
+
+        return ! Carbon::parse($data['event_start_date'])->isSameDay(Carbon::parse($data['event_end_date']));
     }
 
     public static function getPages(): array

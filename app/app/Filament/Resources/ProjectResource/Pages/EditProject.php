@@ -55,6 +55,13 @@ class EditProject extends EditRecord
         return ProjectResource::normalizeEventDateFormData($data);
     }
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $data['event_spans_multiple_days'] = ProjectResource::eventSpansMultipleDaysFromFormData($data);
+
+        return $data;
+    }
+
     public function sendCustomerCredentials(string $field): void
     {
         if (! in_array($field, ['email', 'secondary_email'], true)) {

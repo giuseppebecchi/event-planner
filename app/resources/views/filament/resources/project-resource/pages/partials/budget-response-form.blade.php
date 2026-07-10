@@ -67,22 +67,24 @@
                 </x-filament::button>
             </div>
 
-            <datalist id="cost-item-suggestions-{{ $responseFormKey }}">
-                @foreach ($costItemSuggestions as $suggestion)
-                    <option value="{{ $suggestion }}"></option>
-                @endforeach
-            </datalist>
-
             <div class="wm-cost-items">
                 @forelse (($responseForm['cost_items_json'] ?? []) as $costItemIndex => $costItem)
+                    @php
+                        $selectedCostItemLabel = (string) ($costItem['label'] ?? '');
+                    @endphp
                     <div class="wm-cost-item-row" wire:key="cost-item-{{ $responseFormKey }}-{{ $costItemIndex }}">
-                        <input
-                            type="text"
-                            class="wm-scout-field"
-                            list="cost-item-suggestions-{{ $responseFormKey }}"
-                            placeholder="Item"
+                        <select
+                            class="wm-scout-select wm-cost-item-select"
                             wire:model="responseForm.cost_items_json.{{ $costItemIndex }}.label"
                         >
+                            <option value="">Item</option>
+                            @if ($selectedCostItemLabel !== '' && ! collect($costItemSuggestions)->contains($selectedCostItemLabel))
+                                <option value="{{ $selectedCostItemLabel }}">{{ $selectedCostItemLabel }}</option>
+                            @endif
+                            @foreach ($costItemSuggestions as $suggestion)
+                                <option value="{{ $suggestion }}">{{ $suggestion }}</option>
+                            @endforeach
+                        </select>
                         <input
                             type="number"
                             step="0.01"
@@ -98,6 +100,12 @@
                     <div class="wm-scout-empty">No cost items added yet.</div>
                 @endforelse
             </div>
+
+            @if ($this->hasPrefilledResponseCostItems())
+                <p class="wm-cost-item-note">
+                    Where possible, leave the items unchanged to allow quotes to be compared.
+                </p>
+            @endif
         </div>
 
         <input type="hidden" wire:model="responseForm.proposal_status">

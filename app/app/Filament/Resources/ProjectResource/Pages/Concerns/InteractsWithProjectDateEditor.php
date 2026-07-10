@@ -28,10 +28,31 @@ trait InteractsWithProjectDateEditor
             'is_multi_day' => $isMultiDay,
             'event_date' => $eventDate?->format('Y-m-d') ?? ($startDate?->format('Y-m-d') ?? ''),
             'start_date' => $startDate?->format('Y-m-d') ?? '',
-            'end_date' => $endDate?->format('Y-m-d') ?? ($startDate?->format('Y-m-d') ?? ''),
+            'end_date' => $isMultiDay ? ($endDate?->format('Y-m-d') ?? '') : '',
         ];
 
         $this->showProjectDateEditor = true;
+    }
+
+    public function updatedProjectDateFormIsMultiDay(bool $isMultiDay): void
+    {
+        if (! $isMultiDay) {
+            $this->projectDateForm['start_date'] = '';
+            $this->projectDateForm['end_date'] = '';
+
+            return;
+        }
+
+        if (blank($this->projectDateForm['start_date'] ?? null)) {
+            $this->projectDateForm['start_date'] = $this->projectDateForm['event_date'] ?? '';
+        }
+
+        $this->fillProjectDateEditorEndDateFromStart();
+    }
+
+    public function updatedProjectDateFormStartDate(): void
+    {
+        $this->fillProjectDateEditorEndDateFromStart();
     }
 
     public function cancelProjectDateEditor(): void
@@ -72,5 +93,16 @@ trait InteractsWithProjectDateEditor
             ->title('Event date updated')
             ->success()
             ->send();
+    }
+
+    protected function fillProjectDateEditorEndDateFromStart(): void
+    {
+        if (blank($this->projectDateForm['start_date'] ?? null) || filled($this->projectDateForm['end_date'] ?? null)) {
+            return;
+        }
+
+        $this->projectDateForm['end_date'] = Carbon::parse($this->projectDateForm['start_date'])
+            ->addDay()
+            ->toDateString();
     }
 }

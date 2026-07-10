@@ -666,6 +666,19 @@
             color: #2d2a26;
         }
 
+        .wm-scout-select {
+            appearance: none;
+            padding-right: 2.75rem;
+            background-image:
+                linear-gradient(45deg, transparent 50%, #746d66 50%),
+                linear-gradient(135deg, #746d66 50%, transparent 50%);
+            background-position:
+                calc(100% - 1.18rem) 50%,
+                calc(100% - 0.9rem) 50%;
+            background-size: 0.32rem 0.32rem, 0.32rem 0.32rem;
+            background-repeat: no-repeat;
+        }
+
         .wm-scout-field:focus,
         .wm-scout-select:focus {
             outline: none;
@@ -691,6 +704,20 @@
             grid-template-columns: minmax(0, 1fr) minmax(8rem, 0.35fr) auto;
             gap: 0.6rem;
             align-items: center;
+        }
+
+        .wm-cost-item-select {
+            min-height: 3.05rem;
+            border-color: #d8cabb;
+            background-color: #fbf8f4;
+            font-weight: 650;
+        }
+
+        .wm-cost-item-note {
+            margin: 0.65rem 0 0;
+            color: #746d66;
+            font-size: 0.82rem;
+            line-height: 1.5;
         }
 
         .wm-cost-remove {
@@ -1143,7 +1170,7 @@
 
                                 @if ($existingProposal)
                                     <span class="wm-scout-badge is-warning">
-                                        {{ \App\Models\CategoryBudgetSupplier::PROPOSAL_STATUS_OPTIONS[$existingProposal->proposal_status] ?? 'Tracked' }}
+                                        {{ \App\Models\CategoryBudgetSupplier::SCOUTING_STATUS_OPTIONS[$existingProposal->scouting_status] ?? 'Tracked' }}
                                     </span>
                                 @endif
                             </div>
@@ -1238,7 +1265,7 @@
                             @if ($responseFormContext === 'supplier' && (($existingProposal && $responseProposalId === $existingProposal->id) || $responseSupplierId === $supplier->id))
                                 @include('filament.resources.project-resource.pages.partials.budget-response-form', [
                                     'responseFormKey' => 'supplier-' . $supplier->id,
-                                    'saveLabel' => 'Save accepted quote',
+                                    'saveLabel' => 'Save quote',
                                 ])
                             @endif
                         </article>

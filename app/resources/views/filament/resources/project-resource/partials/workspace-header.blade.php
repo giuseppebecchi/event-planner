@@ -99,6 +99,7 @@
                                 id="project-end-date"
                                 type="date"
                                 class="wm-event-date-input"
+                                min="{{ filled($projectDateForm['start_date'] ?? null) ? \Illuminate\Support\Carbon::parse($projectDateForm['start_date'])->addDay()->toDateString() : '' }}"
                                 wire:model="projectDateForm.end_date"
                             >
                         </div>

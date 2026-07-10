@@ -231,7 +231,7 @@ class ManageProjectBudgetCategory extends Page
 
         if ($proposal) {
             $this->responseFormContext = 'supplier';
-            $this->fillResponseForm($proposal, true);
+            $this->fillResponseForm($proposal);
 
             return;
         }
@@ -243,23 +243,24 @@ class ManageProjectBudgetCategory extends Page
         $this->responseFormContext = 'supplier';
         $this->responseExistingAttachments = [];
         $this->responseUploads = [];
+        $costItems = $this->prefilledCostItemsForNewQuote();
         $this->responseForm = [
             'responded_at' => now()->format('Y-m-d\TH:i'),
             'availability_status' => 'available',
             'proposed_amount' => '',
-            'cost_items_json' => [],
+            'cost_items_json' => $costItems,
             'proposal_summary' => '',
             'response_text' => '',
             'costs_and_conditions' => '',
             'proposed_dates' => '',
             'location_available_dates' => '',
-            'scouting_status' => 'chosen',
-            'proposal_status' => CategoryBudgetSupplier::STATUS_CONFIRMED,
+            'scouting_status' => 'shortlist',
+            'proposal_status' => CategoryBudgetSupplier::STATUS_RECEIVED,
             'notes' => '',
         ];
     }
 
-    protected function fillResponseForm(CategoryBudgetSupplier $proposal, bool $acceptedQuote = false): void
+    protected function fillResponseForm(CategoryBudgetSupplier $proposal): void
     {
         $this->responseProposalId = $proposal->id;
         $this->responseSupplierId = null;
@@ -283,8 +284,8 @@ class ManageProjectBudgetCategory extends Page
             'costs_and_conditions' => (string) ($proposal->costs_and_conditions ?? ''),
             'proposed_dates' => collect($proposal->proposed_dates ?? [])->implode(', '),
             'location_available_dates' => collect($proposal->location_available_dates ?? [])->implode(', '),
-            'scouting_status' => $acceptedQuote ? 'chosen' : (string) ($proposal->scouting_status ?? 'shortlist'),
-            'proposal_status' => $acceptedQuote ? CategoryBudgetSupplier::STATUS_CONFIRMED : (string) ($proposal->proposal_status ?? CategoryBudgetSupplier::STATUS_RECEIVED),
+            'scouting_status' => (string) ($proposal->scouting_status ?? 'shortlist'),
+            'proposal_status' => (string) ($proposal->proposal_status ?? CategoryBudgetSupplier::STATUS_RECEIVED),
             'notes' => (string) ($proposal->notes ?? ''),
         ];
     }
@@ -389,7 +390,7 @@ class ManageProjectBudgetCategory extends Page
 
         $proposal->save();
 
-        if ($proposal->proposal_status === CategoryBudgetSupplier::STATUS_CONFIRMED) {
+        if ($this->responseFormContext !== 'supplier' && $proposal->proposal_status === CategoryBudgetSupplier::STATUS_CONFIRMED) {
             $proposal->markAsConfirmed();
         }
 
@@ -546,6 +547,12 @@ class ManageProjectBudgetCategory extends Page
             ->sort()
             ->values()
             ->all();
+    }
+
+    public function hasPrefilledResponseCostItems(): bool
+    {
+        return collect($this->responseForm['cost_items_json'] ?? [])
+            ->contains(fn ($item): bool => is_array($item) && filled($item['label'] ?? null) && blank($item['amount'] ?? null));
     }
 
     public function getProposalComparison(): array
@@ -780,6 +787,17 @@ class ManageProjectBudgetCategory extends Page
                 'proposal_status' => CategoryBudgetSupplier::STATUS_CONFIRMED,
                 'availability_status' => 'available',
             ]);
+    }
+
+    protected function prefilledCostItemsForNewQuote(): array
+    {
+        return collect($this->getCostItemSuggestions())
+            ->map(fn (string $label): array => [
+                'label' => $label,
+                'amount' => '',
+            ])
+            ->values()
+            ->all();
     }
 
     protected function findSearchableSupplierOrFail(int $supplierId): Supplier
