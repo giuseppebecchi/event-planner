@@ -115,9 +115,11 @@ class LeadResource extends Resource
                             Components\TextInput::make('wedding_period')
                                 ->label('Dates, period or month')
                                 ->maxLength(255),
-                            Components\TextInput::make('wedding_date')
+                            Components\DatePicker::make('wedding_date')
                                 ->label('Wedding date')
-                                ->maxLength(255),
+                                ->native(false)
+                                ->format('Y-m-d')
+                                ->displayFormat('M d, Y'),
                         ]),
 
                     Group::make()
@@ -261,6 +263,7 @@ class LeadResource extends Resource
                     ->searchable(),
                 TextColumn::make('wedding_date')
                     ->label('Wedding date')
+                    ->date('M d, Y')
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
@@ -420,7 +423,8 @@ class LeadResource extends Resource
                     TextEntry::make('wedding_period')
                         ->label('Wedding period'),
                     TextEntry::make('wedding_date')
-                        ->label('Wedding date'),
+                        ->label('Wedding date')
+                        ->date('M d, Y'),
                 ]),
             Section::make('Partner Contact')
                 ->icon('heroicon-o-user-plus')

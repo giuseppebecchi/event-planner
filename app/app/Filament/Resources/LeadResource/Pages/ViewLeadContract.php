@@ -190,7 +190,7 @@ class ViewLeadContract extends BaseLeadPhasePage
 
     protected function projectPayloadFromLead(Lead $lead): array
     {
-        return [
+        $payload = [
             'lead_id' => $lead->id,
             'name' => $lead->couple_name ? ('Wedding - '.$lead->couple_name) : 'Wedding project',
             'first_name' => $lead->first_name,
@@ -213,6 +213,23 @@ class ViewLeadContract extends BaseLeadPhasePage
             'status' => 'confirmed',
             'private_notes' => $lead->internal_notes,
         ];
+
+        if ($this->isIsoDate($lead->wedding_date)) {
+            $payload['event_date'] = $lead->wedding_date;
+        }
+
+        return $payload;
+    }
+
+    protected function isIsoDate(mixed $value): bool
+    {
+        if (! is_string($value) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return false;
+        }
+
+        [$year, $month, $day] = array_map('intval', explode('-', $value));
+
+        return checkdate($month, $day, $year);
     }
 
     protected function copySignedContractToProject(LeadDocument $document, Project $project): void

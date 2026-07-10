@@ -183,7 +183,7 @@ abstract class BaseLeadPhasePage extends Page
             'secondary_phone' => $lead->secondary_phone,
             'estimated_guest_count' => $lead->estimated_guest_count,
             'wedding_period' => $lead->wedding_period,
-            'wedding_date' => $lead->wedding_date ?: $lead->wedding_period,
+            'wedding_date' => $this->formatWeddingDate($lead->wedding_date, $lead->wedding_period),
             'desired_region' => $lead->desired_region,
             'ceremony_type' => $lead->ceremony_type,
             'ceremony_details' => $lead->ceremony_details,
@@ -216,7 +216,7 @@ abstract class BaseLeadPhasePage extends Page
             'private_notes' => $lead->internal_notes,
             'region' => $lead->desired_region,
             'locality' => $lead->venue ?: $lead->desired_region,
-            'event_start_date' => $lead->wedding_date ?: $lead->wedding_period,
+            'event_start_date' => $this->formatWeddingDate($lead->wedding_date, $lead->wedding_period),
             'event_end_date' => null,
             'final_guest_count' => null,
             'status' => $project?->status,
@@ -250,6 +250,21 @@ abstract class BaseLeadPhasePage extends Page
         }
 
         return Carbon::parse($value)->format('F jS Y');
+    }
+
+    protected function formatWeddingDate(mixed $value, ?string $fallback = null): ?string
+    {
+        if (! $value) {
+            return $fallback;
+        }
+
+        $date = (string) $value;
+
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return $date;
+        }
+
+        return Carbon::createFromFormat('Y-m-d', $date)->format('M d, Y');
     }
 
     protected function renderConfigPlaceholders(string $content): string
