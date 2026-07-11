@@ -492,7 +492,7 @@
                                 };
                             @endphp
                             <div class="wm-recap-cover-row">
-                                <div class="wm-recap-cover-time">{{ $item->start_time?->format('H:i') ?? '-' }}</div>
+                                <div class="wm-recap-cover-time">{{ $record->formatTimeForDisplay($item->start_time) ?? '-' }}</div>
                                 <div class="wm-recap-cover-line"></div>
                                 <div>
                                     @if ($iconFilename)
@@ -520,7 +520,7 @@
                             <h3 class="wm-recap-pdf-title">{{ $day['date']->format('l, F j, Y') }}</h3>
                             @forelse ($day['items'] as $item)
                                 <div class="wm-recap-row">
-                                    <div class="wm-recap-time">{{ $item->start_time?->format('H:i') ?? '-' }}</div>
+                                    <div class="wm-recap-time">{{ $record->formatTimeForDisplay($item->start_time) ?? '-' }}</div>
                                     <div>
                                         <p class="wm-recap-item-title">{{ $item->title }}</p>
                                         <p class="wm-recap-meta">{{ collect([$item->location, $item->supplier?->name])->filter()->implode(' • ') ?: 'No location or supplier set' }}</p>

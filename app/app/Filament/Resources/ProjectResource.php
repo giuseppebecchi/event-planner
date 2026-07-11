@@ -144,6 +144,11 @@ class ProjectResource extends Resource
                                             Components\DatePicker::make('event_date')
                                                 ->label('Event date')
                                                 ->native(false),
+                                            Components\Select::make('time_format')
+                                                ->label('Time format')
+                                                ->options(Project::TIME_FORMAT_OPTIONS)
+                                                ->default('12h')
+                                                ->required(),
                                             Components\TextInput::make('wedding_period')
                                                 ->label('Wedding period or month')
                                                 ->maxLength(255),

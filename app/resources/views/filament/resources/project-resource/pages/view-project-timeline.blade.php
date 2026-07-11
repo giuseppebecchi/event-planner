@@ -890,7 +890,7 @@
                                     <h3 class="wm-timeline-day-title">{{ $day['date']->format('l, F j, Y') }}</h3>
                                     <div class="wm-timeline-day-meta">
                                         @if ($day['sunset_time'])
-                                            <span class="wm-timeline-chip">Sunset {{ $day['sunset_time']->format('H:i') }}</span>
+                                            <span class="wm-timeline-chip">Sunset {{ $record->formatTimeForDisplay($day['sunset_time']) }}</span>
                                         @endif
                                         <span class="wm-timeline-chip">{{ $day['items']->count() }} items</span>
                                     </div>
@@ -963,9 +963,9 @@
                                     @foreach ($day['items'] as $item)
                                         <article class="wm-timeline-item">
                                             <div class="wm-timeline-time">
-                                                <p class="wm-timeline-time-value">{{ $item->start_time ? $item->start_time->format('H:i') : '—' }}</p>
+                                                <p class="wm-timeline-time-value">{{ $record->formatTimeForDisplay($item->start_time) ?? '—' }}</p>
                                                 @if ($item->end_time)
-                                                    <p class="wm-timeline-time-range">to {{ $item->end_time->format('H:i') }}</p>
+                                                    <p class="wm-timeline-time-range">to {{ $record->formatTimeForDisplay($item->end_time) }}</p>
                                                 @endif
                                             </div>
 
@@ -1006,7 +1006,7 @@
                                                         <span class="wm-timeline-chip">Cover {{ $item->cover_activity_type }}</span>
                                                     @endif
                                                     @if ($item->sunset_time)
-                                                        <span class="wm-timeline-chip">Sunset {{ $item->sunset_time->format('H:i') }}</span>
+                                                        <span class="wm-timeline-chip">Sunset {{ $record->formatTimeForDisplay($item->sunset_time) }}</span>
                                                     @endif
                                                 </div>
 

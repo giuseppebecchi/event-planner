@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,11 @@ class Project extends Model
         'proposal' => 'Proposal',
         'confirmed' => 'Confirmed',
         'completed' => 'Completed',
+    ];
+
+    public const TIME_FORMAT_OPTIONS = [
+        '12h' => '12h',
+        '24h' => '24h',
     ];
 
     public const DEFAULT_TIMELINE_TITLES = [
@@ -67,6 +73,7 @@ class Project extends Model
         'event_date',
         'event_start_date',
         'event_end_date',
+        'time_format',
         'estimated_guest_count',
         'final_guest_count',
         'budget_amount',
@@ -90,6 +97,11 @@ class Project extends Model
         'rsvp_submissions_locked' => 'boolean',
         'website_json' => 'array',
     ];
+
+    public function getTimeFormatAttribute(?string $value): string
+    {
+        return array_key_exists((string) $value, self::TIME_FORMAT_OPTIONS) ? (string) $value : '12h';
+    }
 
     protected static function booted(): void
     {
@@ -168,6 +180,36 @@ class Project extends Model
             && $this->event_end_date
             && ! $this->event_start_date->isSameDay($this->event_end_date)
         );
+    }
+
+    public function timeDisplayFormat(): string
+    {
+        return $this->time_format === '24h' ? 'H:i' : 'g:i A';
+    }
+
+    public function formatTimeForDisplay(mixed $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        if ($value instanceof CarbonInterface) {
+            return $value->format($this->timeDisplayFormat());
+        }
+
+        $value = (string) $value;
+
+        try {
+            if (preg_match('/^\d{1,2}:\d{2}(:\d{2})?$/', $value) === 1) {
+                $format = substr_count($value, ':') === 2 ? 'H:i:s' : 'H:i';
+
+                return Carbon::createFromFormat($format, $value)->format($this->timeDisplayFormat());
+            }
+
+            return Carbon::parse($value)->format($this->timeDisplayFormat());
+        } catch (\Throwable) {
+            return $value;
+        }
     }
 
     public function initializeDefaultTimelineForEventDate(): int

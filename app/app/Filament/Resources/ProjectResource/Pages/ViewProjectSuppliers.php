@@ -94,11 +94,16 @@ class ViewProjectSuppliers extends Page
     public function getSuppliersSummary(): array
     {
         $proposals = $this->getSupplierProposals();
+        $payments = $proposals->flatMap(fn (CategoryBudgetSupplier $proposal): Collection => $proposal->payments);
+        $paidPayments = $payments->where('payment_status', Payment::STATUS_PAID);
+        $unpaidPayments = $payments->where('payment_status', '!=', Payment::STATUS_PAID);
 
         return [
             'confirmed_count' => $proposals->count(),
             'contract_documents_count' => $proposals->sum(fn (CategoryBudgetSupplier $proposal): int => $proposal->projectDocuments->count()),
-            'payments_total' => (float) $proposals->sum(fn (CategoryBudgetSupplier $proposal): float => (float) $proposal->payments->sum('amount')),
+            'payments_total' => (float) $payments->sum('amount'),
+            'payments_paid_total' => (float) $paidPayments->sum('amount'),
+            'payments_unpaid_total' => (float) $unpaidPayments->sum('amount'),
             'communications_count' => $proposals->sum(fn (CategoryBudgetSupplier $proposal): int => $proposal->communications->count()),
         ];
     }

@@ -167,7 +167,7 @@
                         <p class="timeline-day-meta">
                             {{ count($day['items']) }} items
                             @if ($day['sunset_time'])
-                                | Sunset {{ $day['sunset_time']->format('H:i') }}
+                                | Sunset {{ $day['sunset_time'] }}
                             @endif
                         </p>
 

@@ -281,6 +281,32 @@
             font-weight: 700;
         }
 
+        .wm-supplier-payment-breakdown {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.45rem;
+            margin-top: 0.7rem;
+            padding-top: 0.65rem;
+            border-top: 1px solid #ece5dd;
+        }
+
+        .wm-supplier-payment-breakdown span {
+            display: block;
+            color: #8b847d;
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .wm-supplier-payment-breakdown strong {
+            display: block;
+            margin-top: 0.18rem;
+            color: #2d2a26;
+            font-size: 0.86rem;
+            line-height: 1.25;
+        }
+
         .wm-suppliers-workspace {
             display: grid;
             grid-template-columns: minmax(0, 2fr) minmax(22rem, 1fr);
@@ -668,6 +694,16 @@
             <article class="wm-event-card wm-supplier-stat">
                 <p class="wm-supplier-stat-label">Payments</p>
                 <p class="wm-supplier-stat-value">EUR {{ number_format($summary['payments_total'], 2, ',', '.') }}</p>
+                <div class="wm-supplier-payment-breakdown">
+                    <div>
+                        <span>Paid</span>
+                        <strong>EUR {{ number_format($summary['payments_paid_total'], 2, ',', '.') }}</strong>
+                    </div>
+                    <div>
+                        <span>To do</span>
+                        <strong>EUR {{ number_format($summary['payments_unpaid_total'], 2, ',', '.') }}</strong>
+                    </div>
+                </div>
             </article>
             <article class="wm-event-card wm-supplier-stat">
                 <p class="wm-supplier-stat-label">Communications</p>

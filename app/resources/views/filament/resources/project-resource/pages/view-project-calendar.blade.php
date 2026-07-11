@@ -1009,7 +1009,7 @@
                                                     <span class="wm-calendar-item-subtitle">{{ $item['subtitle'] }}</span>
                                                 @endif
                                                 @if ($item['kind'] === 'event' && ! $item['is_all_day'])
-                                                    <span class="wm-calendar-item-time">{{ $item['starts_at']->format('H:i') }}{{ $item['ends_at'] ? ' - ' . $item['ends_at']->format('H:i') : '' }}</span>
+                                                    <span class="wm-calendar-item-time">{{ $record->formatTimeForDisplay($item['starts_at']) }}{{ $item['ends_at'] ? ' - ' . $record->formatTimeForDisplay($item['ends_at']) : '' }}</span>
                                                 @endif
                                             </div>
                                         </button>
@@ -1052,7 +1052,7 @@
                                                             <span class="wm-calendar-item-subtitle">{{ $item['subtitle'] }}</span>
                                                         @endif
                                                         @if ($item['kind'] === 'event' && ! $item['is_all_day'])
-                                                            <span class="wm-calendar-item-time">{{ $item['starts_at']->format('H:i') }}{{ $item['ends_at'] ? ' - ' . $item['ends_at']->format('H:i') : '' }}</span>
+                                                            <span class="wm-calendar-item-time">{{ $record->formatTimeForDisplay($item['starts_at']) }}{{ $item['ends_at'] ? ' - ' . $record->formatTimeForDisplay($item['ends_at']) : '' }}</span>
                                                         @endif
                                                     </div>
                                                 </button>
@@ -1087,7 +1087,7 @@
                                             - {{ $item['end_date']->format('M j, Y') }}
                                         @endif
                                         @if ($item['kind'] === 'event' && ! $item['is_all_day'])
-                                            · {{ $item['starts_at']->format('H:i') }}{{ $item['ends_at'] ? ' - ' . $item['ends_at']->format('H:i') : '' }}
+                                            · {{ $record->formatTimeForDisplay($item['starts_at']) }}{{ $item['ends_at'] ? ' - ' . $record->formatTimeForDisplay($item['ends_at']) : '' }}
                                         @endif
                                     </p>
 
@@ -1211,7 +1211,7 @@
                                 - {{ $selectedItem['end_date']->format('F j, Y') }}
                             @endif
                             @if ($selectedItem['kind'] === 'event' && ! $selectedItem['is_all_day'])
-                                · {{ $selectedItem['starts_at']->format('H:i') }}{{ $selectedItem['ends_at'] ? ' - ' . $selectedItem['ends_at']->format('H:i') : '' }}
+                                · {{ $record->formatTimeForDisplay($selectedItem['starts_at']) }}{{ $selectedItem['ends_at'] ? ' - ' . $record->formatTimeForDisplay($selectedItem['ends_at']) : '' }}
                             @elseif ($selectedItem['kind'] === 'event')
                                 · All day
                             @endif

@@ -105,16 +105,16 @@ class ViewProjectTimeline extends Page
             'categoryBudgetSuppliers.supplier.category',
             'categoryBudgetSuppliers.category'
         );
-        $days = $this->getTimelineDays()->map(function (array $day): array {
-            $items = $day['items']->map(function (ProjectTimeline $item): array {
+        $days = $this->getTimelineDays()->map(function (array $day) use ($project): array {
+            $items = $day['items']->map(function (ProjectTimeline $item) use ($project): array {
                 return [
                     'title' => $item->title,
                     'date' => $item->timeline_date?->format('F j, Y'),
                     'location' => $item->location,
                     'supplier_name' => $item->supplier?->name,
-                    'start_time' => $item->start_time?->format('H:i'),
-                    'end_time' => $item->end_time?->format('H:i'),
-                    'sunset_time' => $item->sunset_time?->format('H:i'),
+                    'start_time' => $project->formatTimeForDisplay($item->start_time),
+                    'end_time' => $project->formatTimeForDisplay($item->end_time),
+                    'sunset_time' => $project->formatTimeForDisplay($item->sunset_time),
                     'is_surprise' => (bool) $item->is_surprise,
                     'cover_activity' => (bool) $item->cover_activity,
                     'cover_activity_type' => $item->cover_activity_type,
@@ -133,6 +133,7 @@ class ViewProjectTimeline extends Page
 
             return [
                 ...$day,
+                'sunset_time' => $project->formatTimeForDisplay($day['sunset_time']),
                 'daily_note_description' => $day['daily_note']?->description,
                 'items' => $items,
                 'extended_items' => collect($items)
@@ -717,15 +718,17 @@ class ViewProjectTimeline extends Page
 
     protected function timelineItemPdfPayload(ProjectTimeline $item): array
     {
+        $project = $this->getRecord();
+
         return [
             'title' => $item->title,
             'date' => $item->timeline_date?->format('F j, Y'),
             'location' => $item->location,
             'location_plan_b' => $item->location_plan_b,
             'supplier_name' => $item->supplier?->name,
-            'start_time' => $item->start_time?->format('H:i'),
-            'end_time' => $item->end_time?->format('H:i'),
-            'sunset_time' => $item->sunset_time?->format('H:i'),
+            'start_time' => $project->formatTimeForDisplay($item->start_time),
+            'end_time' => $project->formatTimeForDisplay($item->end_time),
+            'sunset_time' => $project->formatTimeForDisplay($item->sunset_time),
             'is_surprise' => (bool) $item->is_surprise,
             'cover_activity' => (bool) $item->cover_activity,
             'cover_activity_type' => $item->cover_activity_type,

@@ -278,7 +278,7 @@ class ViewProject extends ViewRecord
                 'tone' => 'blue',
             ],
             [
-                'label' => 'Guest planning',
+                'label' => 'Estimated number of guests',
                 'value' => $project->final_guest_count ?: $project->estimated_guest_count ?: 0,
                 'caption' => $project->final_guest_count ? 'final headcount' : 'working estimate',
                 'tone' => 'gold',
