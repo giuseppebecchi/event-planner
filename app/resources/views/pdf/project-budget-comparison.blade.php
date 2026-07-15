@@ -85,7 +85,7 @@
             <tr class="total">
                 <td>Quote total</td>
                 @foreach ($proposals as $proposal)
-                    <td>{{ $money($proposal->proposed_amount) }}</td>
+                    <td>{{ $money($totals[$proposal->id] ?? null) }}</td>
                 @endforeach
             </tr>
             <tr class="note">

@@ -381,6 +381,8 @@
         .wm-scout-request-card {
             display: grid;
             gap: 1rem;
+            padding: 0;
+            overflow: hidden;
         }
 
         .wm-scout-supplier-card {
@@ -392,6 +394,64 @@
         .wm-scout-request-card.is-confirmed {
             background: rgba(83, 168, 106, 0.08);
             border-color: rgba(83, 168, 106, 0.24);
+        }
+
+        .wm-scout-request-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.05rem;
+            border-bottom: 1px solid rgba(221, 210, 197, 0.82);
+            background: linear-gradient(135deg, #fff 0%, #f4efe8 100%);
+        }
+
+        .wm-scout-request-card.is-confirmed .wm-scout-request-header {
+            border-bottom-color: rgba(83, 168, 106, 0.24);
+            background: linear-gradient(135deg, #fff 0%, rgba(83, 168, 106, 0.11) 100%);
+        }
+
+        .wm-scout-request-identity {
+            display: grid;
+            grid-template-columns: 2.9rem minmax(0, 1fr);
+            gap: 0.85rem;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .wm-scout-supplier-avatar {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.9rem;
+            height: 2.9rem;
+            border-radius: 0.9rem;
+            background: #2e4a62;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+        }
+
+        .wm-scout-request-card.is-confirmed .wm-scout-supplier-avatar {
+            background: #2d7a39;
+        }
+
+        .wm-scout-supplier-eyebrow {
+            margin: 0 0 0.18rem;
+            color: #968c82;
+            font-size: 0.66rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+
+        .wm-scout-request-body {
+            display: grid;
+            gap: 1rem;
+            padding: 0 1.05rem 1rem;
         }
 
         .wm-scout-card-head {
@@ -418,6 +478,13 @@
             color: #2d2a26;
             font-weight: 700;
             font-size: 1rem;
+        }
+
+        .wm-scout-request-header .wm-scout-card-title {
+            font-size: clamp(1.2rem, 1.6vw, 1.55rem);
+            font-weight: 800;
+            line-height: 1.12;
+            overflow-wrap: anywhere;
         }
 
         .wm-scout-supplier-card .wm-scout-card-title {
@@ -504,7 +571,6 @@
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 0.7rem;
-            margin-top: 0.95rem;
         }
 
         .wm-scout-data {
@@ -777,7 +843,8 @@
 
         @media (max-width: 768px) {
             .wm-event-top-side,
-            .wm-scout-card-head {
+            .wm-scout-card-head,
+            .wm-scout-request-header {
                 flex-direction: column;
                 align-items: stretch;
             }
@@ -881,6 +948,8 @@
                 <div class="wm-scout-request-grid">
                     @foreach ($requests as $proposal)
                         @php
+                            $supplierName = $proposal->supplier?->name ?? 'Supplier';
+                            $supplierArea = collect([$proposal->supplier?->service_area, $proposal->supplier?->city])->filter()->implode(' • ');
                             $isConfirmed = $proposal->proposal_status === \App\Models\CategoryBudgetSupplier::STATUS_CONFIRMED;
                             $availabilityBadgeClass = match ($proposal->availability_status) {
                                 'available' => 'is-success',
@@ -889,12 +958,15 @@
                             };
                         @endphp
                         <article class="wm-scout-request-card {{ $isConfirmed ? 'is-confirmed' : '' }}">
-                            <div class="wm-scout-card-head">
-                                <div>
-                                    <h4 class="wm-scout-card-title">{{ $proposal->supplier?->name ?? 'Supplier' }}</h4>
-                                    <p class="wm-scout-card-subtitle">
-                                        {{ collect([$proposal->supplier?->service_area, $proposal->supplier?->city])->filter()->implode(' • ') ?: 'No area specified' }}
-                                    </p>
+                            <div class="wm-scout-request-header">
+                                <div class="wm-scout-request-identity">
+                                    <span class="wm-scout-supplier-avatar" aria-hidden="true">
+                                        {{ \Illuminate\Support\Str::of($supplierName)->trim()->substr(0, 1)->upper() }}
+                                    </span>
+                                    <div>
+                                        <p class="wm-scout-supplier-eyebrow">Supplier</p>
+                                        <h4 class="wm-scout-card-title">{{ $supplierName }}</h4>
+                                    </div>
                                 </div>
 
                                 <div class="wm-scout-badges">
@@ -907,116 +979,124 @@
                                 </div>
                             </div>
 
-                            <div class="wm-scout-data-grid">
-                                <div class="wm-scout-data">
-                                    <p class="wm-scout-data-label">Requested</p>
-                                    <p class="wm-scout-data-value">{{ $proposal->requested_at?->format('d/m/Y H:i') ?? '—' }}</p>
+                            <div class="wm-scout-request-body">
+                                @if (filled($supplierArea))
+                                    <p class="wm-scout-card-subtitle">
+                                        {{ $supplierArea }}
+                                    </p>
+                                @endif
+
+                                <div class="wm-scout-data-grid">
+                                    <div class="wm-scout-data">
+                                        <p class="wm-scout-data-label">Requested</p>
+                                        <p class="wm-scout-data-value">{{ $proposal->requested_at?->format('d/m/Y H:i') ?? '—' }}</p>
+                                    </div>
+                                    <div class="wm-scout-data">
+                                        <p class="wm-scout-data-label">Responded</p>
+                                        <p class="wm-scout-data-value">{{ $proposal->responded_at?->format('d/m/Y H:i') ?? '—' }}</p>
+                                    </div>
+                                    <div class="wm-scout-data">
+                                        <p class="wm-scout-data-label">Quote</p>
+                                        <p class="wm-scout-data-value">{{ $proposal->proposed_amount !== null ? 'EUR ' . number_format((float) $proposal->proposed_amount, 2, ',', '.') : '—' }}</p>
+                                    </div>
+                                    <div class="wm-scout-data">
+                                        <p class="wm-scout-data-label">Accepted</p>
+                                        <p class="wm-scout-data-value">{{ $proposal->confirmed_at?->format('d/m/Y') ?? '—' }}</p>
+                                    </div>
                                 </div>
-                                <div class="wm-scout-data">
-                                    <p class="wm-scout-data-label">Responded</p>
-                                    <p class="wm-scout-data-value">{{ $proposal->responded_at?->format('d/m/Y H:i') ?? '—' }}</p>
+
+                                <div class="wm-scout-copy">
+                                    @if (collect($proposal->cost_items_json ?? [])->isNotEmpty())
+                                        <div class="wm-scout-copy-block">
+                                            <strong>Cost breakdown</strong>
+                                            <p>
+                                                @foreach ($proposal->cost_items_json ?? [] as $item)
+                                                    {{ $item['label'] ?? '' }}: {{ $money($item['amount'] ?? null) }}{{ ! $loop->last ? "\n" : '' }}
+                                                @endforeach
+                                            </p>
+                                        </div>
+                                    @endif
+
+                                    @if (filled($proposal->request_text))
+                                        <div class="wm-scout-copy-block">
+                                            <strong>Request</strong>
+                                            <p>{{ $proposal->request_text }}</p>
+                                        </div>
+                                    @endif
+
+                                    @if (filled($proposal->response_text))
+                                        <div class="wm-scout-copy-block">
+                                            <strong>Response</strong>
+                                            <p>{{ $proposal->response_text }}</p>
+                                        </div>
+                                    @endif
+
+                                    @if (filled($proposal->proposal_summary))
+                                        <div class="wm-scout-copy-block">
+                                            <strong>Proposal summary</strong>
+                                            <p>{{ $proposal->proposal_summary }}</p>
+                                        </div>
+                                    @endif
+
+                                    @if (filled($proposal->costs_and_conditions))
+                                        <div class="wm-scout-copy-block">
+                                            <strong>Costs and conditions</strong>
+                                            <p>{{ $proposal->costs_and_conditions }}</p>
+                                        </div>
+                                    @endif
                                 </div>
-                                <div class="wm-scout-data">
-                                    <p class="wm-scout-data-label">Quote</p>
-                                    <p class="wm-scout-data-value">{{ $proposal->proposed_amount !== null ? 'EUR ' . number_format((float) $proposal->proposed_amount, 2, ',', '.') : '—' }}</p>
-                                </div>
-                                <div class="wm-scout-data">
-                                    <p class="wm-scout-data-label">Accepted</p>
-                                    <p class="wm-scout-data-value">{{ $proposal->confirmed_at?->format('d/m/Y') ?? '—' }}</p>
-                                </div>
-                            </div>
 
-                            <div class="wm-scout-copy">
-                                @if (collect($proposal->cost_items_json ?? [])->isNotEmpty())
-                                    <div class="wm-scout-copy-block">
-                                        <strong>Cost breakdown</strong>
-                                        <p>
-                                            @foreach ($proposal->cost_items_json ?? [] as $item)
-                                                {{ $item['label'] ?? '' }}: {{ $money($item['amount'] ?? null) }}{{ ! $loop->last ? "\n" : '' }}
-                                            @endforeach
-                                        </p>
+                                @if ($proposal->projectDocuments->where('type', \App\Models\ProjectDocument::TYPE_QUOTE)->isNotEmpty())
+                                    <div class="wm-scout-attachments">
+                                        @foreach ($proposal->projectDocuments->where('type', \App\Models\ProjectDocument::TYPE_QUOTE) as $document)
+                                            <a
+                                                href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($document->file_path) }}"
+                                                target="_blank"
+                                                class="wm-scout-attachment"
+                                            >
+                                                {{ $document->title }}
+                                            </a>
+                                        @endforeach
                                     </div>
                                 @endif
 
-                                @if (filled($proposal->request_text))
-                                    <div class="wm-scout-copy-block">
-                                        <strong>Request</strong>
-                                        <p>{{ $proposal->request_text }}</p>
-                                    </div>
-                                @endif
+                                <div class="wm-scout-card-actions">
+                                    <x-filament::button
+                                        color="gray"
+                                        size="sm"
+                                        icon="heroicon-m-pencil-square"
+                                        wire:click="openRecordResponseModal({{ $proposal->id }})"
+                                    >
+                                        Update quote / response
+                                    </x-filament::button>
 
-                                @if (filled($proposal->response_text))
-                                    <div class="wm-scout-copy-block">
-                                        <strong>Response</strong>
-                                        <p>{{ $proposal->response_text }}</p>
-                                    </div>
-                                @endif
-
-                                @if (filled($proposal->proposal_summary))
-                                    <div class="wm-scout-copy-block">
-                                        <strong>Proposal summary</strong>
-                                        <p>{{ $proposal->proposal_summary }}</p>
-                                    </div>
-                                @endif
-
-                                @if (filled($proposal->costs_and_conditions))
-                                    <div class="wm-scout-copy-block">
-                                        <strong>Costs and conditions</strong>
-                                        <p>{{ $proposal->costs_and_conditions }}</p>
-                                    </div>
-                                @endif
-                            </div>
-
-                            @if ($proposal->projectDocuments->where('type', \App\Models\ProjectDocument::TYPE_QUOTE)->isNotEmpty())
-                                <div class="wm-scout-attachments">
-                                    @foreach ($proposal->projectDocuments->where('type', \App\Models\ProjectDocument::TYPE_QUOTE) as $document)
+                                    @if ($proposal->hasResponse() && ! $isConfirmed)
+                                        <x-filament::button
+                                            color="success"
+                                            size="sm"
+                                            icon="heroicon-m-check-circle"
+                                            wire:click="openAcceptProposalModal({{ $proposal->id }})"
+                                        >
+                                            Mark accepted quote
+                                        </x-filament::button>
+                                    @elseif ($isConfirmed)
                                         <a
-                                            href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($document->file_path) }}"
-                                            target="_blank"
+                                            href="{{ \App\Filament\Resources\ProjectResource::getUrl('supplier-manage', ['record' => $record, 'proposal' => $proposal->id]) }}"
                                             class="wm-scout-attachment"
                                         >
-                                            {{ $document->title }}
+                                            Manage
                                         </a>
-                                    @endforeach
+                                    @endif
                                 </div>
-                            @endif
 
-                            <div class="wm-scout-card-actions">
-                                <x-filament::button
-                                    color="gray"
-                                    size="sm"
-                                    icon="heroicon-m-pencil-square"
-                                    wire:click="openRecordResponseModal({{ $proposal->id }})"
-                                >
-                                    Update quote / response
-                                </x-filament::button>
-
-                                @if ($proposal->hasResponse() && ! $isConfirmed)
-                                    <x-filament::button
-                                        color="success"
-                                        size="sm"
-                                        icon="heroicon-m-check-circle"
-                                        wire:click="openAcceptProposalModal({{ $proposal->id }})"
-                                    >
-                                        Mark accepted quote
-                                    </x-filament::button>
-                                @elseif ($isConfirmed)
-                                    <a
-                                        href="{{ \App\Filament\Resources\ProjectResource::getUrl('supplier-manage', ['record' => $record, 'proposal' => $proposal->id]) }}"
-                                        class="wm-scout-attachment"
-                                    >
-                                        Manage
-                                    </a>
+                                @if ($responseFormContext === 'requests' && $responseProposalId === $proposal->id)
+                                    @include('filament.resources.project-resource.pages.partials.budget-response-form', [
+                                        'proposal' => $proposal,
+                                        'responseFormKey' => 'proposal-' . $proposal->id,
+                                        'saveLabel' => 'Save response',
+                                    ])
                                 @endif
                             </div>
-
-                            @if ($responseFormContext === 'requests' && $responseProposalId === $proposal->id)
-                                @include('filament.resources.project-resource.pages.partials.budget-response-form', [
-                                    'proposal' => $proposal,
-                                    'responseFormKey' => 'proposal-' . $proposal->id,
-                                    'saveLabel' => 'Save response',
-                                ])
-                            @endif
                         </article>
                     @endforeach
                 </div>
@@ -1065,7 +1145,7 @@
                             <tr class="wm-comparison-total">
                                 <td>Quote total</td>
                                 @foreach ($comparison['proposals'] as $proposal)
-                                    <td>{{ $money($proposal->proposed_amount) }}</td>
+                                    <td>{{ $money($comparison['totals'][$proposal->id] ?? null) }}</td>
                                 @endforeach
                             </tr>
                         </tbody>

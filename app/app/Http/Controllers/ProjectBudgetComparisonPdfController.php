@@ -28,6 +28,7 @@ class ProjectBudgetComparisonPdfController extends Controller
             'budget' => $categoryBudget,
             'proposals' => $comparison['proposals'],
             'rows' => $comparison['rows'],
+            'totals' => $comparison['totals'],
             'money' => fn ($amount): string => $amount !== null && $amount !== '' ? 'EUR ' . number_format((float) $amount, 2, ',', '.') : '-',
         ])->setPaper('a4', 'landscape');
 
@@ -68,6 +69,13 @@ class ProjectBudgetComparisonPdfController extends Controller
         return [
             'proposals' => $proposals,
             'rows' => $rows,
+            'totals' => $proposals
+                ->mapWithKeys(fn (CategoryBudgetSupplier $proposal): array => [
+                    $proposal->id => collect($proposal->cost_items_json ?? [])
+                        ->filter(fn ($item): bool => is_array($item) && filled($item['label'] ?? null) && filled($item['amount'] ?? null))
+                        ->sum(fn (array $item): float => (float) $item['amount']),
+                ])
+                ->all(),
         ];
     }
 

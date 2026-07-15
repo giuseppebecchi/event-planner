@@ -180,10 +180,16 @@ class ManageProjectBudgetCategory extends Page
             'request_text' => $data['request_text'],
             'planner_notes' => $data['planner_notes'],
             'scouting_status' => $data['scouting_status'],
-            'proposal_status' => $proposal->proposal_status === CategoryBudgetSupplier::STATUS_CONFIRMED
-                ? CategoryBudgetSupplier::STATUS_CONFIRMED
-                : CategoryBudgetSupplier::STATUS_REQUESTED,
+            'proposal_status' => $this->proposalStatusForScoutingStatus(
+                $data['scouting_status'],
+                $proposal->proposal_status,
+                $proposal
+            ),
         ]);
+
+        if ($proposal->proposal_status !== CategoryBudgetSupplier::STATUS_CONFIRMED) {
+            $proposal->confirmed_at = null;
+        }
 
         if (blank($proposal->availability_status)) {
             $proposal->availability_status = 'pending';
@@ -369,6 +375,12 @@ class ManageProjectBudgetCategory extends Page
             ? $this->findProposalById($proposalId, true)
             : $this->makeProposalForSupplier($supplierId);
 
+        $proposalStatus = $this->proposalStatusForScoutingStatus(
+            $data['form']['scouting_status'],
+            $data['form']['proposal_status'],
+            $proposal
+        );
+
         $proposal->fill([
             'responded_at' => Carbon::parse($data['form']['responded_at']),
             'availability_status' => $data['form']['availability_status'],
@@ -380,12 +392,16 @@ class ManageProjectBudgetCategory extends Page
             'proposed_dates' => $this->explodeInlineList($data['form']['proposed_dates']),
             'location_available_dates' => $this->explodeInlineList($data['form']['location_available_dates']),
             'scouting_status' => $data['form']['scouting_status'],
-            'proposal_status' => $data['form']['proposal_status'],
+            'proposal_status' => $proposalStatus,
             'notes' => $data['form']['notes'],
         ]);
 
         if ($proposal->proposal_status === CategoryBudgetSupplier::STATUS_REQUESTED) {
             $proposal->proposal_status = CategoryBudgetSupplier::STATUS_RECEIVED;
+        }
+
+        if ($proposal->proposal_status !== CategoryBudgetSupplier::STATUS_CONFIRMED) {
+            $proposal->confirmed_at = null;
         }
 
         $proposal->save();
@@ -591,6 +607,13 @@ class ManageProjectBudgetCategory extends Page
             'enabled' => $proposals->isNotEmpty(),
             'proposals' => $proposals,
             'rows' => $rows,
+            'totals' => $proposals
+                ->mapWithKeys(fn (CategoryBudgetSupplier $proposal): array => [
+                    $proposal->id => collect($proposal->cost_items_json ?? [])
+                        ->filter(fn ($item): bool => is_array($item) && filled($item['label'] ?? null) && filled($item['amount'] ?? null))
+                        ->sum(fn (array $item): float => (float) $item['amount']),
+                ])
+                ->all(),
         ];
     }
 
@@ -818,6 +841,26 @@ class ManageProjectBudgetCategory extends Page
         }
 
         abort(404);
+    }
+
+    protected function proposalStatusForScoutingStatus(
+        string $scoutingStatus,
+        ?string $proposalStatus,
+        CategoryBudgetSupplier $proposal
+    ): string {
+        if ($scoutingStatus === 'chosen') {
+            return CategoryBudgetSupplier::STATUS_CONFIRMED;
+        }
+
+        if ($proposalStatus === CategoryBudgetSupplier::STATUS_CONFIRMED) {
+            return $proposal->hasResponse()
+                ? CategoryBudgetSupplier::STATUS_RECEIVED
+                : CategoryBudgetSupplier::STATUS_REQUESTED;
+        }
+
+        return $proposalStatus ?: ($proposal->hasResponse()
+            ? CategoryBudgetSupplier::STATUS_RECEIVED
+            : CategoryBudgetSupplier::STATUS_REQUESTED);
     }
 
     protected function refreshBudgetContext(): void
