@@ -10,6 +10,7 @@ class ProjectMoodboard extends Model
 {
     public const SOURCE_UPLOAD = 'upload';
     public const SOURCE_PINTEREST = 'pinterest';
+    public const SOURCE_PDF = 'pdf';
 
     protected $fillable = [
         'project_id',
@@ -17,6 +18,8 @@ class ProjectMoodboard extends Model
         'board_type',
         'source_type',
         'pinterest_board_url',
+        'pdf_file_path',
+        'pdf_original_name',
         'notes',
         'sort_order',
     ];

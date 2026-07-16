@@ -652,7 +652,7 @@
 
         .wm-moodboard-source {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 0.7rem;
         }
 
@@ -680,6 +680,52 @@
             justify-content: center;
             align-items: flex-start;
             padding: 0.8rem;
+        }
+
+        .wm-moodboard-pdf-shell {
+            margin: 0 1rem 1rem;
+            overflow: hidden;
+            border-radius: 1.15rem;
+            border: 1px solid #e5d9ca;
+            background: linear-gradient(180deg, #fffdf9 0%, #f6efe7 100%);
+        }
+
+        .wm-moodboard-pdf-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.85rem;
+            padding: 0.75rem 0.9rem;
+            border-bottom: 1px solid #e8ded2;
+        }
+
+        .wm-moodboard-pdf-name {
+            min-width: 0;
+            margin: 0;
+            color: #352d25;
+            font-size: 0.86rem;
+            font-weight: 800;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .wm-moodboard-pdf-frame {
+            display: block;
+            width: 100%;
+            height: min(72vh, 52rem);
+            min-height: 36rem;
+            border: 0;
+            background: #f2ece5;
+        }
+
+        .wm-moodboard-file-input {
+            width: 100%;
+            border: 1px dashed #cdbb9f;
+            border-radius: 1rem;
+            padding: 0.9rem;
+            background: #fffaf3;
+            color: #4d4339;
         }
 
         .wm-moodboard-toggle {
@@ -755,6 +801,14 @@
 
             .wm-moodboard-masonry {
                 column-count: 1;
+            }
+
+            .wm-moodboard-source {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .wm-moodboard-pdf-frame {
+                min-height: 28rem;
             }
 
             .wm-moodboard-panel-head,
@@ -903,6 +957,9 @@
                                             @if ($board['source_type'] === \App\Models\ProjectMoodboard::SOURCE_PINTEREST)
                                                 <span class="wm-moodboard-tag">Pinterest</span>
                                                 <span class="wm-moodboard-tag">Embedded board</span>
+                                            @elseif ($board['source_type'] === \App\Models\ProjectMoodboard::SOURCE_PDF)
+                                                <span class="wm-moodboard-tag">PDF</span>
+                                                <span class="wm-moodboard-tag">Embedded document</span>
                                             @else
                                                 <span class="wm-moodboard-tag">{{ $board['images']->count() }} images</span>
                                                 <span class="wm-moodboard-tag">Upload board</span>
@@ -911,7 +968,7 @@
                                     </div>
 
                                     <div class="wm-moodboard-board-actions">
-                                        @if ($board['source_type'] !== \App\Models\ProjectMoodboard::SOURCE_PINTEREST)
+                                        @if ($board['source_type'] === \App\Models\ProjectMoodboard::SOURCE_UPLOAD)
                                             <button type="button" class="wm-moodboard-link" wire:click="openImageModal('custom', {{ $board['id'] }})">
                                                 <x-heroicon-o-photo />
                                                 <span>Add image</span>
@@ -932,6 +989,21 @@
                                             data-pin-scale-width="160"
                                             href="{{ $board['pinterest_board_url'] }}"
                                         ></a>
+                                    </div>
+                                @elseif ($board['source_type'] === \App\Models\ProjectMoodboard::SOURCE_PDF && $board['pdf_url'])
+                                    <div class="wm-moodboard-pdf-shell">
+                                        <div class="wm-moodboard-pdf-toolbar">
+                                            <p class="wm-moodboard-pdf-name">{{ $board['pdf_original_name'] ?: $board['title'] . '.pdf' }}</p>
+                                            <a class="wm-moodboard-link" href="{{ $board['pdf_url'] }}" target="_blank" rel="noopener">
+                                                <x-heroicon-o-arrow-top-right-on-square />
+                                                <span>Open</span>
+                                            </a>
+                                        </div>
+                                        <iframe
+                                            class="wm-moodboard-pdf-frame"
+                                            src="{{ $board['pdf_url'] }}#view=FitH"
+                                            title="{{ $board['title'] }} PDF moodboard"
+                                        ></iframe>
                                     </div>
                                 @elseif ($board['images']->isEmpty())
                                     <div class="wm-moodboard-empty">This board is ready. Add the first image to start shaping its direction.</div>
@@ -989,11 +1061,15 @@
                     <div class="wm-moodboard-source">
                         <label class="wm-moodboard-source-option">
                             <input type="radio" value="{{ \App\Models\ProjectMoodboard::SOURCE_UPLOAD }}" wire:model.live="boardForm.source_type">
-                            <span>Upload</span>
+                            <span>Upload images</span>
                         </label>
                         <label class="wm-moodboard-source-option">
                             <input type="radio" value="{{ \App\Models\ProjectMoodboard::SOURCE_PINTEREST }}" wire:model.live="boardForm.source_type">
                             <span>Pinterest</span>
+                        </label>
+                        <label class="wm-moodboard-source-option">
+                            <input type="radio" value="{{ \App\Models\ProjectMoodboard::SOURCE_PDF }}" wire:model.live="boardForm.source_type">
+                            <span>PDF</span>
                         </label>
                     </div>
                 </div>
@@ -1005,6 +1081,17 @@
                         @error('boardForm.pinterest_board_url')
                             <p class="wm-moodboard-error">{{ $message }}</p>
                         @enderror
+                    </div>
+                @endif
+
+                @if (($boardForm['source_type'] ?? \App\Models\ProjectMoodboard::SOURCE_UPLOAD) === \App\Models\ProjectMoodboard::SOURCE_PDF)
+                    <div class="wm-moodboard-field">
+                        <label for="moodboard-pdf-upload">PDF file</label>
+                        <input id="moodboard-pdf-upload" class="wm-moodboard-file-input" type="file" accept="application/pdf,.pdf" wire:model="boardPdfUpload">
+                        @error('boardPdfUpload')
+                            <p class="wm-moodboard-error">{{ $message }}</p>
+                        @enderror
+                        <div wire:loading wire:target="boardPdfUpload" class="wm-moodboard-error">Uploading PDF...</div>
                     </div>
                 @endif
 

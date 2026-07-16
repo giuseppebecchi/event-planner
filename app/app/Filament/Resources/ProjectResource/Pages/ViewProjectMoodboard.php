@@ -42,6 +42,7 @@ class ViewProjectMoodboard extends Page
         'pinterest_board_url' => '',
         'notes' => '',
     ];
+    public $boardPdfUpload = null;
 
     public array $imageForm = [
         'description' => '',
@@ -133,6 +134,9 @@ class ViewProjectMoodboard extends Page
                     'accent' => $accent,
                     'source_type' => $board->source_type ?: ProjectMoodboard::SOURCE_UPLOAD,
                     'pinterest_board_url' => $board->pinterest_board_url,
+                    'pdf_file_path' => $board->pdf_file_path,
+                    'pdf_original_name' => $board->pdf_original_name,
+                    'pdf_url' => $board->pdf_file_path ? Storage::disk('public')->url($board->pdf_file_path) : null,
                     'images' => $board->images->sortByDesc('created_at')->values(),
                 ];
             })
@@ -147,6 +151,7 @@ class ViewProjectMoodboard extends Page
             'pinterest_board_url' => '',
             'notes' => '',
         ];
+        $this->boardPdfUpload = null;
         $this->showBoardModal = true;
     }
 
@@ -159,21 +164,39 @@ class ViewProjectMoodboard extends Page
             'pinterest_board_url' => '',
             'notes' => '',
         ];
+        $this->boardPdfUpload = null;
     }
 
     public function saveBoard(): void
     {
-        $data = validator($this->boardForm, [
-            'title' => ['required', 'string', 'max:255'],
-            'source_type' => ['required', 'string', 'in:' . ProjectMoodboard::SOURCE_UPLOAD . ',' . ProjectMoodboard::SOURCE_PINTEREST],
-            'pinterest_board_url' => ['nullable', 'required_if:source_type,' . ProjectMoodboard::SOURCE_PINTEREST, 'url', 'max:255'],
-            'notes' => ['nullable', 'string'],
-        ])->validate();
+        $data = validator(
+            ['boardForm' => $this->boardForm, 'boardPdfUpload' => $this->boardPdfUpload],
+            [
+                'boardForm.title' => ['required', 'string', 'max:255'],
+                'boardForm.source_type' => ['required', 'string', 'in:' . implode(',', [
+                    ProjectMoodboard::SOURCE_UPLOAD,
+                    ProjectMoodboard::SOURCE_PINTEREST,
+                    ProjectMoodboard::SOURCE_PDF,
+                ])],
+                'boardForm.pinterest_board_url' => ['nullable', 'required_if:boardForm.source_type,' . ProjectMoodboard::SOURCE_PINTEREST, 'url', 'max:255'],
+                'boardForm.notes' => ['nullable', 'string'],
+                'boardPdfUpload' => ['nullable', 'required_if:boardForm.source_type,' . ProjectMoodboard::SOURCE_PDF, 'file', 'mimes:pdf', 'max:51200'],
+            ],
+            attributes: [
+                'boardForm.title' => 'title',
+                'boardForm.source_type' => 'source type',
+                'boardForm.pinterest_board_url' => 'Pinterest board URL',
+                'boardForm.notes' => 'notes',
+                'boardPdfUpload' => 'PDF file',
+            ],
+        )->validate();
 
-        $sourceType = $data['source_type'];
+        $sourceType = $data['boardForm']['source_type'];
         $pinterestBoardUrl = $sourceType === ProjectMoodboard::SOURCE_PINTEREST
-            ? $this->normalizePinterestBoardUrl((string) $data['pinterest_board_url'])
+            ? $this->normalizePinterestBoardUrl((string) $data['boardForm']['pinterest_board_url'])
             : null;
+        $pdfFilePath = null;
+        $pdfOriginalName = null;
 
         if (
             $sourceType === ProjectMoodboard::SOURCE_PINTEREST
@@ -184,11 +207,18 @@ class ViewProjectMoodboard extends Page
             ]);
         }
 
+        if ($sourceType === ProjectMoodboard::SOURCE_PDF) {
+            $pdfFilePath = $this->boardPdfUpload->store('projects/moodboards', 'public');
+            $pdfOriginalName = $this->boardPdfUpload->getClientOriginalName();
+        }
+
         $this->getRecord()->projectMoodboards()->create([
-            'title' => trim((string) $data['title']),
+            'title' => trim((string) $data['boardForm']['title']),
             'source_type' => $sourceType,
             'pinterest_board_url' => $pinterestBoardUrl,
-            'notes' => filled($data['notes'] ?? null) ? trim((string) $data['notes']) : null,
+            'pdf_file_path' => $pdfFilePath,
+            'pdf_original_name' => $pdfOriginalName,
+            'notes' => filled($data['boardForm']['notes'] ?? null) ? trim((string) $data['boardForm']['notes']) : null,
             'board_type' => 'custom',
             'sort_order' => ((int) $this->getRecord()->projectMoodboards()->max('sort_order')) + 1,
         ]);
@@ -211,7 +241,7 @@ class ViewProjectMoodboard extends Page
         if ($targetType === 'custom') {
             $board = $this->getRecord()->projectMoodboards()->find($targetId);
 
-            if ($board?->source_type === ProjectMoodboard::SOURCE_PINTEREST) {
+            if (in_array($board?->source_type, [ProjectMoodboard::SOURCE_PINTEREST, ProjectMoodboard::SOURCE_PDF], true)) {
                 return;
             }
         }
@@ -342,6 +372,10 @@ class ViewProjectMoodboard extends Page
         foreach ($board->images as $image) {
             Storage::disk('public')->delete($image->image_path);
             $image->delete();
+        }
+
+        if ($board->pdf_file_path) {
+            Storage::disk('public')->delete($board->pdf_file_path);
         }
 
         $board->delete();
