@@ -68,6 +68,14 @@ class Project extends Model
         'internal_notes',
         'region',
         'locality',
+        'location_request_type',
+        'venue_id',
+        'venue',
+        'ceremony_type',
+        'ceremony_details',
+        'ceremony_location',
+        'estimated_timings',
+        'additional_events',
         'wedding_period',
         'style_description',
         'event_date',
@@ -91,6 +99,7 @@ class Project extends Model
         'event_date' => 'date',
         'event_start_date' => 'date',
         'event_end_date' => 'date',
+        'venue_id' => 'integer',
         'budget_amount' => 'decimal:2',
         'venue_included_in_budget' => 'boolean',
         'rsvp_configuration' => 'array',
@@ -288,6 +297,11 @@ class Project extends Model
         return $this->belongsTo(Lead::class);
     }
 
+    public function venueRecord(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class, 'venue_id');
+    }
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class)->withTimestamps();
@@ -297,12 +311,15 @@ class Project extends Model
     {
         $lead = $this->lead;
 
+        $venueStats = $this->syncVenueBudgetFromVenueId();
+
         if (! $lead) {
             return [
                 'project_id' => $this->id,
                 'created' => 0,
                 'updated' => 0,
                 'skipped' => 0,
+                ...$venueStats,
                 'no_lead' => true,
             ];
         }
@@ -323,6 +340,7 @@ class Project extends Model
             'supplier_proposals_created' => 0,
             'supplier_proposals_updated' => 0,
             'no_lead' => false,
+            ...$venueStats,
         ];
 
         $defaultWeddingSupplier = $this->defaultWeddingSupplier();
@@ -433,6 +451,90 @@ class Project extends Model
         $this->syncChecklistOptionsFromTemplates();
 
         return $stats;
+    }
+
+    public function syncVenueBudgetFromVenueId(): array
+    {
+        $stats = [
+            'venue_budget_created' => 0,
+            'venue_budget_updated' => 0,
+            'venue_supplier_proposals_created' => 0,
+            'venue_supplier_proposals_updated' => 0,
+        ];
+
+        if (blank($this->venue_id)) {
+            return $stats;
+        }
+
+        $venue = $this->venueRecord()->first();
+
+        if (! $venue) {
+            return $stats;
+        }
+
+        $category = $this->venueBudgetCategory();
+
+        if (! $category) {
+            return $stats;
+        }
+
+        $budget = $this->categoryBudgets()->firstOrNew([
+            'category_id' => $category->id,
+        ]);
+        $budgetIsNew = ! $budget->exists;
+
+        if (blank($budget->budget_status)) {
+            $budget->budget_status = CategoryBudget::STATUS_CONFIRMED;
+        }
+
+        if (blank($budget->notes)) {
+            $budget->notes = 'Automatically created from the project venue.';
+        }
+
+        if ($budget->isDirty()) {
+            $budget->save();
+            $stats[$budgetIsNew ? 'venue_budget_created' : 'venue_budget_updated']++;
+        }
+
+        $proposal = $budget->supplierProposals()->firstOrNew([
+            'supplier_id' => $venue->id,
+        ]);
+        $proposalIsNew = ! $proposal->exists;
+        $amount = $venue->loc_rental_fee !== null ? (float) $venue->loc_rental_fee : null;
+
+        $proposal->fill([
+            'supplier_id' => $venue->id,
+            'responded_at' => $proposal->responded_at ?? now(),
+            'availability_status' => 'available',
+            'scouting_status' => 'chosen',
+            'proposal_status' => CategoryBudgetSupplier::STATUS_CONFIRMED,
+            'proposed_amount' => $proposal->proposed_amount ?? $amount,
+            'cost_items_json' => $proposal->cost_items_json ?: ($amount !== null ? [[
+                'label' => 'Venue rental fee',
+                'amount' => $amount,
+            ]] : null),
+            'proposal_summary' => $proposal->proposal_summary ?: 'Automatically approved from the project venue.',
+            'confirmed_at' => $proposal->confirmed_at ?? now(),
+        ]);
+
+        if ($proposal->isDirty()) {
+            $proposal->save();
+            $stats[$proposalIsNew ? 'venue_supplier_proposals_created' : 'venue_supplier_proposals_updated']++;
+        }
+
+        return $stats;
+    }
+
+    protected function venueBudgetCategory(): ?Category
+    {
+        return Category::query()->find(Supplier::LOCATION_CATEGORY_ID)
+            ?: Category::query()
+                ->where(function ($query): void {
+                    $query
+                        ->where('label', 'Venue')
+                        ->orWhere('label_it', 'Venue');
+                })
+                ->first();
     }
 
     protected function defaultWeddingSupplier(): ?Supplier

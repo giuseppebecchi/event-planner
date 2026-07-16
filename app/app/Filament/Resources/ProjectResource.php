@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProjectResource\Pages;
+use App\Filament\Resources\Concerns\HasVenueFormFields;
 use App\Models\Lead;
 use App\Models\Project;
 use BackedEnum;
@@ -33,6 +34,8 @@ use Illuminate\Support\Carbon;
 
 class ProjectResource extends Resource
 {
+    use HasVenueFormFields;
+
     protected static ?string $model = Project::class;
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -198,20 +201,30 @@ class ProjectResource extends Resource
                                         ->columnSpan(2),
                                 ]),
 
-                            Section::make('Style and internal notes')
-                                ->description('Moodboard direction, planner notes and internal context.')
-                                ->icon('heroicon-o-swatch')
-                                ->columns(2)
-                                ->schema([
-                                    Components\TextInput::make('style_description')
-                                        ->label('Wedding style')
-                                        ->maxLength(255)
-                                        ->columnSpanFull(),
-                                    Components\Textarea::make('internal_notes')
-                                        ->label('Internal notes')
-                                        ->rows(4)
-                                        ->columnSpanFull(),
-                                ]),
+                            static::venueSection(
+                                leadingFields: [
+                                    Components\Select::make('ceremony_type')
+                                        ->label('Ceremony type')
+                                        ->options(Lead::CEREMONY_TYPE_OPTIONS),
+                                    Components\Select::make('location_request_type')
+                                        ->label('Venue request')
+                                        ->options(Lead::LOCATION_REQUEST_TYPE_OPTIONS),
+                                ],
+                                trailingFields: [
+                                    Components\TextInput::make('estimated_timings')
+                                        ->label('Estimated timings')
+                                        ->maxLength(255),
+                                    Components\TextInput::make('ceremony_location')
+                                        ->label('Ceremony location')
+                                        ->maxLength(255),
+                                    Components\TextInput::make('ceremony_details')
+                                        ->label('Religious ceremony details / notes')
+                                        ->maxLength(255),
+                                    Components\TextInput::make('additional_events')
+                                        ->label('Events before / after the wedding')
+                                        ->maxLength(255),
+                                ],
+                            ),
                         ]),
 
                     Group::make()
@@ -269,6 +282,20 @@ class ProjectResource extends Resource
                                         ->label('Phone')
                                         ->tel()
                                         ->maxLength(50),
+                                ]),
+                            Section::make('Style and internal notes')
+                                ->description('Moodboard direction, planner notes and internal context.')
+                                ->icon('heroicon-o-swatch')
+                                ->columns(2)
+                                ->schema([
+                                    Components\TextInput::make('style_description')
+                                        ->label('Wedding style')
+                                        ->maxLength(255)
+                                        ->columnSpanFull(),
+                                    Components\Textarea::make('internal_notes')
+                                        ->label('Internal notes')
+                                        ->rows(4)
+                                        ->columnSpanFull(),
                                 ]),
                             View::make('filament.resources.project-resource.pages.partials.customer-credentials')
                                 ->visible(fn (string $operation): bool => $operation === 'edit'),

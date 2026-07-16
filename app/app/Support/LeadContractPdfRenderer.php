@@ -25,7 +25,7 @@ class LeadContractPdfRenderer
 
     protected function make(Lead $lead)
     {
-        $lead->loadMissing('project');
+        $lead->loadMissing('project', 'venueRecord');
 
         $pdf = Pdf::loadView('pdf.lead-contract', [
             'lead' => $lead,
@@ -62,7 +62,7 @@ class LeadContractPdfRenderer
         return [
             'couple' => $lead->couple_name ?: ($project?->coupleNames() ?: '') ?: 'Client',
             'date' => $this->formatWeddingDate($lead->wedding_date, $lead->wedding_period) ?: 'To be confirmed',
-            'location' => $lead->venue ?: $lead->desired_region ?: 'Italy',
+            'location' => $lead->venueDisplayName() ?: $lead->desired_region ?: 'Italy',
             'issued_at' => now()->format('F jS Y'),
         ];
     }
@@ -70,6 +70,8 @@ class LeadContractPdfRenderer
     public function replacePlaceholders(string $content, Lead $lead): string
     {
         $project = $lead->project;
+        $venueName = $lead->venueDisplayName();
+        $venueLocality = $lead->venueDisplayLocality();
 
         $mainContactName = trim(collect([$lead->first_name, $lead->last_name])->filter()->implode(' '));
         $secondaryContactName = trim(collect([$lead->secondary_first_name, $lead->secondary_last_name])->filter()->implode(' '));
@@ -93,7 +95,7 @@ class LeadContractPdfRenderer
             'ceremony_type' => $lead->ceremony_type,
             'ceremony_details' => $lead->ceremony_details,
             'location_request_type' => $lead->location_request_type,
-            'venue' => $lead->venue,
+            'venue' => $venueName,
             'ceremony_location' => $lead->ceremony_location,
             'estimated_timings' => $lead->estimated_timings,
             'additional_events' => $lead->additional_events,
@@ -120,12 +122,12 @@ class LeadContractPdfRenderer
             'address' => $lead->address,
             'private_notes' => $lead->internal_notes,
             'region' => $lead->desired_region,
-            'locality' => $lead->venue ?: $lead->desired_region,
+            'locality' => $venueLocality ?: $lead->desired_region,
             'event_start_date' => $this->formatWeddingDate($lead->wedding_date, $lead->wedding_period),
             'event_end_date' => null,
             'final_guest_count' => null,
             'status' => $project?->status,
-            'reception_location' => $lead->venue,
+            'reception_location' => $venueName,
             'contract_total_fee' => $this->contractTotalFee($lead),
             'contract_first_deposit' => null,
             'contract_second_deposit_due_at' => null,

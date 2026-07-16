@@ -82,6 +82,7 @@ class Lead extends Model
         'ceremony_type',
         'ceremony_details',
         'location_request_type',
+        'venue_id',
         'venue',
         'ceremony_location',
         'estimated_timings',
@@ -115,6 +116,7 @@ class Lead extends Model
 
     protected $casts = [
         'requested_at' => 'date',
+        'venue_id' => 'integer',
         'budget_amount' => 'decimal:2',
         'venue_included_in_budget' => 'boolean',
         'form_sent_at' => 'datetime',
@@ -144,6 +146,23 @@ class Lead extends Model
     public function project(): HasOne
     {
         return $this->hasOne(Project::class);
+    }
+
+    public function venueRecord(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class, 'venue_id');
+    }
+
+    public function venueDisplayName(): ?string
+    {
+        return $this->venueRecord?->name ?: $this->venue;
+    }
+
+    public function venueDisplayLocality(): ?string
+    {
+        return $this->venueRecord?->loc_locality
+            ?: $this->venueRecord?->city
+            ?: $this->venueDisplayName();
     }
 
     public function documents(): HasMany

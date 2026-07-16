@@ -190,6 +190,8 @@ class ViewLeadContract extends BaseLeadPhasePage
 
     protected function projectPayloadFromLead(Lead $lead): array
     {
+        $lead->loadMissing('venueRecord');
+
         $payload = [
             'lead_id' => $lead->id,
             'name' => $lead->couple_name ? ('Wedding - '.$lead->couple_name) : 'Wedding project',
@@ -205,7 +207,15 @@ class ViewLeadContract extends BaseLeadPhasePage
             'secondary_email' => $lead->secondary_email,
             'secondary_phone' => $lead->secondary_phone,
             'region' => $lead->desired_region,
-            'locality' => $lead->venue,
+            'locality' => $lead->venueDisplayLocality(),
+            'location_request_type' => $lead->location_request_type,
+            'venue_id' => $lead->venue_id,
+            'venue' => $lead->venue,
+            'ceremony_type' => $lead->ceremony_type,
+            'ceremony_details' => $lead->ceremony_details,
+            'ceremony_location' => $lead->ceremony_location,
+            'estimated_timings' => $lead->estimated_timings,
+            'additional_events' => $lead->additional_events,
             'wedding_period' => $lead->wedding_period,
             'estimated_guest_count' => $lead->estimated_guest_count,
             'budget_amount' => $lead->budget_amount,

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\LeadResource\Pages;
+use App\Filament\Resources\Concerns\HasVenueFormFields;
 use App\Models\Lead;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -32,6 +33,8 @@ use Illuminate\Support\HtmlString;
 
 class LeadResource extends Resource
 {
+    use HasVenueFormFields;
+
     protected static ?string $model = Lead::class;
     protected static ?string $recordTitleAttribute = 'couple_name';
 
@@ -178,20 +181,16 @@ class LeadResource extends Resource
                         ]),
                 ]),
 
-            Section::make('Ceremony and venue')
-                ->description('Ceremony format, accommodation and event flow.')
-                ->icon('heroicon-o-building-library')
-                ->columns(2)
-                ->schema([
+            static::venueSection(
+                leadingFields: [
                     Components\Select::make('ceremony_type')
                         ->label('Ceremony type')
                         ->options(Lead::CEREMONY_TYPE_OPTIONS),
                     Components\Select::make('location_request_type')
                         ->label('Venue request')
                         ->options(Lead::LOCATION_REQUEST_TYPE_OPTIONS),
-                    Components\TextInput::make('venue')
-                        ->label('Venue/reception (already defined)')
-                        ->maxLength(255),
+                ],
+                trailingFields: [
                     Components\TextInput::make('estimated_timings')
                         ->label('Estimated timings')
                         ->maxLength(255),
@@ -204,7 +203,8 @@ class LeadResource extends Resource
                     Components\TextInput::make('additional_events')
                         ->label('Events before / after the wedding')
                         ->maxLength(255),
-                ]),
+                ],
+            ),
 
             Section::make('Style and internal notes')
                 ->description('Moodboard direction, planner notes and internal context.')
@@ -450,6 +450,9 @@ class LeadResource extends Resource
                         ->label('Venue request')
                         ->formatStateUsing(fn (?string $state): ?string => $state ? (Lead::LOCATION_REQUEST_TYPE_OPTIONS[$state] ?? $state) : null),
                     TextEntry::make('venue')
+                        ->label('Deprecated venue/reception')
+                        ->visible(fn (Lead $record): bool => filled($record->venue)),
+                    TextEntry::make('venueRecord.name')
                         ->label('Venue/reception (already defined)'),
                     TextEntry::make('ceremony_location')
                         ->label('Ceremony location'),
