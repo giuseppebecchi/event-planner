@@ -27,6 +27,7 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'password',
         'role_id',
+        'customer_portal_welcomed_at',
     ];
 
     /**
@@ -49,6 +50,7 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'customer_portal_welcomed_at' => 'datetime',
         ];
     }
 
@@ -95,5 +97,10 @@ class User extends Authenticatable implements FilamentUser
     public function canManageUsers(): bool
     {
         return $this->isSuperAdmin() || $this->isAdmin();
+    }
+
+    public function customerProjectsCount(): int
+    {
+        return $this->projects()->count();
     }
 }

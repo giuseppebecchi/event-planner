@@ -48,6 +48,17 @@ class ProjectResource extends Resource
     protected static ?string $modelLabel = 'Project';
     protected static ?int $navigationSort = 2;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user?->isCustomer()) {
+            return true;
+        }
+
+        return $user->customerProjectsCount() !== 1;
+    }
+
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
@@ -352,7 +363,8 @@ class ProjectResource extends Resource
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->visible(fn (): bool => ! auth()->user()?->isCustomer()),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
             ])
@@ -361,7 +373,7 @@ class ProjectResource extends Resource
                     DeleteBulkAction::make(),
                     RestoreBulkAction::make(),
                     ForceDeleteBulkAction::make(),
-                ]),
+                ])->visible(fn (): bool => ! auth()->user()?->isCustomer()),
             ])
             ->defaultSort('event_date', 'desc');
     }

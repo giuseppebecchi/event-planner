@@ -18,6 +18,8 @@ trait InteractsWithProjectDateEditor
 
     public function openProjectDateEditor(): void
     {
+        abort_if(auth()->user()?->isCustomer(), 403);
+
         $record = $this->getRecord();
         $eventDate = $record->event_date;
         $startDate = $record->event_start_date;
@@ -36,6 +38,8 @@ trait InteractsWithProjectDateEditor
 
     public function updatedProjectDateFormIsMultiDay(bool $isMultiDay): void
     {
+        abort_if(auth()->user()?->isCustomer(), 403);
+
         if (! $isMultiDay) {
             $this->projectDateForm['start_date'] = '';
             $this->projectDateForm['end_date'] = '';
@@ -52,6 +56,8 @@ trait InteractsWithProjectDateEditor
 
     public function updatedProjectDateFormStartDate(): void
     {
+        abort_if(auth()->user()?->isCustomer(), 403);
+
         $this->fillProjectDateEditorEndDateFromStart();
     }
 
@@ -62,6 +68,8 @@ trait InteractsWithProjectDateEditor
 
     public function saveProjectDateEditor(): void
     {
+        abort_if(auth()->user()?->isCustomer(), 403);
+
         $data = validator($this->projectDateForm, [
             'is_multi_day' => ['required', 'boolean'],
             'event_date' => ['required', 'date'],

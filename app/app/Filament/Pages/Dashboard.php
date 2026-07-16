@@ -26,6 +26,16 @@ class Dashboard extends \Filament\Pages\Dashboard
 
     protected string $view = 'filament.pages.dashboard';
 
+    public static function canAccess(): bool
+    {
+        return ! auth()->user()?->isCustomer();
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess();
+    }
+
     public function getTitle(): string|Htmlable
     {
         return 'Dashboard';

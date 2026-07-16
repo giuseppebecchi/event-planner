@@ -14,7 +14,8 @@ class ListProjects extends ListRecords
     {
         return [
             CreateAction::make()
-                ->icon('heroicon-m-plus'),
+                ->icon('heroicon-m-plus')
+                ->visible(fn (): bool => ! auth()->user()?->isCustomer()),
         ];
     }
 }

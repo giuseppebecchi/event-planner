@@ -3,8 +3,13 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\CustomerEventDashboard;
+use App\Filament\Pages\CustomerHelp;
+use App\Filament\Pages\CustomerWelcome;
 use App\Filament\Pages\EditProfile;
 use App\Filament\Resources\LeadResource;
+use App\Filament\Resources\ProjectResource;
+use App\Http\Middleware\RedirectCustomerToWelcome;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -37,7 +42,7 @@ class AdminPanelProvider extends PanelProvider
             ->topNavigation()
             ->subNavigationPosition(SubNavigationPosition::Top)
             ->readOnlyRelationManagersOnResourceViewPagesByDefault(false)
-            ->homeUrl(fn (): string => LeadResource::getUrl(panel: 'admin'))
+            ->homeUrl(fn (): string => $this->homeUrl())
             ->brandLogo(asset('images/logo-negative-heart-gold-ai.png'))
             ->darkModeBrandLogo(asset('images/logo-negative-heart-gold-ai.png'))
             ->brandLogoHeight('2.85rem')
@@ -64,6 +69,9 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,
+                CustomerEventDashboard::class,
+                CustomerHelp::class,
+                CustomerWelcome::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
@@ -83,6 +91,28 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                RedirectCustomerToWelcome::class,
             ]);
+    }
+
+    protected function homeUrl(): string
+    {
+        $user = auth()->user();
+
+        if (! $user?->isCustomer()) {
+            return LeadResource::getUrl(panel: 'admin');
+        }
+
+        if (blank($user->customer_portal_welcomed_at)) {
+            return CustomerWelcome::getUrl(panel: 'admin');
+        }
+
+        $projects = $user->projects()->orderBy('event_date')->orderBy('name')->get();
+
+        if ($projects->count() === 1) {
+            return ProjectResource::getUrl('view', ['record' => $projects->first()], panel: 'admin');
+        }
+
+        return ProjectResource::getUrl(panel: 'admin');
     }
 }

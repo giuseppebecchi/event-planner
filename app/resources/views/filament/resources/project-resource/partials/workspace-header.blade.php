@@ -46,14 +46,16 @@
                 <div class="wm-event-countdown-head">
                     <p class="wm-event-countdown-label">Countdown</p>
 
-                    <button
-                        type="button"
-                        class="wm-event-countdown-edit"
-                        wire:click="openProjectDateEditor"
-                        aria-label="{{ $record->event_date ? 'Edit event date' : 'Set event date' }}"
-                    >
-                        <x-heroicon-o-pencil-square />
-                    </button>
+                    @if (! $isCustomer)
+                        <button
+                            type="button"
+                            class="wm-event-countdown-edit"
+                            wire:click="openProjectDateEditor"
+                            aria-label="{{ $record->event_date ? 'Edit event date' : 'Set event date' }}"
+                        >
+                            <x-heroicon-o-pencil-square />
+                        </button>
+                    @endif
                 </div>
                 <p class="wm-event-countdown-value">{{ $daysToGo !== null ? $daysToGo . ' days to go' : 'Date pending' }}</p>
                 <p class="wm-event-countdown-meta">{{ $dateLabel }}</p>
@@ -62,7 +64,7 @@
     </div>
 
     <div class="wm-event-top-date-tools">
-        @if ($showProjectDateEditor)
+        @if (! $isCustomer && $showProjectDateEditor)
             <div class="wm-event-date-editor">
                 <div class="wm-event-date-grid is-single">
                     <div>
