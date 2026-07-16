@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Pages\CustomerWelcome;
 use App\Filament\Resources\LeadResource;
 use App\Filament\Resources\ProjectResource;
 use App\Models\Lead;
@@ -28,12 +29,19 @@ class Dashboard extends \Filament\Pages\Dashboard
 
     public static function canAccess(): bool
     {
-        return ! auth()->user()?->isCustomer();
+        return true;
     }
 
     public static function shouldRegisterNavigation(): bool
     {
-        return static::canAccess();
+        return ! auth()->user()?->isCustomer();
+    }
+
+    public function mount()
+    {
+        if (auth()->user()?->isCustomer()) {
+            return redirect($this->customerHomeUrl());
+        }
     }
 
     public function getTitle(): string|Htmlable
@@ -43,6 +51,17 @@ class Dashboard extends \Filament\Pages\Dashboard
 
     protected function getViewData(): array
     {
+        if (auth()->user()?->isCustomer()) {
+            return [
+                'stats' => [],
+                'hotLeads' => collect(),
+                'projectsInPreparation' => collect(),
+                'upcomingConfirmedEvents' => collect(),
+                'upcomingFollowUps' => collect(),
+                'upcomingDeadlines' => collect(),
+            ];
+        }
+
         return [
             'stats' => $this->getStats(),
             'hotLeads' => $this->getHotLeads(),
@@ -51,6 +70,27 @@ class Dashboard extends \Filament\Pages\Dashboard
             'upcomingFollowUps' => $this->getUpcomingFollowUps(),
             'upcomingDeadlines' => $this->getUpcomingDeadlines(),
         ];
+    }
+
+    protected function customerHomeUrl(): string
+    {
+        $user = auth()->user();
+
+        if (! $user?->isCustomer()) {
+            return LeadResource::getUrl();
+        }
+
+        if (blank($user->customer_portal_welcomed_at)) {
+            return CustomerWelcome::getUrl();
+        }
+
+        $projects = $user->projects()->orderBy('event_date')->orderBy('name')->get();
+
+        if ($projects->count() === 1) {
+            return ProjectResource::getUrl('view', ['record' => $projects->first()]);
+        }
+
+        return ProjectResource::getUrl();
     }
 
     protected function getStats(): array
