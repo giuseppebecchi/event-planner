@@ -237,16 +237,6 @@ class ViewProject extends ViewRecord
             : ['No blocking items detected in the current event setup.'];
     }
 
-    public function getInspirationTiles(): array
-    {
-        return [
-            ['title' => 'Ceremony vision', 'caption' => 'Keep the ceremony concept visible while scouting the venue and floral setup.', 'tone' => 'sunrise'],
-            ['title' => 'Reception atmosphere', 'caption' => 'Use this area for styling references, table mood and lighting direction.', 'tone' => 'olive'],
-            ['title' => 'Guest experience', 'caption' => 'Track travel, hospitality and comfort details that influence supplier choices.', 'tone' => 'sky'],
-            ['title' => 'Signature details', 'caption' => 'Collect inspiration for stationery, favors and small memorable touches.', 'tone' => 'sand'],
-        ];
-    }
-
     public function getDaysToGo(): ?int
     {
         $startDate = $this->getRecord()->event_date;

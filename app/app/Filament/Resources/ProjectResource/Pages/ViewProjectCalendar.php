@@ -214,6 +214,10 @@ class ViewProjectCalendar extends Page
 
     public function saveProjectEvent(): void
     {
+        if (! (bool) ($this->eventForm['is_multi_day'] ?? false)) {
+            $this->eventForm['end_date'] = $this->eventForm['start_date'] ?? null;
+        }
+
         $data = validator($this->eventForm, [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -247,7 +251,7 @@ class ViewProjectCalendar extends Page
             }
         }
 
-        $this->getRecord()->projectEvents()->create([
+        $event = $this->getRecord()->projectEvents()->create([
             'title' => trim((string) $data['title']),
             'description' => filled($data['description'] ?? null) ? trim((string) $data['description']) : null,
             'starts_at' => $startsAt,
@@ -259,6 +263,8 @@ class ViewProjectCalendar extends Page
         ]);
 
         $this->getRecord()->unsetRelation('projectEvents');
+        $this->visibleMonth = $event->starts_at->copy()->startOfMonth()->format('Y-m');
+        $this->syncMonthPickerForm();
 
         $this->eventForm = [
             'title' => '',

@@ -112,7 +112,11 @@
 
             @if ($plans->isEmpty())
                 <section class="wm-event-card wm-layout-empty">
-                    No layouts yet. Create the first seating plan for ceremony, dinner, lunch or another event moment.
+                    @if ($isCustomer)
+                        Your wedding planner will prepare the seating plan here. Once it is ready, you will be able to assign guests to their seats.
+                    @else
+                        No layouts yet. Create the first seating plan for ceremony, dinner, lunch or another event moment.
+                    @endif
                 </section>
             @else
                 <section class="wm-layouts-grid">

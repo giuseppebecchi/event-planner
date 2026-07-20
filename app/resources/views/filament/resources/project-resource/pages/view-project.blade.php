@@ -523,75 +523,12 @@
             color: #8b847d;
         }
 
-        .wm-event-gallery {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 1rem;
-        }
-
-        .wm-event-gallery-card {
-            min-height: 14rem;
-            padding: 1rem;
-            border-radius: 1.15rem;
-            display: flex;
-            align-items: flex-end;
-            position: relative;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.42);
-        }
-
-        .wm-event-gallery-card::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(180deg, transparent, rgba(45, 42, 38, 0.28));
-        }
-
-        .wm-event-gallery-card.sunrise {
-            background: linear-gradient(135deg, #f5d9bf 0%, #f9f2e8 55%, #f0c7a9 100%);
-        }
-
-        .wm-event-gallery-card.olive {
-            background: linear-gradient(135deg, #dce8d7 0%, #f6f7f1 50%, #9db68d 100%);
-        }
-
-        .wm-event-gallery-card.sky {
-            background: linear-gradient(135deg, #d8e8f2 0%, #f7fafc 52%, #c2d7e8 100%);
-        }
-
-        .wm-event-gallery-card.sand {
-            background: linear-gradient(135deg, #efe1d2 0%, #faf5ef 48%, #e2c6ab 100%);
-        }
-
-        .wm-event-gallery-copy {
-            position: relative;
-            z-index: 1;
-        }
-
-        .wm-event-gallery-title {
-            margin: 0 0 0.4rem;
-            color: #2d2a26;
-            font-family: 'Cinzel', serif;
-            font-size: 1rem;
-        }
-
-        .wm-event-gallery-text {
-            margin: 0;
-            color: rgba(45, 42, 38, 0.82);
-            font-size: 0.9rem;
-            line-height: 1.6;
-        }
-
         @media (max-width: 1280px) {
             .wm-event-grid {
                 grid-template-columns: 1fr;
             }
 
             .wm-event-kpis {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .wm-event-gallery {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
@@ -606,8 +543,7 @@
         @media (max-width: 768px) {
             .wm-event-kpis,
             .wm-event-budget-grid,
-            .wm-event-scout-grid,
-            .wm-event-gallery {
+            .wm-event-scout-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -808,26 +744,6 @@
                     @endif
                 </article>
             </div>
-        </section>
-
-        <section class="wm-event-stack">
-            <article class="wm-event-card wm-event-panel" id="moodboard">
-                <div class="wm-event-panel-header">
-                    <h3 class="wm-event-panel-title">Moodboard</h3>
-                    <span class="wm-event-panel-note">Initial placeholders</span>
-                </div>
-
-                <div class="wm-event-gallery">
-                    @foreach ($this->getInspirationTiles() as $tile)
-                        <article class="wm-event-gallery-card {{ $tile['tone'] }}">
-                            <div class="wm-event-gallery-copy">
-                                <h4 class="wm-event-gallery-title">{{ $tile['title'] }}</h4>
-                                <p class="wm-event-gallery-text">{{ $tile['caption'] }}</p>
-                            </div>
-                        </article>
-                    @endforeach
-                </div>
-            </article>
         </section>
     </div>
 </x-filament-panels::page>
