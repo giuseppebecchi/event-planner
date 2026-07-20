@@ -108,7 +108,7 @@ class ViewProject extends ViewRecord
     {
         $project = $this->getRecord()->loadMissing('categoryBudgets.category', 'categoryBudgets.supplierProposals');
         $budgets = $project->categoryBudgets
-            ->sortBy(fn (CategoryBudget $budget) => mb_strtolower((string) ($budget->category?->label_it ?? $budget->category?->label ?? 'zzz')))
+            ->sortBy(fn (CategoryBudget $budget) => mb_strtolower((string) ($budget->category?->label ?? $budget->category?->label_it ?? 'zzz')))
             ->values();
 
         $items = $budgets->map(function (CategoryBudget $budget): array {
@@ -136,7 +136,7 @@ class ViewProject extends ViewRecord
             $status = $hasConfirmed ? 'confirmed' : ($hasResponses ? 'responded' : 'pending');
 
             return [
-                'label' => (string) ($budget->category?->label_it ?? $budget->category?->label ?? 'Category'),
+                'label' => (string) ($budget->category?->label ?? $budget->category?->label_it ?? 'Category'),
                 'status' => $status,
                 'proposals_count' => $proposals->count(),
                 'responses_count' => $proposals->filter(function (CategoryBudgetSupplier $proposal): bool {
