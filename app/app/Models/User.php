@@ -28,6 +28,7 @@ class User extends Authenticatable implements FilamentUser
         'password',
         'role_id',
         'customer_portal_welcomed_at',
+        'notification_enabled',
     ];
 
     /**
@@ -51,6 +52,7 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'customer_portal_welcomed_at' => 'datetime',
+            'notification_enabled' => 'boolean',
         ];
     }
 

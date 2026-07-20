@@ -40,6 +40,7 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->profile(EditProfile::class, isSimple: false)
             ->topNavigation()
+            ->databaseNotifications()
             ->subNavigationPosition(SubNavigationPosition::Top)
             ->readOnlyRelationManagersOnResourceViewPagesByDefault(false)
             ->homeUrl(fn (): string => $this->homeUrl())

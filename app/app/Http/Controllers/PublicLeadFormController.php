@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lead;
+use App\Models\Role;
+use App\Models\User;
+use App\Notifications\SurveyFilledNotification;
 use App\Support\LeadQuestionnaire;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -61,6 +64,8 @@ class PublicLeadFormController extends Controller
             'form_payload' => $payload,
         ])->save();
 
+        $this->notifyEnabledAdmins($lead->fresh());
+
         return redirect()
             ->route('public.lead-form.show', $lead->public_form_hash)
             ->with('submitted', true);
@@ -71,6 +76,15 @@ class PublicLeadFormController extends Controller
         return Lead::query()
             ->where('public_form_hash', $hashId)
             ->firstOrFail();
+    }
+
+    protected function notifyEnabledAdmins(Lead $lead): void
+    {
+        User::query()
+            ->where('notification_enabled', true)
+            ->whereHas('role', fn ($query) => $query->whereIn('name', [Role::SUPER_ADMIN, Role::ADMIN]))
+            ->get()
+            ->each(fn (User $user): mixed => $user->notify(new SurveyFilledNotification($lead)));
     }
 
     protected function rules(): array

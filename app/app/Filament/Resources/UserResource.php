@@ -15,6 +15,7 @@ use Filament\Forms\Components;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
@@ -84,6 +85,10 @@ class UserResource extends Resource
                         ->dehydrated(fn ($state): bool => filled($state))
                         ->required(fn (string $operation): bool => $operation === 'create')
                         ->maxLength(255),
+                    Components\Toggle::make('notification_enabled')
+                        ->label('Notifications enabled')
+                        ->helperText('Receive operational notifications from the portal.')
+                        ->default(false),
                     Components\Select::make('projects')
                         ->label('Assigned projects')
                         ->relationship('projects', 'name')
@@ -103,6 +108,10 @@ class UserResource extends Resource
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('email')->searchable()->sortable(),
                 TextColumn::make('role.name')->label('Role')->badge()->sortable(),
+                IconColumn::make('notification_enabled')
+                    ->label('Notifications')
+                    ->boolean()
+                    ->sortable(),
                 TextColumn::make('projects.name')->label('Projects')->listWithLineBreaks()->limitList(3),
             ])
             ->recordActions([
