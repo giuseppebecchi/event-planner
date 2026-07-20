@@ -11,6 +11,8 @@ trait InteractsWithLeadPhaseContent
 
     abstract protected function getPhaseContentField(): string;
 
+    abstract protected function normalizePhaseEditorHtml(string $html): string;
+
     public function savePhaseContent(): void
     {
         /** @var Lead $lead */
@@ -24,8 +26,10 @@ trait InteractsWithLeadPhaseContent
             'content' => ['nullable', 'string'],
         ])->validate();
 
+        $content = trim($this->normalizePhaseEditorHtml($this->phaseContentDraft));
+
         $lead->forceFill([
-            $field => trim($this->phaseContentDraft) !== '' ? trim($this->phaseContentDraft) : null,
+            $field => $content !== '' ? $content : null,
         ])->save();
 
         Notification::make()

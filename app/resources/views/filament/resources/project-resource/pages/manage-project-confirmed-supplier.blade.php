@@ -293,6 +293,40 @@
             text-decoration: none;
         }
 
+        .wm-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            min-height: 2.35rem;
+            border: 1px solid #d8ccb9;
+            border-radius: 0.8rem;
+            background: #fff;
+            padding: 0 0.85rem;
+            color: #2e4a62;
+            font-size: 0.78rem;
+            font-weight: 800;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .wm-button.is-primary {
+            border-color: rgba(46, 74, 98, 0.18);
+            background: #2e4a62;
+            color: #fff;
+        }
+
+        .wm-button.is-danger {
+            border-color: rgba(217, 48, 37, 0.24);
+            background: rgba(217, 48, 37, 0.08);
+            color: #d93025;
+        }
+
+        .wm-button svg {
+            width: 1rem;
+            height: 1rem;
+        }
+
         .wm-title {
             margin: 0;
             font-family: 'Cinzel', serif;
@@ -607,8 +641,13 @@
         .wm-actions {
             display: flex;
             flex-wrap: wrap;
+            align-items: center;
             gap: 0.6rem;
             margin-top: 0.85rem;
+        }
+
+        .wm-actions-spacer {
+            flex: 1 1 auto;
         }
 
         .wm-radio-group {
@@ -1119,6 +1158,51 @@
             color: #d93025;
         }
 
+        .wm-payment-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+            background: rgba(39, 32, 24, 0.22);
+        }
+
+        .wm-payment-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            z-index: 50;
+            width: min(46rem, calc(100vw - 2rem));
+            max-height: calc(100vh - 2rem);
+            overflow-y: auto;
+            transform: translate(-50%, -50%);
+            border: 1px solid #ddd2c5;
+            border-radius: 1rem;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 24px 60px rgba(24, 18, 14, 0.18);
+            padding: 1.45rem;
+        }
+
+        .wm-payment-modal-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .wm-payment-modal-title {
+            margin: 0;
+            color: #2d2a26;
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+        }
+
+        .wm-payment-modal-copy {
+            margin: 0.3rem 0 0;
+            color: #746d66;
+            font-size: 0.86rem;
+            line-height: 1.5;
+        }
+
         .wm-commission-summary {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1363,9 +1447,19 @@
                                         <p class="wm-item-copy">{{ $document->description }}</p>
                                     @endif
                                     <div class="wm-actions">
-                                        <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($document->file_path) }}" target="_blank" class="wm-link">Open</a>
+                                        <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($document->file_path) }}" target="_blank" class="wm-button">
+                                            <x-heroicon-o-arrow-top-right-on-square />
+                                            Open
+                                        </a>
                                         @if (! $isCustomer)
-                                            <button type="button" class="wm-link" wire:click="deleteDocument({{ $document->id }})">Delete</button>
+                                            <button type="button" class="wm-button" wire:click="editDocument({{ $document->id }})">
+                                                <x-heroicon-o-pencil-square />
+                                                Edit
+                                            </button>
+                                            <button type="button" class="wm-button is-danger" wire:click="promptDeleteDocument({{ $document->id }})">
+                                                <x-heroicon-o-trash />
+                                                Delete
+                                            </button>
                                         @endif
                                     </div>
                                 </div>
@@ -1445,9 +1539,19 @@
                                 </p>
                                 <p class="wm-item-copy" style="margin-top:.45rem;">{{ $image->description ?: 'No description' }}</p>
                                 <div class="wm-actions">
-                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($image->image_path) }}" target="_blank" class="wm-link">Open</a>
+                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($image->image_path) }}" target="_blank" class="wm-button">
+                                        <x-heroicon-o-arrow-top-right-on-square />
+                                        Open
+                                    </a>
                                     @if (! $isCustomer)
-                                        <button type="button" class="wm-link" wire:click="deleteImage({{ $image->id }})">Delete</button>
+                                        <button type="button" class="wm-button" wire:click="editImage({{ $image->id }})">
+                                            <x-heroicon-o-pencil-square />
+                                            Edit
+                                        </button>
+                                        <button type="button" class="wm-button is-danger" wire:click="promptDeleteImage({{ $image->id }})">
+                                            <x-heroicon-o-trash />
+                                            Delete
+                                        </button>
                                     @endif
                                 </div>
                             </div>
@@ -1504,6 +1608,139 @@
         </section>
         @endif
 
+        @if (! $isCustomer && $editingDocumentId)
+            <div class="wm-payment-modal-backdrop" wire:click="cancelDocumentEdit"></div>
+            <div class="wm-payment-modal" role="dialog" aria-modal="true">
+                <div class="wm-payment-modal-head">
+                    <div>
+                        <h3 class="wm-payment-modal-title">Edit document</h3>
+                        <p class="wm-payment-modal-copy">Update the document type, title and description. The uploaded file remains unchanged.</p>
+                    </div>
+                    <button type="button" class="wm-button" wire:click="cancelDocumentEdit">Close</button>
+                </div>
+
+                <div class="wm-form">
+                    <div class="wm-inline-grid">
+                        <div>
+                            <label class="wm-label" for="edit-document-type">Document type</label>
+                            <select id="edit-document-type" class="wm-select" wire:model="documentEditForm.type">
+                                @foreach (\App\Models\ProjectDocument::TYPE_OPTIONS as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="wm-label" for="edit-document-title">Title</label>
+                            <input id="edit-document-title" type="text" class="wm-field" wire:model="documentEditForm.title">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="wm-label" for="edit-document-description">Description</label>
+                        <textarea id="edit-document-description" class="wm-textarea" wire:model="documentEditForm.description"></textarea>
+                    </div>
+
+                    <div class="wm-actions">
+                        <x-filament::button color="primary" wire:click="saveDocumentEdit">Save document</x-filament::button>
+                        <button type="button" class="wm-button" wire:click="cancelDocumentEdit">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        @if (! $isCustomer && $confirmDeleteDocumentId)
+            @php
+                $allDocumentsForDelete = collect($documentGroups ?? [])->flatMap(fn ($group) => $group);
+                $documentToDelete = $allDocumentsForDelete->firstWhere('id', $confirmDeleteDocumentId);
+            @endphp
+            <div class="wm-payment-modal-backdrop" wire:click="cancelDeleteDocument"></div>
+            <div class="wm-payment-modal" role="dialog" aria-modal="true">
+                <div class="wm-payment-modal-head">
+                    <div>
+                        <h3 class="wm-payment-modal-title">Delete document?</h3>
+                        <p class="wm-payment-modal-copy">
+                            This will permanently delete {{ $documentToDelete?->title ? '"' . $documentToDelete->title . '"' : 'this document' }} and its uploaded file.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="wm-actions">
+                    <button type="button" class="wm-button" wire:click="cancelDeleteDocument">Cancel</button>
+                    <button type="button" class="wm-button is-danger" wire:click="confirmDeleteDocument">
+                        <x-heroicon-o-trash />
+                        Delete document
+                    </button>
+                </div>
+            </div>
+        @endif
+
+        @if (! $isCustomer && $editingImageId)
+            <div class="wm-payment-modal-backdrop" wire:click="cancelImageEdit"></div>
+            <div class="wm-payment-modal" role="dialog" aria-modal="true">
+                <div class="wm-payment-modal-head">
+                    <div>
+                        <h3 class="wm-payment-modal-title">Edit image</h3>
+                        <p class="wm-payment-modal-copy">Update the image category, visibility and description. The uploaded image remains unchanged.</p>
+                    </div>
+                    <button type="button" class="wm-button" wire:click="cancelImageEdit">Close</button>
+                </div>
+
+                <div class="wm-form">
+                    <div class="wm-inline-grid">
+                        <div>
+                            <label class="wm-label" for="edit-image-category">Image category</label>
+                            <select id="edit-image-category" class="wm-select" wire:model="imageEditForm.image_category">
+                                @foreach (\App\Models\ProjectImage::CATEGORY_OPTIONS as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div style="display:flex;align-items:end;">
+                            <label style="display:inline-flex;gap:.6rem;align-items:center;color:#4d473f;font-weight:600;">
+                                <input type="checkbox" wire:model="imageEditForm.is_client_visible">
+                                <span>Visible in client presentations</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="wm-label" for="edit-image-description">Description</label>
+                        <textarea id="edit-image-description" class="wm-textarea" wire:model="imageEditForm.description"></textarea>
+                    </div>
+
+                    <div class="wm-actions">
+                        <x-filament::button color="primary" wire:click="saveImageEdit">Save image</x-filament::button>
+                        <button type="button" class="wm-button" wire:click="cancelImageEdit">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        @if (! $isCustomer && $confirmDeleteImageId)
+            @php
+                $imageToDelete = $images->firstWhere('id', $confirmDeleteImageId);
+            @endphp
+            <div class="wm-payment-modal-backdrop" wire:click="cancelDeleteImage"></div>
+            <div class="wm-payment-modal" role="dialog" aria-modal="true">
+                <div class="wm-payment-modal-head">
+                    <div>
+                        <h3 class="wm-payment-modal-title">Delete image?</h3>
+                        <p class="wm-payment-modal-copy">
+                            This will permanently delete this image{{ $imageToDelete?->description ? ' - "' . $imageToDelete->description . '"' : '' }} from the photogallery.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="wm-actions">
+                    <button type="button" class="wm-button" wire:click="cancelDeleteImage">Cancel</button>
+                    <button type="button" class="wm-button is-danger" wire:click="confirmDeleteImage">
+                        <x-heroicon-o-trash />
+                        Delete image
+                    </button>
+                </div>
+            </div>
+        @endif
+
         @if ($this->activeWorkspaceTab === 'payments')
         <section id="payments" class="wm-section wm-two-col">
             <div class="wm-card wm-panel">
@@ -1541,14 +1778,30 @@
                                 <p class="wm-item-copy">{{ $payment->notes }}</p>
                             @endif
                             <div class="wm-actions">
-                                @if ($payment->paymentReceiptDocument)
-                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($payment->paymentReceiptDocument->file_path) }}" target="_blank" class="wm-link">Open receipt</a>
-                                @endif
-                                @if (! $isCustomer && $payment->payment_status === \App\Models\Payment::STATUS_UNPAID)
-                                    <button type="button" class="wm-link" wire:click="startPaymentRegistration({{ $payment->id }})">Register payment</button>
+                                @if (! $isCustomer)
+                                    <button type="button" class="wm-button" wire:click="editPayment({{ $payment->id }})">
+                                        <x-heroicon-o-pencil-square />
+                                        Edit
+                                    </button>
                                 @endif
                                 @if (! $isCustomer)
-                                    <button type="button" class="wm-link" wire:click="deletePayment({{ $payment->id }})">Delete</button>
+                                    <button type="button" class="wm-button is-danger" wire:click="promptDeletePayment({{ $payment->id }})">
+                                        <x-heroicon-o-trash />
+                                        Delete
+                                    </button>
+                                @endif
+                                @if (! $isCustomer && $payment->payment_status === \App\Models\Payment::STATUS_UNPAID)
+                                    <button type="button" class="wm-button is-primary" wire:click="startPaymentRegistration({{ $payment->id }})">
+                                        <x-heroicon-o-banknotes />
+                                        Register payment
+                                    </button>
+                                @endif
+                                @if ($payment->paymentReceiptDocument)
+                                    <span class="wm-actions-spacer"></span>
+                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($payment->paymentReceiptDocument->file_path) }}" target="_blank" class="wm-button">
+                                        <x-heroicon-o-arrow-top-right-on-square />
+                                        Open receipt
+                                    </a>
                                 @endif
                             </div>
 
@@ -1614,9 +1867,20 @@
                         </div>
                         <div>
                             <label class="wm-label" for="payment-reason">Reason</label>
-                            <input id="payment-reason" type="text" class="wm-field" wire:model="paymentForm.reason">
+                            <select id="payment-reason" class="wm-select" wire:model.live="paymentForm.reason">
+                                @foreach ($this->getPaymentReasonOptions() as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
+
+                    @if (($this->paymentForm['reason'] ?? null) === 'OTHER')
+                        <div>
+                            <label class="wm-label" for="payment-custom-reason">Custom reason</label>
+                            <input id="payment-custom-reason" type="text" class="wm-field" wire:model="paymentForm.custom_reason">
+                        </div>
+                    @endif
 
                     <div class="wm-inline-grid">
                         <div>
@@ -1662,6 +1926,103 @@
             </div>
             @endif
         </section>
+        @endif
+
+        @if (! $isCustomer && $editingPaymentId)
+            <div class="wm-payment-modal-backdrop" wire:click="cancelPaymentEdit"></div>
+            <div class="wm-payment-modal" role="dialog" aria-modal="true">
+                <div class="wm-payment-modal-head">
+                    <div>
+                        <h3 class="wm-payment-modal-title">Edit payment</h3>
+                        <p class="wm-payment-modal-copy">Update the payment details, status, due date and internal notes.</p>
+                    </div>
+                    <button type="button" class="wm-button" wire:click="cancelPaymentEdit">Close</button>
+                </div>
+
+                <div class="wm-form">
+                    <div class="wm-inline-grid">
+                        <div>
+                            <label class="wm-label" for="edit-payment-mode-id">Payment mode</label>
+                            <select id="edit-payment-mode-id" class="wm-select" wire:model="paymentEditForm.payment_mode_id">
+                                <option value="">Select payment mode</option>
+                                @foreach ($this->getPaymentModeOptions() as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="wm-label" for="edit-payment-status">Status</label>
+                            <select id="edit-payment-status" class="wm-select" wire:model.live="paymentEditForm.payment_status">
+                                @foreach (\App\Models\Payment::STATUS_OPTIONS as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="wm-label" for="edit-payment-reason">Reason</label>
+                        <input id="edit-payment-reason" type="text" class="wm-field" wire:model="paymentEditForm.reason">
+                    </div>
+
+                    <div class="wm-inline-grid">
+                        <div>
+                            <label class="wm-label" for="edit-payment-amount">Amount</label>
+                            <input id="edit-payment-amount" type="number" step="0.01" class="wm-field" wire:model="paymentEditForm.amount">
+                        </div>
+                        <div>
+                            <label class="wm-label" for="edit-payment-due-date">Due date</label>
+                            <input id="edit-payment-due-date" type="date" class="wm-field" wire:model="paymentEditForm.due_date">
+                        </div>
+                    </div>
+
+                    <div class="wm-inline-grid">
+                        <div>
+                            <label class="wm-label" for="edit-payment-paid-at">Payment date</label>
+                            <input id="edit-payment-paid-at" type="date" class="wm-field" wire:model="paymentEditForm.paid_at">
+                        </div>
+                        <div>
+                            <label class="wm-label" for="edit-payment-invoice-reference">Invoice reference</label>
+                            <input id="edit-payment-invoice-reference" type="text" class="wm-field" wire:model="paymentEditForm.invoice_reference">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="wm-label" for="edit-payment-notes">Notes</label>
+                        <textarea id="edit-payment-notes" class="wm-textarea" wire:model="paymentEditForm.notes"></textarea>
+                    </div>
+
+                    <div class="wm-actions">
+                        <x-filament::button color="primary" wire:click="savePaymentEdit">Save payment</x-filament::button>
+                        <button type="button" class="wm-button" wire:click="cancelPaymentEdit">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        @if (! $isCustomer && $confirmDeletePaymentId)
+            @php
+                $paymentToDelete = $payments->firstWhere('id', $confirmDeletePaymentId);
+            @endphp
+            <div class="wm-payment-modal-backdrop" wire:click="cancelDeletePayment"></div>
+            <div class="wm-payment-modal" role="dialog" aria-modal="true">
+                <div class="wm-payment-modal-head">
+                    <div>
+                        <h3 class="wm-payment-modal-title">Delete payment?</h3>
+                        <p class="wm-payment-modal-copy">
+                            This will permanently delete {{ $paymentToDelete?->reason ? '"' . $paymentToDelete->reason . '"' : 'this payment' }} and any receipt linked to it.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="wm-actions">
+                    <button type="button" class="wm-button" wire:click="cancelDeletePayment">Cancel</button>
+                    <button type="button" class="wm-button is-danger" wire:click="confirmDeletePayment">
+                        <x-heroicon-o-trash />
+                        Delete payment
+                    </button>
+                </div>
+            </div>
         @endif
 
         @if ($this->activeWorkspaceTab === 'checklist')

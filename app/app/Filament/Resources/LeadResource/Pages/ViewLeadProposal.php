@@ -4,6 +4,7 @@ namespace App\Filament\Resources\LeadResource\Pages;
 
 use App\Models\Lead;
 use App\Models\Template;
+use App\Support\RichEditorHtmlNormalizer;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
@@ -172,8 +173,8 @@ class ViewLeadProposal extends BaseLeadPhasePage
                 $lead = $this->getRecord();
 
                 $lead->forceFill([
-                    'proposal_wedding_planning_service' => trim((string) ($data['proposal_wedding_planning_service'] ?? '')),
-                    'proposal_content' => trim((string) ($data['proposal_content'] ?? '')),
+                    'proposal_wedding_planning_service' => $this->normalizeEditorHtml((string) ($data['proposal_wedding_planning_service'] ?? '')),
+                    'proposal_content' => $this->normalizeEditorHtml((string) ($data['proposal_content'] ?? '')),
                 ])->save();
 
                 Notification::make()->title('Proposal configuration saved')->success()->send();
@@ -267,9 +268,23 @@ class ViewLeadProposal extends BaseLeadPhasePage
         $lead = $this->getRecord();
 
         return [
-            'proposal_wedding_planning_service' => $lead->proposal_wedding_planning_service ?: $this->defaultWeddingPlanningService(),
-            'proposal_content' => $lead->proposal_content ?: $this->defaultProposalConditions(),
+            'proposal_wedding_planning_service' => $this->normalizeEditorHtml(
+                $lead->proposal_wedding_planning_service ?: $this->defaultWeddingPlanningService()
+            ),
+            'proposal_content' => $this->normalizeEditorHtml(
+                $lead->proposal_content ?: $this->defaultProposalConditions()
+            ),
         ];
+    }
+
+    protected function getRawPhaseContentHtml(): string
+    {
+        return $this->normalizeEditorHtml(parent::getRawPhaseContentHtml());
+    }
+
+    protected function normalizeEditorHtml(string $html): string
+    {
+        return RichEditorHtmlNormalizer::normalizeListItems($html);
     }
 
     protected function proposalImageFields(): array

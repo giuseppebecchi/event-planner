@@ -7,6 +7,7 @@ use App\Filament\Resources\LeadResource\Pages\Concerns\InteractsWithLeadPhaseCon
 use App\Models\Config;
 use App\Models\Lead;
 use App\Models\Template;
+use App\Support\RichEditorHtmlNormalizer;
 use Filament\Actions\Action;
 use Filament\Forms\Components\RichEditor;
 use Filament\Notifications\Notification;
@@ -46,7 +47,7 @@ abstract class BaseLeadPhasePage extends Page
         $lead = $this->getRecord();
         $field = $this->getPhaseContentField();
 
-        return (string) ($lead->{$field} ?? '');
+        return $this->normalizePhaseEditorHtml((string) ($lead->{$field} ?? ''));
     }
 
     public function getViewData(): array
@@ -143,7 +144,7 @@ abstract class BaseLeadPhasePage extends Page
         $content = $this->replaceTemplatePlaceholders((string) ($template->content ?? ''), $lead);
 
         $lead->forceFill([
-            $this->getPhaseContentField() => trim($content) !== '' ? $content : null,
+            $this->getPhaseContentField() => trim($content) !== '' ? $this->normalizePhaseEditorHtml($content) : null,
         ])->save();
 
         Notification::make()
@@ -319,6 +320,11 @@ abstract class BaseLeadPhasePage extends Page
         }
 
         return number_format((float) $value, 2, '.', ',').' euros';
+    }
+
+    protected function normalizePhaseEditorHtml(string $html): string
+    {
+        return RichEditorHtmlNormalizer::normalizeListItems($html);
     }
 
     abstract protected function getPhaseTitle(): string;

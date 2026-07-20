@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\TemplateResource\Pages;
 use App\Models\Template;
+use App\Support\RichEditorHtmlNormalizer;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -84,6 +85,10 @@ class TemplateResource extends Resource
                         ->label('HTML content')
                         ->columnSpanFull()
                         ->visible(fn (callable $get): bool => $get('type') === Template::TYPE_HTML)
+                        ->afterStateHydrated(function (Components\RichEditor $component, ?string $state): void {
+                            $component->state(RichEditorHtmlNormalizer::normalizeListItems((string) $state));
+                        })
+                        ->dehydrateStateUsing(fn (?string $state): string => RichEditorHtmlNormalizer::normalizeListItems((string) $state))
                         ->toolbarButtons([
                             'bold',
                             'italic',

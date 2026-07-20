@@ -51,6 +51,16 @@ class ManageProjectConfirmedSupplier extends Page
 
     public $documentUpload = null;
 
+    public ?int $editingDocumentId = null;
+
+    public ?int $confirmDeleteDocumentId = null;
+
+    public array $documentEditForm = [
+        'type' => ProjectDocument::TYPE_CONTRACT,
+        'title' => '',
+        'description' => '',
+    ];
+
     public array $communicationForm = [
         'communication_type' => 'email',
         'direction' => 'outgoing',
@@ -62,7 +72,8 @@ class ManageProjectConfirmedSupplier extends Page
 
     public array $paymentForm = [
         'payment_mode_id' => '',
-        'reason' => '',
+        'reason' => 'INITIAL DEPOSIT',
+        'custom_reason' => '',
         'amount' => '',
         'due_date' => '',
         'paid_at' => '',
@@ -89,6 +100,21 @@ class ManageProjectConfirmedSupplier extends Page
 
     public array $paymentCompletionReceiptUploads = [];
 
+    public ?int $editingPaymentId = null;
+
+    public ?int $confirmDeletePaymentId = null;
+
+    public array $paymentEditForm = [
+        'payment_mode_id' => '',
+        'reason' => '',
+        'amount' => '',
+        'due_date' => '',
+        'payment_status' => Payment::STATUS_UNPAID,
+        'paid_at' => '',
+        'invoice_reference' => '',
+        'notes' => '',
+    ];
+
     public array $checklistForms = [];
 
     public bool $hideCompleted = false;
@@ -108,6 +134,16 @@ class ManageProjectConfirmedSupplier extends Page
     ];
 
     public $imageUpload = null;
+
+    public ?int $editingImageId = null;
+
+    public ?int $confirmDeleteImageId = null;
+
+    public array $imageEditForm = [
+        'description' => '',
+        'image_category' => 'other',
+        'is_client_visible' => false,
+    ];
 
     public function mount(int|string $record, int|string $categoryBudget): void
     {
@@ -258,6 +294,17 @@ class ManageProjectConfirmedSupplier extends Page
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();
+    }
+
+    public function getPaymentReasonOptions(): array
+    {
+        return [
+            'INITIAL DEPOSIT' => 'INITIAL DEPOSIT',
+            'SECOND DEPOSIT' => 'SECOND DEPOSIT',
+            'SECURITY DEPOSIT' => 'SECURITY DEPOSIT',
+            'BALANCE' => 'BALANCE',
+            'OTHER' => 'OTHER',
+        ];
     }
 
     public function getImages(): Collection
@@ -919,7 +966,91 @@ class ManageProjectConfirmedSupplier extends Page
             ->send();
     }
 
-    public function deleteDocument(int $documentId): void
+    public function editDocument(int $documentId): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        $document = $this->proposalRecord->projectDocuments()->whereKey($documentId)->firstOrFail();
+
+        $this->editingDocumentId = $document->id;
+        $this->documentEditForm = [
+            'type' => $document->type ?: ProjectDocument::TYPE_CONTRACT,
+            'title' => $document->title ?? '',
+            'description' => $document->description ?? '',
+        ];
+    }
+
+    public function cancelDocumentEdit(): void
+    {
+        $this->editingDocumentId = null;
+        $this->documentEditForm = $this->emptyDocumentEditForm();
+    }
+
+    public function saveDocumentEdit(): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        if (! $this->editingDocumentId) {
+            return;
+        }
+
+        $data = validator(
+            ['form' => $this->documentEditForm],
+            [
+                'form.type' => ['required', 'string', Rule::in(array_keys(ProjectDocument::TYPE_OPTIONS))],
+                'form.title' => ['nullable', 'string', 'max:255'],
+                'form.description' => ['nullable', 'string'],
+            ]
+        )->validate();
+
+        $type = (string) $data['form']['type'];
+        $document = $this->proposalRecord->projectDocuments()->whereKey($this->editingDocumentId)->firstOrFail();
+        $document->update([
+            'title' => $data['form']['title'] ?: (ProjectDocument::TYPE_OPTIONS[$type] ?? 'Document'),
+            'document_type' => $type,
+            'type' => $type,
+            'description' => $data['form']['description'] ?: null,
+        ]);
+
+        $this->cancelDocumentEdit();
+        $this->refreshContext();
+
+        Notification::make()
+            ->title('Document updated')
+            ->success()
+            ->send();
+    }
+
+    public function promptDeleteDocument(int $documentId): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        $this->proposalRecord->projectDocuments()->whereKey($documentId)->firstOrFail();
+        $this->confirmDeleteDocumentId = $documentId;
+    }
+
+    public function cancelDeleteDocument(): void
+    {
+        $this->confirmDeleteDocumentId = null;
+    }
+
+    public function confirmDeleteDocument(): void
+    {
+        if (! $this->confirmDeleteDocumentId) {
+            return;
+        }
+
+        $this->deleteDocument($this->confirmDeleteDocumentId);
+        $this->confirmDeleteDocumentId = null;
+    }
+
+    protected function deleteDocument(int $documentId): void
     {
         if (auth()->user()?->isCustomer()) {
             abort(403);
@@ -950,7 +1081,8 @@ class ManageProjectConfirmedSupplier extends Page
                 'receipt' => $this->paymentReceiptUpload,
             ],
             [
-                'form.reason' => ['required', 'string', 'max:255'],
+                'form.reason' => ['required', 'string', Rule::in(array_keys($this->getPaymentReasonOptions()))],
+                'form.custom_reason' => ['nullable', 'required_if:form.reason,OTHER', 'string', 'max:255'],
                 'form.payment_mode_id' => ['required', 'integer'],
                 'form.amount' => ['required', 'numeric'],
                 'form.due_date' => ['nullable', 'date'],
@@ -964,6 +1096,9 @@ class ManageProjectConfirmedSupplier extends Page
         $paymentStatus = $this->paymentEntryMode === 'register'
             ? Payment::STATUS_PAID
             : Payment::STATUS_UNPAID;
+        $paymentReason = $data['form']['reason'] === 'OTHER'
+            ? trim((string) $data['form']['custom_reason'])
+            : $data['form']['reason'];
         $paymentModeId = (int) $data['form']['payment_mode_id'];
         $allowedPaymentModeIds = array_map('intval', array_keys($this->getPaymentModeOptions()));
 
@@ -984,7 +1119,7 @@ class ManageProjectConfirmedSupplier extends Page
             $receiptDocument = $this->proposalRecord->projectDocuments()->create([
                 'project_id' => $this->getRecord()->getKey(),
                 'supplier_id' => $this->proposalRecord->supplier_id,
-                'title' => 'Payment receipt - ' . $data['form']['reason'],
+                'title' => 'Payment receipt - ' . $paymentReason,
                 'document_type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
                 'type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
                 'file_path' => $storedPath,
@@ -998,7 +1133,7 @@ class ManageProjectConfirmedSupplier extends Page
             'project_id' => $this->getRecord()->getKey(),
             'supplier_id' => $this->proposalRecord->supplier_id,
             'payment_mode_id' => $paymentModeId,
-            'reason' => $data['form']['reason'],
+            'reason' => $paymentReason,
             'amount' => $data['form']['amount'],
             'due_date' => $data['form']['due_date'] ?: null,
             'payment_status' => $paymentStatus,
@@ -1106,7 +1241,121 @@ class ManageProjectConfirmedSupplier extends Page
         }
     }
 
-    public function deletePayment(int $paymentId): void
+    public function editPayment(int $paymentId): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        $payment = $this->proposalRecord->payments()->whereKey($paymentId)->firstOrFail();
+
+        $this->editingPaymentId = $payment->id;
+        $this->paymentEditForm = [
+            'payment_mode_id' => (string) ($payment->payment_mode_id ?? ''),
+            'reason' => $payment->reason ?? '',
+            'amount' => $payment->amount !== null ? (string) $payment->amount : '',
+            'due_date' => $payment->due_date?->toDateString() ?? '',
+            'payment_status' => $payment->payment_status ?: Payment::STATUS_UNPAID,
+            'paid_at' => $payment->paid_at?->toDateString() ?? '',
+            'invoice_reference' => $payment->invoice_reference ?? '',
+            'notes' => $payment->notes ?? '',
+        ];
+    }
+
+    public function cancelPaymentEdit(): void
+    {
+        $this->editingPaymentId = null;
+        $this->paymentEditForm = $this->emptyPaymentEditForm();
+    }
+
+    public function savePaymentEdit(): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        if (! $this->editingPaymentId) {
+            return;
+        }
+
+        $data = validator(
+            ['form' => $this->paymentEditForm],
+            [
+                'form.reason' => ['required', 'string', 'max:255'],
+                'form.payment_mode_id' => ['required', 'integer'],
+                'form.amount' => ['required', 'numeric'],
+                'form.due_date' => ['nullable', 'date'],
+                'form.payment_status' => ['required', Rule::in(array_keys(Payment::STATUS_OPTIONS))],
+                'form.paid_at' => ['nullable', 'date'],
+                'form.invoice_reference' => ['nullable', 'string', 'max:255'],
+                'form.notes' => ['nullable', 'string'],
+            ]
+        )->validate();
+
+        $paymentModeId = (int) $data['form']['payment_mode_id'];
+        $allowedPaymentModeIds = array_map('intval', array_keys($this->getPaymentModeOptions()));
+
+        if ($paymentModeId && ! in_array($paymentModeId, $allowedPaymentModeIds, true)) {
+            Notification::make()
+                ->title('This payment mode is not accepted by the supplier')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $status = $data['form']['payment_status'];
+        $paidAt = $status === Payment::STATUS_PAID
+            ? ($data['form']['paid_at'] ?: now()->toDateString())
+            : null;
+
+        $payment = $this->proposalRecord->payments()->whereKey($this->editingPaymentId)->firstOrFail();
+        $payment->update([
+            'payment_mode_id' => $paymentModeId,
+            'reason' => $data['form']['reason'],
+            'amount' => $data['form']['amount'],
+            'due_date' => $data['form']['due_date'] ?: null,
+            'payment_status' => $status,
+            'paid_at' => $paidAt,
+            'invoice_reference' => $data['form']['invoice_reference'] ?: null,
+            'notes' => $data['form']['notes'] ?: null,
+        ]);
+
+        $this->cancelPaymentEdit();
+        $this->refreshContext();
+
+        Notification::make()
+            ->title('Payment updated')
+            ->success()
+            ->send();
+    }
+
+    public function promptDeletePayment(int $paymentId): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        $this->proposalRecord->payments()->whereKey($paymentId)->firstOrFail();
+        $this->confirmDeletePaymentId = $paymentId;
+    }
+
+    public function cancelDeletePayment(): void
+    {
+        $this->confirmDeletePaymentId = null;
+    }
+
+    public function confirmDeletePayment(): void
+    {
+        if (! $this->confirmDeletePaymentId) {
+            return;
+        }
+
+        $this->deletePayment($this->confirmDeletePaymentId);
+        $this->confirmDeletePaymentId = null;
+    }
+
+    protected function deletePayment(int $paymentId): void
     {
         if (auth()->user()?->isCustomer()) {
             abort(403);
@@ -1173,7 +1422,89 @@ class ManageProjectConfirmedSupplier extends Page
             ->send();
     }
 
-    public function deleteImage(int $imageId): void
+    public function editImage(int $imageId): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        $image = $this->getRecord()->projectImages()->where('supplier_id', $this->proposalRecord->supplier_id)->whereKey($imageId)->firstOrFail();
+
+        $this->editingImageId = $image->id;
+        $this->imageEditForm = [
+            'description' => $image->description ?? '',
+            'image_category' => $image->image_category ?: 'other',
+            'is_client_visible' => (bool) $image->is_client_visible,
+        ];
+    }
+
+    public function cancelImageEdit(): void
+    {
+        $this->editingImageId = null;
+        $this->imageEditForm = $this->emptyImageEditForm();
+    }
+
+    public function saveImageEdit(): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        if (! $this->editingImageId) {
+            return;
+        }
+
+        $data = validator(
+            ['form' => $this->imageEditForm],
+            [
+                'form.description' => ['nullable', 'string'],
+                'form.image_category' => ['required', 'string', Rule::in(array_keys(ProjectImage::CATEGORY_OPTIONS))],
+                'form.is_client_visible' => ['boolean'],
+            ]
+        )->validate();
+
+        $image = $this->getRecord()->projectImages()->where('supplier_id', $this->proposalRecord->supplier_id)->whereKey($this->editingImageId)->firstOrFail();
+        $image->update([
+            'description' => $data['form']['description'] ?: null,
+            'image_category' => $data['form']['image_category'],
+            'is_client_visible' => (bool) ($data['form']['is_client_visible'] ?? false),
+        ]);
+
+        $this->cancelImageEdit();
+        $this->refreshContext();
+
+        Notification::make()
+            ->title('Image updated')
+            ->success()
+            ->send();
+    }
+
+    public function promptDeleteImage(int $imageId): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        $this->getRecord()->projectImages()->where('supplier_id', $this->proposalRecord->supplier_id)->whereKey($imageId)->firstOrFail();
+        $this->confirmDeleteImageId = $imageId;
+    }
+
+    public function cancelDeleteImage(): void
+    {
+        $this->confirmDeleteImageId = null;
+    }
+
+    public function confirmDeleteImage(): void
+    {
+        if (! $this->confirmDeleteImageId) {
+            return;
+        }
+
+        $this->deleteImage($this->confirmDeleteImageId);
+        $this->confirmDeleteImageId = null;
+    }
+
+    protected function deleteImage(int $imageId): void
     {
         if (auth()->user()?->isCustomer()) {
             abort(403);
@@ -1416,7 +1747,8 @@ class ManageProjectConfirmedSupplier extends Page
     {
         $this->paymentForm = [
             'payment_mode_id' => '',
-            'reason' => '',
+            'reason' => 'INITIAL DEPOSIT',
+            'custom_reason' => '',
             'amount' => '',
             'due_date' => '',
             'paid_at' => '',
@@ -1425,5 +1757,37 @@ class ManageProjectConfirmedSupplier extends Page
         ];
         $this->paymentReceiptUpload = null;
         $this->paymentEntryMode = 'register';
+    }
+
+    protected function emptyPaymentEditForm(): array
+    {
+        return [
+            'payment_mode_id' => '',
+            'reason' => '',
+            'amount' => '',
+            'due_date' => '',
+            'payment_status' => Payment::STATUS_UNPAID,
+            'paid_at' => '',
+            'invoice_reference' => '',
+            'notes' => '',
+        ];
+    }
+
+    protected function emptyDocumentEditForm(): array
+    {
+        return [
+            'type' => ProjectDocument::TYPE_CONTRACT,
+            'title' => '',
+            'description' => '',
+        ];
+    }
+
+    protected function emptyImageEditForm(): array
+    {
+        return [
+            'description' => '',
+            'image_category' => 'other',
+            'is_client_visible' => false,
+        ];
     }
 }
