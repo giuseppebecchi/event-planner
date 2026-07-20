@@ -375,7 +375,7 @@ class ProjectResource extends Resource
                     ForceDeleteBulkAction::make(),
                 ])->visible(fn (): bool => ! auth()->user()?->isCustomer()),
             ])
-            ->defaultSort('event_date', 'desc');
+            ->defaultSort('event_date', 'asc');
     }
 
     public static function normalizeEventDateFormData(array $data): array

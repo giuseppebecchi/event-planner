@@ -44,6 +44,7 @@ class Lead extends Model
         'proposal_sent' => 'Proposal sent',
         'call_scheduled' => 'Call scheduled',
         'confirmed' => 'Confirmed',
+        'transferred' => 'Transferred',
         'lost' => 'Lost',
     ];
 
