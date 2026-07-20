@@ -5,6 +5,9 @@
         $cells = $this->getCalendarCells();
         $listItems = $this->getListItems();
         $selectedItem = $this->getSelectedCalendarItem();
+        $overdueChecklistItems = $this->getOverdueChecklistItems();
+        $todayKey = now()->toDateString();
+        $checklistUrl = \App\Filament\Resources\ProjectResource::getUrl('checklist', ['record' => $record]);
         $weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         $monthOptions = $this->getMonthPickerOptions();
         $yearOptions = $this->getMonthPickerYearOptions();
@@ -563,6 +566,46 @@
         .wm-calendar-item.is-rose { background: #c57f88; }
         .wm-calendar-item.is-dimmed { opacity: 0.58; }
 
+        .wm-calendar-overdue-recap {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 0.45rem;
+            align-items: center;
+            width: 100%;
+            padding: 0.48rem 0.55rem;
+            border: 0;
+            border-radius: 0.85rem;
+            background: #b42318;
+            color: #fff;
+            text-align: left;
+            cursor: pointer;
+            box-shadow: 0 8px 18px rgba(180, 35, 24, 0.18);
+        }
+
+        .wm-calendar-overdue-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.45rem;
+            height: 1.45rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.18);
+            color: #fff;
+            font-size: 0.78rem;
+            font-weight: 900;
+        }
+
+        .wm-calendar-overdue-copy {
+            display: block;
+            min-width: 0;
+            font-size: 0.76rem;
+            font-weight: 800;
+            line-height: 1.25;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .wm-calendar-item-check {
             width: 0.95rem;
             height: 0.95rem;
@@ -728,6 +771,45 @@
             color: #4f4943;
             font-size: 0.86rem;
             line-height: 1.6;
+        }
+
+        .wm-calendar-overdue-list {
+            display: grid;
+            gap: 0.7rem;
+            margin-top: 1rem;
+        }
+
+        .wm-calendar-overdue-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 0.75rem;
+            align-items: start;
+            padding: 0.8rem 0.85rem;
+            border-radius: 0.85rem;
+            border: 1px solid rgba(180, 35, 24, 0.16);
+            background: rgba(180, 35, 24, 0.06);
+        }
+
+        .wm-calendar-overdue-title {
+            margin: 0;
+            color: #2d2a26;
+            font-size: 0.92rem;
+            font-weight: 800;
+            line-height: 1.35;
+        }
+
+        .wm-calendar-overdue-meta {
+            margin: 0.22rem 0 0;
+            color: #746d66;
+            font-size: 0.78rem;
+            line-height: 1.45;
+        }
+
+        .wm-calendar-overdue-days {
+            color: #b42318;
+            font-size: 0.78rem;
+            font-weight: 900;
+            white-space: nowrap;
         }
 
         .wm-calendar-form-card {
@@ -984,6 +1066,20 @@
                                 </div>
 
                                 <div class="wm-calendar-items">
+                                    @if ($cell['date_key'] === $todayKey && $overdueChecklistItems->isNotEmpty())
+                                        <button
+                                            type="button"
+                                            class="wm-calendar-overdue-recap"
+                                            wire:click.stop="openOverdueChecklistSummary"
+                                            title="{{ $overdueChecklistItems->count() }} overdue checklist {{ \Illuminate\Support\Str::plural('task', $overdueChecklistItems->count()) }}"
+                                        >
+                                            <span class="wm-calendar-overdue-count">{{ $overdueChecklistItems->count() }}</span>
+                                            <span class="wm-calendar-overdue-copy">
+                                                overdue checklist {{ \Illuminate\Support\Str::plural('task', $overdueChecklistItems->count()) }}
+                                            </span>
+                                        </button>
+                                    @endif
+
                                     @forelse ($cell['items']->take(4) as $item)
                                         <button
                                             type="button"
@@ -1238,6 +1334,55 @@
                         </x-filament::button>
                     </div>
                 @endif
+            </div>
+        @endif
+
+        @if ($showOverdueChecklistSummary)
+            <div class="wm-calendar-detail-backdrop" wire:click="closeOverdueChecklistSummary"></div>
+            <div class="wm-calendar-detail" role="dialog" aria-modal="true">
+                <div class="wm-calendar-detail-head">
+                    <div>
+                        <h3 class="wm-calendar-detail-title">Overdue checklist tasks</h3>
+                        <p class="wm-calendar-detail-meta">
+                            {{ $overdueChecklistItems->count() }} open checklist {{ \Illuminate\Support\Str::plural('task', $overdueChecklistItems->count()) }} past the due date.
+                        </p>
+                    </div>
+
+                    <button type="button" class="wm-calendar-detail-close" wire:click="closeOverdueChecklistSummary">
+                        <x-heroicon-o-x-mark />
+                    </button>
+                </div>
+
+                <div class="wm-calendar-overdue-list">
+                    @foreach ($overdueChecklistItems as $item)
+                        @php
+                            $daysLate = $item->due_date->copy()->startOfDay()->diffInDays(now()->startOfDay());
+                        @endphp
+                        <article class="wm-calendar-overdue-row">
+                            <div>
+                                <p class="wm-calendar-overdue-title">{{ $item->title !== '' ? $item->title : '(Unnamed checklist item)' }}</p>
+                                <p class="wm-calendar-overdue-meta">
+                                    Due {{ $item->due_date->format('F j, Y') }}
+                                    @if ($item->checklist?->title)
+                                        · {{ $item->checklist->title }}
+                                    @endif
+                                    @if ($item->supplier?->name)
+                                        · {{ $item->supplier->name }}
+                                    @endif
+                                </p>
+                            </div>
+                            <span class="wm-calendar-overdue-days">
+                                {{ $daysLate }} {{ \Illuminate\Support\Str::plural('day', $daysLate) }} overdue
+                            </span>
+                        </article>
+                    @endforeach
+                </div>
+
+                <div class="wm-calendar-detail-actions">
+                    <x-filament::button tag="a" href="{{ $checklistUrl }}">
+                        Open checklist
+                    </x-filament::button>
+                </div>
             </div>
         @endif
 

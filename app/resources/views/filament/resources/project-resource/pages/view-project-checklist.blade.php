@@ -637,6 +637,22 @@
             white-space: nowrap;
         }
 
+        .wm-checklist-time.is-overdue {
+            display: grid;
+            justify-items: end;
+            gap: 0.15rem;
+            color: #b42318;
+            font-weight: 800;
+        }
+
+        .wm-checklist-overdue-note {
+            color: #b42318;
+            font-size: 0.72rem;
+            font-weight: 800;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
         .wm-checklist-actions {
             display: inline-flex;
             gap: 0.3rem;
@@ -901,6 +917,12 @@
                             @foreach ($section['items'] as $item)
                                 @php
                                     $isExpanded = $expandedChecklistItemId === $item->id;
+                                    $isOverdue = ! $item->completed
+                                        && $item->due_date
+                                        && $item->due_date->copy()->startOfDay()->lt(now()->startOfDay());
+                                    $overdueDays = $isOverdue
+                                        ? $item->due_date->copy()->startOfDay()->diffInDays(now()->startOfDay())
+                                        : 0;
                                     $timeLabel = $item->due_date
                                         ? $item->due_date->format('M j, Y')
                                         : ($item->anticipation ?: 'No timeframe');
@@ -937,7 +959,14 @@
                                                         <span class="wm-checklist-summary-details">{{ $detailsLabel }}</span>
                                                     @endif
                                                 </span>
-                                                <span class="wm-checklist-time">{{ $timeLabel }}</span>
+                                                <span class="wm-checklist-time {{ $isOverdue ? 'is-overdue' : '' }}">
+                                                    <span>{{ $timeLabel }}</span>
+                                                    @if ($isOverdue)
+                                                        <span class="wm-checklist-overdue-note">
+                                                            {{ $overdueDays }} {{ \Illuminate\Support\Str::plural('day', $overdueDays) }} overdue
+                                                        </span>
+                                                    @endif
+                                                </span>
                                             </button>
                                         @else
                                             <div class="wm-checklist-editor">

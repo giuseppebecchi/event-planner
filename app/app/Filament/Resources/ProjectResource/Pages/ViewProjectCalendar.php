@@ -34,6 +34,7 @@ class ViewProjectCalendar extends Page
     public ?string $selectedCalendarItemKind = null;
     public ?int $selectedCalendarItemId = null;
     public ?int $editingProjectEventId = null;
+    public bool $showOverdueChecklistSummary = false;
 
     public array $monthPickerForm = [
         'month' => '',
@@ -193,6 +194,16 @@ class ViewProjectCalendar extends Page
         $this->selectedCalendarItemId = null;
     }
 
+    public function openOverdueChecklistSummary(): void
+    {
+        $this->showOverdueChecklistSummary = true;
+    }
+
+    public function closeOverdueChecklistSummary(): void
+    {
+        $this->showOverdueChecklistSummary = false;
+    }
+
     public function editCalendarEvent(int $eventId): void
     {
         if (auth()->user()?->isCustomer()) {
@@ -323,12 +334,14 @@ class ViewProjectCalendar extends Page
     public function getCalendarSummary(): array
     {
         $items = $this->getTimelineItems();
+        $overdueChecklistItems = $this->getOverdueChecklistItems();
 
         return [
             'checklist' => $items->where('kind', 'checklist')->count(),
             'payments' => $items->where('kind', 'payment')->count(),
             'events' => $items->where('kind', 'event')->count(),
             'total' => $items->count(),
+            'overdue_checklist' => $overdueChecklistItems->count(),
         ];
     }
 
@@ -401,6 +414,24 @@ class ViewProjectCalendar extends Page
                 $item['start_date']->format('YmdHis'),
                 $item['kind_order'],
                 mb_strtolower($item['title']),
+            ))
+            ->values();
+    }
+
+    public function getOverdueChecklistItems(): Collection
+    {
+        $today = now()->startOfDay();
+
+        return $this->getRecord()
+            ->loadMissing('projectChecklistOptions.checklist', 'projectChecklistOptions.supplier')
+            ->projectChecklistOptions
+            ->where('enabled', true)
+            ->where('completed', false)
+            ->filter(fn (ProjectChecklistOption $item): bool => $item->due_date !== null && $item->due_date->copy()->startOfDay()->lt($today))
+            ->sortBy(fn (ProjectChecklistOption $item): string => sprintf(
+                '%s-%05d',
+                $item->due_date?->format('Ymd') ?? '99999999',
+                $item->order,
             ))
             ->values();
     }
