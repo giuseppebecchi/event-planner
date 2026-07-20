@@ -6,7 +6,6 @@ use App\Filament\Resources\ProjectResource;
 use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDateEditor;
 use App\Models\Category;
 use App\Models\CategoryBudget;
-use App\Models\CategoryBudgetSupplier;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -289,20 +288,6 @@ class ViewProjectBudget extends Page
                 'categoryBudgets.supplierProposals.supplier',
             ])
             ->categoryBudgets
-            ->when(auth()->user()?->isCustomer(), function (Collection $budgets): Collection {
-                return $budgets
-                    ->map(function (CategoryBudget $budget): CategoryBudget {
-                        $budget->setRelation(
-                            'supplierProposals',
-                            $budget->supplierProposals
-                                ->filter(fn (CategoryBudgetSupplier $proposal): bool => $proposal->scouting_status === 'shortlist')
-                                ->values()
-                        );
-
-                        return $budget;
-                    })
-                    ->filter(fn (CategoryBudget $budget): bool => $budget->supplierProposals->isNotEmpty());
-            })
             ->sortBy(fn (CategoryBudget $budget): string => sprintf(
                 '%05d-%s',
                 (int) ($budget->category?->order ?? 99999),

@@ -1215,7 +1215,7 @@ class ManageProjectConfirmedSupplier extends Page
         $availableProposals = $this->categoryBudgetRecord->supplierProposals
             ->when(
                 auth()->user()?->isCustomer(),
-                fn (Collection $proposals): Collection => $proposals->where('scouting_status', 'shortlist'),
+                fn (Collection $proposals): Collection => $proposals,
                 fn (Collection $proposals): Collection => $proposals->where('proposal_status', CategoryBudgetSupplier::STATUS_CONFIRMED),
             );
 

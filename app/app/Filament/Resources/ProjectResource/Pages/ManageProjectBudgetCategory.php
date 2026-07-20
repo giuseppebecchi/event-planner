@@ -80,8 +80,6 @@ class ManageProjectBudgetCategory extends Page
     {
         $this->record = $this->resolveRecord($record);
 
-        abort_if(auth()->user()?->isCustomer(), 403);
-
         $this->categoryBudgetRecord = $this->resolveCategoryBudget($categoryBudget);
     }
 
@@ -112,6 +110,8 @@ class ManageProjectBudgetCategory extends Page
 
     public function resetSupplierFilters(): void
     {
+        $this->ensureCanManageScouting();
+
         $this->supplierFilters = [
             'search' => '',
             'service_area' => '',
@@ -122,11 +122,15 @@ class ManageProjectBudgetCategory extends Page
 
     public function openCreateSupplierModal(): void
     {
+        $this->ensureCanManageScouting();
+
         $this->mountAction('createSupplier');
     }
 
     public function startSendRequest(int $supplierId): void
     {
+        $this->ensureCanManageScouting();
+
         $this->findSearchableSupplierOrFail($supplierId);
 
         $proposal = $this->findProposalBySupplier($supplierId);
@@ -145,6 +149,8 @@ class ManageProjectBudgetCategory extends Page
 
     public function cancelSendRequest(): void
     {
+        $this->ensureCanManageScouting();
+
         $this->requestSupplierId = null;
         $this->requestForm = [
             'requested_at' => '',
@@ -156,6 +162,8 @@ class ManageProjectBudgetCategory extends Page
 
     public function saveSendRequest(): void
     {
+        $this->ensureCanManageScouting();
+
         $supplierId = $this->requestSupplierId;
 
         if (! $supplierId) {
@@ -221,6 +229,8 @@ class ManageProjectBudgetCategory extends Page
 
     public function openRecordResponseModal(int $proposalId): void
     {
+        $this->ensureCanManageScouting();
+
         $proposal = $this->findProposalById($proposalId, true);
 
         $this->requestSupplierId = null;
@@ -231,6 +241,8 @@ class ManageProjectBudgetCategory extends Page
 
     public function startInsertAcceptedQuote(int $supplierId): void
     {
+        $this->ensureCanManageScouting();
+
         $this->requestSupplierId = null;
 
         $proposal = $this->findProposalBySupplier($supplierId);
@@ -298,6 +310,8 @@ class ManageProjectBudgetCategory extends Page
 
     public function cancelRecordResponse(): void
     {
+        $this->ensureCanManageScouting();
+
         $this->responseProposalId = null;
         $this->responseSupplierId = null;
         $this->responseFormContext = null;
@@ -321,6 +335,8 @@ class ManageProjectBudgetCategory extends Page
 
     public function removeExistingResponseAttachment(int $documentId): void
     {
+        $this->ensureCanManageScouting();
+
         $proposal = $this->findProposalById((int) $this->responseProposalId, true);
         $document = $proposal->projectDocuments()->whereKey($documentId)->first();
 
@@ -339,6 +355,8 @@ class ManageProjectBudgetCategory extends Page
 
     public function saveRecordResponse(): void
     {
+        $this->ensureCanManageScouting();
+
         $proposalId = $this->responseProposalId;
         $supplierId = $this->responseSupplierId;
 
@@ -448,18 +466,24 @@ class ManageProjectBudgetCategory extends Page
 
     public function addResponseCostItem(): void
     {
+        $this->ensureCanManageScouting();
+
         $this->responseForm['cost_items_json'] ??= [];
         $this->responseForm['cost_items_json'][] = ['label' => '', 'amount' => ''];
     }
 
     public function removeResponseCostItem(int $index): void
     {
+        $this->ensureCanManageScouting();
+
         unset($this->responseForm['cost_items_json'][$index]);
         $this->responseForm['cost_items_json'] = array_values($this->responseForm['cost_items_json'] ?? []);
     }
 
     public function openAcceptProposalModal(int $proposalId): void
     {
+        $this->ensureCanManageScouting();
+
         $this->mountAction('acceptProposal', ['proposal' => $proposalId]);
     }
 
@@ -702,6 +726,7 @@ class ManageProjectBudgetCategory extends Page
     {
         return Action::make('createSupplier')
             ->label('Add supplier')
+            ->visible(fn (): bool => ! auth()->user()?->isCustomer())
             ->modalHeading('Create supplier')
             ->modalWidth(Width::FiveExtraLarge)
             ->fillForm(fn (): array => [
@@ -714,6 +739,8 @@ class ManageProjectBudgetCategory extends Page
                 ...SupplierResourceSupport::mainAndAddressSections(includeCategoryField: false),
             ])
             ->action(function (array $data): void {
+                $this->ensureCanManageScouting();
+
                 $data['category_id'] = $this->categoryBudgetRecord->category_id;
 
                 $supplier = Supplier::query()->create($data);
@@ -729,10 +756,13 @@ class ManageProjectBudgetCategory extends Page
         return Action::make('acceptProposal')
             ->label('Mark accepted quote')
             ->color('success')
+            ->visible(fn (): bool => ! auth()->user()?->isCustomer())
             ->requiresConfirmation()
             ->modalHeading('Accept this supplier quote?')
             ->modalDescription('The category budget will be marked as confirmed and the final amount will be updated from the selected proposal.')
             ->action(function (array $arguments): void {
+                $this->ensureCanManageScouting();
+
                 $proposal = $this->findProposalById((int) ($arguments['proposal'] ?? 0), true);
 
                 if (! $proposal->hasResponse()) {
@@ -767,6 +797,11 @@ class ManageProjectBudgetCategory extends Page
                 'supplierProposals.projectDocuments',
             ])
             ->firstOrFail();
+    }
+
+    protected function ensureCanManageScouting(): void
+    {
+        abort_if(auth()->user()?->isCustomer(), 403);
     }
 
     public function getPresentationExportCount(): int

@@ -505,18 +505,37 @@
             color: #fff;
         }
 
+        .wm-budget-action-inline-icon {
+            width: 0.95rem;
+            height: 0.95rem;
+            stroke-width: 2.35;
+        }
+
         .wm-budget-action-icon {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 1rem;
-            height: 1rem;
-            color: currentColor;
+            width: 1.9rem;
+            height: 1.9rem;
+            margin-left: 0.45rem;
+            border: 1px solid rgba(46, 74, 98, 0.18);
+            border-radius: 999px;
+            background: rgba(46, 74, 98, 0.08);
+            color: #2e4a62;
+            cursor: pointer;
+            vertical-align: middle;
+            transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+        }
+
+        .wm-budget-action-icon:hover {
+            border-color: rgba(46, 74, 98, 0.32);
+            background: #2e4a62;
+            color: #fff;
         }
 
         .wm-budget-action-icon svg {
-            width: 1rem;
-            height: 1rem;
+            width: 1.05rem;
+            height: 1.05rem;
             stroke-width: 2.2;
         }
 
@@ -679,7 +698,7 @@
                             <thead>
                                 <tr>
                                     <th>Category</th>
-                                    <th>Estimate</th>
+                                    <th>Estimate Budget</th>
                                     <th>Confirmed Quote</th>
                                     <th>Difference</th>
                                     <th>Status</th>
@@ -692,9 +711,6 @@
                                         $confirmedProposals = $budget->supplierProposals
                                             ->where('proposal_status', \App\Models\CategoryBudgetSupplier::STATUS_CONFIRMED)
                                             ->values();
-                                        $visibleProposals = $isCustomer
-                                            ? $budget->supplierProposals->where('scouting_status', 'shortlist')->values()
-                                            : $confirmedProposals;
                                         $difference = $budget->amountDifference();
                                         $statusClass = match ($budget->budget_status) {
                                             \App\Models\CategoryBudget::STATUS_CONFIRMED => 'is-confirmed',
@@ -714,22 +730,22 @@
                                                 </span>
                                             </div>
                                         </td>
-                                        <td class="wm-budget-number">EUR {{ number_format((float) ($budget->initial_estimated_amount ?? 0), 2, ',', '.') }}</td>
                                         <td class="wm-budget-number">
-                                            @if ($isCustomer && $visibleProposals->isNotEmpty())
-                                                <div class="wm-budget-accepted-list">
-                                                    @foreach ($visibleProposals as $proposal)
-                                                        <span class="wm-budget-action is-confirmed">
-                                                            <span class="wm-budget-accepted-name">{{ $proposal->supplier?->name ?? 'Supplier' }}</span>
-                                                            @if ($proposal->proposed_amount !== null)
-                                                                <span>EUR {{ number_format((float) $proposal->proposed_amount, 2, ',', '.') }}</span>
-                                                            @endif
-                                                        </span>
-                                                    @endforeach
-                                                </div>
-                                            @else
-                                                {{ $budget->final_amount !== null ? 'EUR ' . number_format((float) $budget->final_amount, 2, ',', '.') : '—' }}
+                                            EUR {{ number_format((float) ($budget->initial_estimated_amount ?? 0), 2, ',', '.') }}
+                                            @if (! $isCustomer)
+                                                <button
+                                                    type="button"
+                                                    class="wm-budget-action-icon"
+                                                    wire:click="mountAction('editBudgetCategory', { budget: {{ $budget->id }} })"
+                                                    title="Edit budget"
+                                                    aria-label="Edit budget"
+                                                >
+                                                    <x-heroicon-o-pencil-square />
+                                                </button>
                                             @endif
+                                        </td>
+                                        <td class="wm-budget-number">
+                                            {{ $budget->final_amount !== null ? 'EUR ' . number_format((float) $budget->final_amount, 2, ',', '.') : '—' }}
                                         </td>
                                         <td class="wm-budget-number {{ $budget->final_amount !== null ? ($difference > 0 ? 'is-negative' : ($difference < 0 ? 'is-positive' : '')) : '' }}">
                                             @if ($budget->final_amount !== null)
@@ -745,21 +761,13 @@
                                         </td>
                                         <td>
                                             <div class="wm-budget-actions">
-                                                @if (! $isCustomer)
-                                                    <button
-                                                        type="button"
-                                                        class="wm-budget-action"
-                                                        wire:click="mountAction('editBudgetCategory', { budget: {{ $budget->id }} })"
-                                                    >
-                                                        Edit budget
-                                                    </button>
-                                                    <a
-                                                        href="{{ \App\Filament\Resources\ProjectResource::getUrl('budget-scouting', ['record' => $record, 'categoryBudget' => $budget]) }}"
-                                                        class="wm-budget-action"
-                                                    >
-                                                        Choose supplier
-                                                    </a>
-                                                @endif
+                                                <a
+                                                    href="{{ \App\Filament\Resources\ProjectResource::getUrl('budget-scouting', ['record' => $record, 'categoryBudget' => $budget]) }}"
+                                                    class="wm-budget-action"
+                                                >
+                                                    Open details
+                                                    <x-heroicon-o-arrow-right class="wm-budget-action-inline-icon" />
+                                                </a>
                                             </div>
                                         </td>
                                     </tr>

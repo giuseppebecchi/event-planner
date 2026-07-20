@@ -321,9 +321,11 @@
 
         .wm-supplier-card {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 0.8rem 1rem;
-            align-items: center;
+            grid-template-columns: minmax(0, 1fr) 5.5rem;
+            gap: 0;
+            align-items: stretch;
+            padding: 0;
+            overflow: hidden;
         }
 
         .wm-supplier-head {
@@ -331,13 +333,16 @@
             align-items: flex-start;
             justify-content: space-between;
             gap: 1rem;
+            padding: 1.1rem 1.15rem 0;
         }
 
         .wm-supplier-title {
             margin: 0.25rem 0 0;
             color: #2d2a26;
             font-family: 'Cinzel', serif;
-            font-size: 1rem;
+            font-size: 1.18rem;
+            font-weight: 800;
+            line-height: 1.18;
         }
 
         .wm-supplier-copy {
@@ -357,7 +362,8 @@
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 0.5rem;
-            grid-column: 1 / -1;
+            grid-column: 1;
+            padding: 0.8rem 1.15rem 1.1rem;
         }
 
         .wm-supplier-mini {
@@ -378,15 +384,28 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: fit-content;
-            min-height: 2.45rem;
-            padding: 0 0.9rem;
-            border-radius: 999px;
+            grid-column: 2;
+            grid-row: 1 / 3;
+            width: 100%;
+            min-height: 100%;
+            border-left: 1px solid rgba(46, 74, 98, 0.32);
             background: #2e4a62;
             color: #fff;
-            font-size: 0.8rem;
-            font-weight: 700;
             text-decoration: none;
+            box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.16);
+            transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+        }
+
+        .wm-supplier-action:hover {
+            background: #243b50;
+            border-left-color: #243b50;
+            color: #fff;
+        }
+
+        .wm-supplier-action svg {
+            width: 1.55rem;
+            height: 1.55rem;
+            stroke-width: 3;
         }
 
         .wm-payments-panel {
@@ -664,6 +683,14 @@
                 grid-template-columns: 1fr;
             }
 
+            .wm-supplier-action {
+                grid-column: 1;
+                grid-row: auto;
+                min-height: 3rem;
+                border-left: 0;
+                border-top: 1px solid rgba(46, 74, 98, 0.14);
+            }
+
             .wm-event-top-side {
                 flex-direction: column;
                 align-items: stretch;
@@ -737,8 +764,9 @@
                                 <a
                                     href="{{ \App\Filament\Resources\ProjectResource::getUrl('supplier-manage', ['record' => $record, 'proposal' => $proposal->id]) }}"
                                     class="wm-supplier-action"
+                                    aria-label="Open {{ $proposal->supplier?->name ?? 'supplier' }} details"
                                 >
-                                    Manage {{ $proposal->supplier?->name ?? 'supplier' }}
+                                    <x-heroicon-o-arrow-right />
                                 </a>
 
                                 <div class="wm-supplier-meta">

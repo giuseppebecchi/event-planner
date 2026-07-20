@@ -10,6 +10,7 @@
         $presentationExportCount = $this->getPresentationExportCount();
         $costItemSuggestions = $this->getCostItemSuggestions();
         $comparison = $this->getProposalComparison();
+        $isCustomer = auth()->user()?->isCustomer();
         $money = fn ($amount) => $amount !== null && $amount !== '' ? 'EUR ' . number_format((float) $amount, 2, ',', '.') : '—';
     @endphp
 
@@ -626,6 +627,7 @@
         .wm-scout-attachment {
             display: inline-flex;
             align-items: center;
+            gap: 0.42rem;
             min-height: 2rem;
             padding: 0 0.8rem;
             border-radius: 999px;
@@ -634,6 +636,13 @@
             text-decoration: none;
             font-size: 0.8rem;
             font-weight: 700;
+        }
+
+        .wm-scout-attachment svg {
+            width: 0.95rem;
+            height: 0.95rem;
+            stroke-width: 2.35;
+            flex: 0 0 auto;
         }
 
         .wm-scout-attachment.is-remove {
@@ -884,8 +893,12 @@
 
             <h3 class="wm-scout-title">{{ $summary['label'] }}</h3>
             <p class="wm-scout-note">
-                Search suppliers in this category, register sent requests, collect responses and mark accepted quotes.
-                More than one supplier quote can be accepted for the same budget category.
+                @if ($isCustomer)
+                    Review the supplier quotes and documents shared for this budget category.
+                @else
+                    Search suppliers in this category, register sent requests, collect responses and mark accepted quotes.
+                    More than one supplier quote can be accepted for the same budget category.
+                @endif
             </p>
 
             <div class="wm-scout-kpis">
@@ -1054,42 +1067,45 @@
                                                 target="_blank"
                                                 class="wm-scout-attachment"
                                             >
+                                                <x-heroicon-o-document-arrow-down />
                                                 {{ $document->title }}
                                             </a>
                                         @endforeach
                                     </div>
                                 @endif
 
-                                <div class="wm-scout-card-actions">
-                                    <x-filament::button
-                                        color="gray"
-                                        size="sm"
-                                        icon="heroicon-m-pencil-square"
-                                        wire:click="openRecordResponseModal({{ $proposal->id }})"
-                                    >
-                                        Update quote / response
-                                    </x-filament::button>
-
-                                    @if ($proposal->hasResponse() && ! $isConfirmed)
+                                @if (! $isCustomer)
+                                    <div class="wm-scout-card-actions">
                                         <x-filament::button
-                                            color="success"
+                                            color="gray"
                                             size="sm"
-                                            icon="heroicon-m-check-circle"
-                                            wire:click="openAcceptProposalModal({{ $proposal->id }})"
+                                            icon="heroicon-m-pencil-square"
+                                            wire:click="openRecordResponseModal({{ $proposal->id }})"
                                         >
-                                            Mark accepted quote
+                                            Update quote / response
                                         </x-filament::button>
-                                    @elseif ($isConfirmed)
-                                        <a
-                                            href="{{ \App\Filament\Resources\ProjectResource::getUrl('supplier-manage', ['record' => $record, 'proposal' => $proposal->id]) }}"
-                                            class="wm-scout-attachment"
-                                        >
-                                            Manage
-                                        </a>
-                                    @endif
-                                </div>
 
-                                @if ($responseFormContext === 'requests' && $responseProposalId === $proposal->id)
+                                        @if ($proposal->hasResponse() && ! $isConfirmed)
+                                            <x-filament::button
+                                                color="success"
+                                                size="sm"
+                                                icon="heroicon-m-check-circle"
+                                                wire:click="openAcceptProposalModal({{ $proposal->id }})"
+                                            >
+                                                Mark accepted quote
+                                            </x-filament::button>
+                                        @elseif ($isConfirmed)
+                                            <a
+                                                href="{{ \App\Filament\Resources\ProjectResource::getUrl('supplier-manage', ['record' => $record, 'proposal' => $proposal->id]) }}"
+                                                class="wm-scout-attachment"
+                                            >
+                                                Manage
+                                            </a>
+                                        @endif
+                                    </div>
+                                @endif
+
+                                @if (! $isCustomer && $responseFormContext === 'requests' && $responseProposalId === $proposal->id)
                                     @include('filament.resources.project-resource.pages.partials.budget-response-form', [
                                         'proposal' => $proposal,
                                         'responseFormKey' => 'proposal-' . $proposal->id,
@@ -1154,6 +1170,7 @@
             </section>
         @endif
 
+        @if (! $isCustomer)
         <section class="wm-event-card wm-scout-search">
             <div class="wm-scout-section-head">
                 <div>
@@ -1353,6 +1370,7 @@
                 </div>
             @endif
         </section>
+        @endif
     </div>
 
     <x-filament-actions::modals />
