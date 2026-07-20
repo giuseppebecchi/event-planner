@@ -381,8 +381,14 @@ class Calendar extends Page
             return $this->timelineItemsCache;
         }
 
+        $user = auth()->user();
+
         $projects = Project::query()
             ->whereIn('status', ['proposal', 'confirmed'])
+            ->when(
+                $user?->isCustomer(),
+                fn ($query) => $query->whereHas('users', fn ($query) => $query->whereKey($user->id)),
+            )
             ->with([
                 'projectChecklistOptions',
                 'payments.supplier',

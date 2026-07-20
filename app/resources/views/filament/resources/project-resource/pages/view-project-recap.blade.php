@@ -612,7 +612,6 @@
                                         <th>Category</th>
                                         <th>Supplier</th>
                                         <th>Contact</th>
-                                        <th>Address / web</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -621,15 +620,9 @@
                                             <td>{{ $supplier['category'] }}</td>
                                             <td>
                                                 <strong>{{ $supplier['name'] }}</strong>
-                                                @if ($supplier['confirmed_at'])
-                                                    <div class="wm-recap-meta">Confirmed {{ $supplier['confirmed_at'] }}</div>
-                                                @endif
                                             </td>
                                             <td>
                                                 {{ collect([$supplier['contact_person'], $supplier['email'], $supplier['phone']])->filter()->implode(' • ') ?: '—' }}
-                                            </td>
-                                            <td>
-                                                {{ collect([$supplier['address'], $supplier['website']])->filter()->implode(' • ') ?: '—' }}
                                             </td>
                                         </tr>
                                     @endforeach
