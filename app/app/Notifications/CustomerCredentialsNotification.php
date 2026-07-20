@@ -26,12 +26,14 @@ class CustomerCredentialsNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Your Wedding Manager credentials')
-            ->greeting('Hello')
-            ->line('Your portal access has been prepared for: ' . $this->project->name)
+            ->subject('Your portal access is ready!')
+            ->greeting('Hello ' . ($notifiable->name ?? ''))
+            ->line('Your customized portal for the wedding planning is all set and waiting!')
+            ->line('Here are your login details:')
             ->line('Email: ' . $this->email)
             ->line('Password: ' . $this->password)
-            ->action('Open portal', url('/admin'))
-            ->line('You can change your password after login.');
+            ->action('Open Portal Link', url('/admin'))
+            ->line('For security reasons, we kindly ask you to change your password immediately after your first login.')
+            ->line('Enjoy!');
     }
 }
