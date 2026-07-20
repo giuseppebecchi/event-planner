@@ -231,17 +231,14 @@ class ViewProjectBudget extends Page
             ? $this->getBudgetRows()
             : $project->categoryBudgets;
         $venueBudgets = $allBudgets->filter(fn (CategoryBudget $budget): bool => $this->isVenueBudget($budget));
-        $venueExcluded = ! (bool) $project->venue_included_in_budget;
-        $budgets = $venueExcluded
-            ? $allBudgets->reject(fn (CategoryBudget $budget): bool => $this->isVenueBudget($budget))->values()
-            : $allBudgets;
+        $budgets = $allBudgets->values();
         $confirmed = $budgets->where('budget_status', CategoryBudget::STATUS_CONFIRMED);
         $inEvaluation = $budgets->where('budget_status', CategoryBudget::STATUS_IN_EVALUATION);
 
         $estimatedTotal = (float) $budgets->sum(fn (CategoryBudget $budget) => (float) ($budget->initial_estimated_amount ?? 0));
         $comparisonTotal = (float) $budgets->sum(fn (CategoryBudget $budget) => (float) ($budget->comparison_amount ?? $budget->initial_estimated_amount ?? 0));
-        $finalTotal = (float) $confirmed->sum(fn (CategoryBudget $budget) => (float) ($budget->final_amount ?? 0));
-        $confirmedHypotheticalTotal = (float) $confirmed->sum(fn (CategoryBudget $budget) => (float) ($budget->initial_estimated_amount ?? 0));
+        $finalTotal = (float) $budgets->sum(fn (CategoryBudget $budget) => (float) ($budget->final_amount ?? 0));
+        $confirmedHypotheticalTotal = $estimatedTotal;
         $venueEstimatedTotal = (float) $venueBudgets->sum(fn (CategoryBudget $budget) => (float) ($budget->initial_estimated_amount ?? 0));
         $venueComparisonTotal = (float) $venueBudgets->sum(fn (CategoryBudget $budget) => (float) ($budget->comparison_amount ?? $budget->initial_estimated_amount ?? 0));
         $venueFinalTotal = (float) $venueBudgets
@@ -263,7 +260,7 @@ class ViewProjectBudget extends Page
             'confirmed_hypothetical_total' => $confirmedHypotheticalTotal,
             'difference_total' => $comparisonTotal - $estimatedTotal,
             'completion' => $budgets->count() > 0 ? (int) round(($confirmed->count() / $budgets->count()) * 100) : 0,
-            'venue_excluded' => $venueExcluded,
+            'venue_excluded' => false,
             'venue_budget_count' => $venueBudgets->count(),
             'venue_estimated_total' => $venueEstimatedTotal,
             'venue_comparison_total' => $venueComparisonTotal,

@@ -613,7 +613,7 @@
                 <p class="wm-budget-kicker">Budget recap</p>
                 <h3 class="wm-budget-total">EUR {{ number_format($budgetSummary['estimated_total'], 2, ',', '.') }}</h3>
                 <p class="wm-budget-hero-text">
-                    Track each service category from the initial estimate to the working comparison and the final accepted quote{{ $budgetSummary['venue_excluded'] ? ', excluding the venue cost from recap totals' : '' }}.
+                    Track each service category from the initial estimate to the working comparison and the final accepted quote.
                     Categories with an accepted proposal are highlighted in green.
                 </p>
 
@@ -660,18 +660,6 @@
                     </div>
                 </div>
 
-                @if ($budgetSummary['venue_excluded'])
-                    <div class="wm-budget-venue-note">
-                        <strong>Venue separated</strong>
-                        <span>
-                            Venue cost is shown in the table but excluded from these budget totals.
-                            Couple budget remains the full budget amount:
-                            {{ $budgetSummary['couple_budget'] !== null ? 'EUR ' . number_format($budgetSummary['couple_budget'], 2, ',', '.') : 'not defined' }}.
-                            Current venue amount:
-                            EUR {{ number_format($budgetSummary['venue_separated_amount'], 2, ',', '.') }}.
-                        </span>
-                    </div>
-                @endif
             </aside>
         </section>
 

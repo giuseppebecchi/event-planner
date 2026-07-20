@@ -137,6 +137,57 @@ class CustomerBudgetAccessTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_budget_summary_totals_include_all_rows_even_unconfirmed_and_venue(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => Role::ADMIN]);
+        $admin = User::factory()->create(['role_id' => $adminRole->id]);
+
+        $project = Project::query()->create([
+            'name' => 'Full totals wedding',
+            'last_name' => 'Client',
+            'venue_included_in_budget' => false,
+        ]);
+
+        $venue = Category::query()->create(['label' => 'Venue', 'label_it' => 'Location']);
+        $flowers = Category::query()->create(['label' => 'Flowers', 'label_it' => 'Fiori']);
+        $music = Category::query()->create(['label' => 'Music', 'label_it' => 'Musica']);
+
+        CategoryBudget::query()->create([
+            'project_id' => $project->id,
+            'category_id' => $venue->id,
+            'initial_estimated_amount' => 1000,
+            'final_amount' => 900,
+            'budget_status' => CategoryBudget::STATUS_CONFIRMED,
+        ]);
+        CategoryBudget::query()->create([
+            'project_id' => $project->id,
+            'category_id' => $flowers->id,
+            'initial_estimated_amount' => 500,
+            'budget_status' => CategoryBudget::STATUS_HYPOTHETICAL,
+        ]);
+        CategoryBudget::query()->create([
+            'project_id' => $project->id,
+            'category_id' => $music->id,
+            'initial_estimated_amount' => 700,
+            'comparison_amount' => 660,
+            'final_amount' => 650,
+            'budget_status' => CategoryBudget::STATUS_IN_EVALUATION,
+        ]);
+
+        $this->actingAs($admin);
+
+        $summary = Livewire::test(ViewProjectBudget::class, [
+            'record' => $project->id,
+        ])->instance()->getBudgetSummary();
+
+        $this->assertSame(3, $summary['categories_count']);
+        $this->assertFalse($summary['venue_excluded']);
+        $this->assertSame(2200.0, $summary['estimated_total']);
+        $this->assertSame(2160.0, $summary['comparison_total']);
+        $this->assertSame(1550.0, $summary['final_total']);
+        $this->assertSame(2200.0, $summary['confirmed_hypothetical_total']);
+    }
+
     protected function createCustomerBudgetContext(): array
     {
         $customerRole = Role::query()->firstOrCreate(['name' => Role::CUSTOMER]);
