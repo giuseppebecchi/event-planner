@@ -54,6 +54,13 @@
             padding-left: 1.2rem;
         }
 
+        .customer-help-update-note {
+            display: block;
+            margin-top: 0.55rem;
+            color: #b42318;
+            font-weight: 800;
+        }
+
         @media (max-width: 900px) {
             .customer-help-grid {
                 grid-template-columns: minmax(0, 1fr);
@@ -95,6 +102,7 @@
                 <h2>Timeline</h2>
                 <p>
                     The timeline shows the flow of the wedding day or wedding days. It may include moments such as guest arrival, ceremony, aperitivo, dinner, speeches, cake cutting, and party.
+                    <span class="customer-help-update-note">We will keep it updated as the wedding planning progresses.</span>
                 </p>
             </section>
 
@@ -102,6 +110,7 @@
                 <h2>Recap</h2>
                 <p>
                     The recap is a readable summary of the most important planning information. It is useful when you want an overview without opening each section separately.
+                    <span class="customer-help-update-note">It will be updated step-by-step as we move forward with the planning.</span>
                 </p>
             </section>
 
