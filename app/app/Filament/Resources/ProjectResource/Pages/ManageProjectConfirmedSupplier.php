@@ -934,7 +934,7 @@ class ManageProjectConfirmedSupplier extends Page
                 'form.type' => ['required', 'string'],
                 'form.title' => ['nullable', 'string', 'max:255'],
                 'form.description' => ['nullable', 'string'],
-                'upload' => ['required', 'file', 'max:20480'],
+                'upload' => ['required', 'file', 'max:51200'],
             ]
         )->validate();
 

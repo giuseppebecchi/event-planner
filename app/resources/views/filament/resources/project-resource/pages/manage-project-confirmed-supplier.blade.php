@@ -586,6 +586,22 @@
             color: #2d2a26;
         }
 
+        .wm-field-hint,
+        .wm-field-error {
+            margin-top: 0.4rem;
+            font-size: 0.78rem;
+            line-height: 1.45;
+        }
+
+        .wm-field-hint {
+            color: #6f665c;
+        }
+
+        .wm-field-error {
+            color: #b42318;
+            font-weight: 700;
+        }
+
         .wm-textarea {
             min-height: 7rem;
             resize: vertical;
@@ -1506,10 +1522,28 @@
                     <div>
                         <label class="wm-label" for="document-upload">File</label>
                         <input id="document-upload" type="file" class="wm-field" wire:model="documentUpload">
+                        <div wire:loading wire:target="documentUpload" class="wm-field-hint">
+                            Uploading file...
+                        </div>
+                        @error('documentUpload')
+                            <div class="wm-field-error">{{ $message }}</div>
+                        @enderror
+                        @error('upload')
+                            <div class="wm-field-error">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="wm-actions">
-                        <x-filament::button color="primary" wire:click="saveDocument">Save document</x-filament::button>
+                        <x-filament::button
+                            color="primary"
+                            wire:click="saveDocument"
+                            wire:loading.attr="disabled"
+                            wire:target="documentUpload,saveDocument"
+                        >
+                            <span wire:loading.remove wire:target="documentUpload,saveDocument">Save document</span>
+                            <span wire:loading wire:target="documentUpload">Uploading...</span>
+                            <span wire:loading wire:target="saveDocument">Saving...</span>
+                        </x-filament::button>
                     </div>
                 </div>
             </div>

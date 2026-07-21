@@ -44,7 +44,7 @@ WORKDIR /var/www
 
 # Upload limits for Filament / Livewire file uploads
 RUN { \
-    echo 'upload_max_filesize=20M'; \
-    echo 'post_max_size=20M'; \
+    echo 'upload_max_filesize=50M'; \
+    echo 'post_max_size=50M'; \
     echo 'memory_limit=256M'; \
 } > /usr/local/etc/php/conf.d/uploads.ini
