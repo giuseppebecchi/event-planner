@@ -33,4 +33,14 @@ class RichEditorHtmlNormalizerTest extends TestCase
             RichEditorHtmlNormalizer::normalizeListItems($html),
         );
     }
+
+    public function test_it_preserves_utf8_punctuation(): void
+    {
+        $html = '<p>The “Contract” VAT n° test.</p><ul><li>Client’s email</li></ul>';
+
+        $this->assertSame(
+            '<p>The “Contract” VAT n° test.</p><ul><li><p>Client’s email</p></li></ul>',
+            RichEditorHtmlNormalizer::normalizeListItems($html),
+        );
+    }
 }
