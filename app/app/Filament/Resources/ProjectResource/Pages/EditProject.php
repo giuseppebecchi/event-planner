@@ -103,10 +103,11 @@ class EditProject extends EditRecord
 
         $customerRole = Role::query()->where('name', Role::CUSTOMER)->firstOrFail();
         $password = Str::password(12);
+        $customerName = $this->customerCredentialsNameForField($field) ?: ($project->name . ' Customer');
 
         $user = User::query()->firstOrNew(['email' => $email]);
         $user->fill([
-            'name' => $user->name ?: ($project->name . ' Customer'),
+            'name' => $customerName,
             'role_id' => $user->role_id ?: $customerRole->id,
             'password' => $password,
         ]);
@@ -135,5 +136,15 @@ class EditProject extends EditRecord
     protected function customerCredentialsRecipientLabel(string $field): string
     {
         return $field === 'secondary_email' ? 'Partner 2' : 'Partner 1';
+    }
+
+    protected function customerCredentialsNameForField(string $field): ?string
+    {
+        $project = $this->getRecord();
+        $name = $field === 'secondary_email'
+            ? $project->secondaryContactName()
+            : $project->mainContactName();
+
+        return filled($name) ? $name : null;
     }
 }
