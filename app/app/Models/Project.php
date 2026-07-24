@@ -557,8 +557,27 @@ class Project extends Model
 
     protected function leadWeddingPlannerBudgetAmount(Lead $lead): float
     {
-        return collect($lead->budget_wedding_planner ?? [])
+        $plannerTotal = collect($lead->budget_wedding_planner ?? [])
             ->sum(fn (array $row): float => blank($row['amount'] ?? null) ? 0.0 : (float) str_replace(',', '.', (string) $row['amount']));
+
+        $selectedExtrasTotal = collect([
+            ...$this->selectedLeadBudgetRows($lead->budget_wedding_planner_extra_services),
+            ...$this->selectedLeadBudgetRows($lead->budget_wedding_planner_special_packages),
+        ])->sum(fn (array $row): float => blank($row['amount'] ?? null) ? 0.0 : (float) str_replace(',', '.', (string) $row['amount']));
+
+        return $plannerTotal + $selectedExtrasTotal;
+    }
+
+    protected function selectedLeadBudgetRows(mixed $rows): array
+    {
+        if (! is_array($rows)) {
+            return [];
+        }
+
+        return collect($rows)
+            ->filter(fn (array $row): bool => (bool) ($row['add_to_budget'] ?? false))
+            ->values()
+            ->all();
     }
 
     protected function isWeddingPlannerBudgetRow(array $row, ?int $weddingPlannerCategoryId): bool

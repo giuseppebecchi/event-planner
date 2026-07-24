@@ -96,7 +96,7 @@ class SupplierResourceSupport
 
         if ($includeCategoryField) {
             $mainInformationFields[] = Components\Select::make('category_id')
-                ->label('Service category')
+                ->label('Main category')
                 ->options(fn (): array => Category::query()
                     ->when(
                         $excludeLocationCategory,
@@ -104,6 +104,23 @@ class SupplierResourceSupport
                     )
                     ->pluck('label', 'id')
                     ->all())
+                ->searchable()
+                ->preload();
+
+            $mainInformationFields[] = Components\Select::make('other_category_ids')
+                ->label('Other categories')
+                ->options(fn (callable $get): array => Category::query()
+                    ->when(
+                        $excludeLocationCategory,
+                        fn ($query) => $query->where('id', '!=', Supplier::LOCATION_CATEGORY_ID)
+                    )
+                    ->when(
+                        filled($get('category_id')),
+                        fn ($query) => $query->where('id', '!=', (int) $get('category_id'))
+                    )
+                    ->pluck('label', 'id')
+                    ->all())
+                ->multiple()
                 ->searchable()
                 ->preload();
         }

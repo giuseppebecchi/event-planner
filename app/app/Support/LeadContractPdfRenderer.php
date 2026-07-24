@@ -189,9 +189,29 @@ class LeadContractPdfRenderer
     protected function contractTotalFee(Lead $lead): ?string
     {
         $plannerRows = is_array($lead->budget_wedding_planner) ? $lead->budget_wedding_planner : [];
-        $firstAmount = collect($plannerRows)->pluck('amount')->filter(fn ($amount): bool => filled($amount) && (float) $amount > 0)->first();
+        $plannerTotal = collect($plannerRows)
+            ->sum(fn (array $row): float => $this->numericAmount($row['amount'] ?? null));
 
-        return $this->formatMoney($firstAmount ?? $lead->project?->budget_amount ?? $lead->budget_amount);
+        $selectedExtrasTotal = collect([
+            ...$this->selectedBudgetRows($lead->budget_wedding_planner_extra_services),
+            ...$this->selectedBudgetRows($lead->budget_wedding_planner_special_packages),
+        ])->sum(fn (array $row): float => $this->numericAmount($row['amount'] ?? null));
+
+        $contractTotal = $plannerTotal + $selectedExtrasTotal;
+
+        return $this->formatMoney($contractTotal > 0 ? $contractTotal : ($lead->project?->budget_amount ?? $lead->budget_amount));
+    }
+
+    protected function selectedBudgetRows(mixed $rows): array
+    {
+        if (! is_array($rows)) {
+            return [];
+        }
+
+        return collect($rows)
+            ->filter(fn (array $row): bool => (bool) ($row['add_to_budget'] ?? false))
+            ->values()
+            ->all();
     }
 
     protected function forceMajeureCreditUntil(mixed $weddingDate): ?string
@@ -229,17 +249,22 @@ class LeadContractPdfRenderer
 
     protected function formatMoney(mixed $value): ?string
     {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        $amount = (float) $value;
+        $amount = $this->numericAmount($value);
 
         if ($amount <= 0) {
             return null;
         }
 
         return number_format($amount, 0, ',', '.').' euros';
+    }
+
+    protected function numericAmount(mixed $value): float
+    {
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+
+        return (float) str_replace(',', '.', (string) $value);
     }
 
     protected function images(): array

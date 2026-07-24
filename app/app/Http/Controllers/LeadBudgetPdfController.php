@@ -64,17 +64,17 @@ class LeadBudgetPdfController extends Controller
             [
                 'title' => 'Optional extra services',
                 'description' => 'Additional services available when required by the final event scope.',
-                'rows' => $this->normalizedRows($lead->budget_wedding_planner_extra_services),
+                'rows' => $this->normalizedRows($lead->budget_wedding_planner_extra_services, onlyAddToBudget: true),
             ],
             [
                 'title' => 'Special packages',
                 'description' => 'Custom packages or special arrangements prepared for this client.',
-                'rows' => $this->normalizedRows($lead->budget_wedding_planner_special_packages),
+                'rows' => $this->normalizedRows($lead->budget_wedding_planner_special_packages, onlyAddToBudget: true),
             ],
         ];
     }
 
-    protected function normalizedRows(mixed $rows, bool $excludeWeddingPlanner = false): array
+    protected function normalizedRows(mixed $rows, bool $excludeWeddingPlanner = false, bool $onlyAddToBudget = false): array
     {
         if (! is_array($rows)) {
             return [];
@@ -89,9 +89,11 @@ class LeadBudgetPdfController extends Controller
                     'label' => $label,
                     'notes' => $notes,
                     'amount' => $this->numericAmount($row['amount'] ?? null),
+                    'add_to_budget' => (bool) ($row['add_to_budget'] ?? false),
                 ];
             })
             ->when($excludeWeddingPlanner, fn ($rows) => $rows->reject(fn (array $row): bool => $this->isWeddingPlannerRow($row)))
+            ->when($onlyAddToBudget, fn ($rows) => $rows->filter(fn (array $row): bool => $row['add_to_budget']))
             ->filter(fn (array $row): bool => $row['amount'] > 0)
             ->values()
             ->all();

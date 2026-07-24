@@ -85,6 +85,7 @@ class ViewLeadBudgetComposition extends Page
             'label' => null,
             'notes' => null,
             'amount' => 0,
+            'add_to_budget' => false,
         ];
     }
 
@@ -98,8 +99,8 @@ class ViewLeadBudgetComposition extends Page
     {
         $vendorsTotal = $this->rowsTotal($this->data['budget_vendors'] ?? []);
         $weddingPlannerTotal = $this->rowsTotal($this->data['budget_wedding_planner'] ?? []);
-        $extraServicesTotal = $this->rowsTotal($this->data['budget_wedding_planner_extra_services'] ?? []);
-        $specialPackagesTotal = $this->rowsTotal($this->data['budget_wedding_planner_special_packages'] ?? []);
+        $extraServicesTotal = $this->rowsTotal($this->data['budget_wedding_planner_extra_services'] ?? [], true);
+        $specialPackagesTotal = $this->rowsTotal($this->data['budget_wedding_planner_special_packages'] ?? [], true);
         $grandTotal = $vendorsTotal + $weddingPlannerTotal + $extraServicesTotal + $specialPackagesTotal;
         $clientBudget = $this->getRecord()->budget_amount !== null ? (float) $this->getRecord()->budget_amount : null;
 
@@ -214,6 +215,7 @@ class ViewLeadBudgetComposition extends Page
                     'label' => $label,
                     'notes' => null,
                     'amount' => blank($row['amount'] ?? null) ? 0 : $row['amount'],
+                    'add_to_budget' => (bool) ($row['add_to_budget'] ?? false),
                 ];
             })
             ->values()
@@ -229,6 +231,7 @@ class ViewLeadBudgetComposition extends Page
                     'label' => $row['label'] ?? null,
                     'notes' => $row['notes'] ?? null,
                     'amount' => blank($row['amount'] ?? null) ? 0 : (float) str_replace(',', '.', (string) $row['amount']),
+                    'add_to_budget' => (bool) ($row['add_to_budget'] ?? false),
                 ];
             })
             ->when($excludeWeddingPlanner, fn (Collection $rows): Collection => $rows->reject(fn (array $row): bool => $this->isWeddingPlannerRow($row)))
@@ -236,9 +239,10 @@ class ViewLeadBudgetComposition extends Page
             ->all();
     }
 
-    protected function rowsTotal(array $rows): float
+    protected function rowsTotal(array $rows, bool $onlyAddToBudget = false): float
     {
         return collect($rows)
+            ->when($onlyAddToBudget, fn (Collection $rows): Collection => $rows->filter(fn (array $row): bool => (bool) ($row['add_to_budget'] ?? false)))
             ->sum(fn (array $row): float => $this->numericAmount($row['amount'] ?? null));
     }
 

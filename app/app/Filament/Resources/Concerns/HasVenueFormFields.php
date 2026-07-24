@@ -56,10 +56,14 @@ trait HasVenueFormFields
 
     protected static function createVenue(array $data): Supplier
     {
-        return Supplier::query()->create([
+        $venue = Supplier::query()->create([
             ...$data,
             'category_id' => Supplier::LOCATION_CATEGORY_ID,
         ]);
+
+        $venue->syncCategoriesFromMainAndOther();
+
+        return $venue;
     }
 
     protected static function legacyVenueField(): Components\TextInput

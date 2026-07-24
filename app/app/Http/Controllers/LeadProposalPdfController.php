@@ -35,7 +35,10 @@ class LeadProposalPdfController extends Controller
         $period = $lead->wedding_period ?: $this->formatDate($project?->event_start_date) ?: 'September 2027';
         $guestText = $this->guestText($lead);
         $plannerRows = $this->normalizedRows($lead->budget_wedding_planner);
-        $extraRows = $this->normalizedRows($lead->budget_wedding_planner_extra_services);
+        $extraRows = [
+            ...$this->normalizedRows($lead->budget_wedding_planner_extra_services, onlyPositive: true),
+            ...$this->normalizedRows($lead->budget_wedding_planner_special_packages, onlyPositive: true),
+        ];
         $mainOffer = $plannerRows[0] ?? null;
         $mainFee = $this->money($mainOffer['amount'] ?? null);
         $planningRows = $this->planningRows($lead);
@@ -200,7 +203,7 @@ class LeadProposalPdfController extends Controller
         ];
     }
 
-    protected function normalizedRows(mixed $rows): array
+    protected function normalizedRows(mixed $rows, bool $onlyPositive = false): array
     {
         if (! is_array($rows)) {
             return [];
@@ -209,11 +212,21 @@ class LeadProposalPdfController extends Controller
         return collect($rows)
             ->map(fn (array $row): array => [
                 'label' => trim((string) ($row['label'] ?? '')),
-                'amount' => $row['amount'] ?? null,
+                'amount' => $this->numericAmount($row['amount'] ?? null),
             ])
-            ->filter(fn (array $row): bool => $row['label'] !== '' || filled($row['amount']))
+            ->filter(fn (array $row): bool => $row['label'] !== '' || $row['amount'] > 0)
+            ->when($onlyPositive, fn ($rows) => $rows->filter(fn (array $row): bool => $this->numericAmount($row['amount'] ?? null) > 0))
             ->values()
             ->all();
+    }
+
+    protected function numericAmount(mixed $value): float
+    {
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+
+        return (float) str_replace(',', '.', (string) $value);
     }
 
     protected function guestText(Lead $lead): string

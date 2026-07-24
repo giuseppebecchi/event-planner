@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\LocationResource\Pages;
+use App\Models\Category;
 use App\Models\PaymentMode;
 use App\Models\Supplier;
 use BackedEnum;
@@ -65,8 +66,6 @@ class LocationResource extends Resource
         return $schema
             ->columns(1)
             ->components([
-                Components\Hidden::make('category_id')
-                    ->default(Supplier::LOCATION_CATEGORY_ID),
                 Tabs::make('Venue tabs')
                     ->contained(false)
                     ->columnSpanFull()
@@ -77,6 +76,24 @@ class LocationResource extends Resource
                             Section::make('Main information')
                                 ->columns(3)
                                 ->schema([
+                                    Components\Select::make('category_id')
+                                        ->label('Main category')
+                                        ->options(fn (): array => Category::query()
+                                            ->where('id', Supplier::LOCATION_CATEGORY_ID)
+                                            ->pluck('label', 'id')
+                                            ->all())
+                                        ->default(Supplier::LOCATION_CATEGORY_ID)
+                                        ->disabled()
+                                        ->dehydrated(),
+                                    Components\Select::make('other_category_ids')
+                                        ->label('Other categories')
+                                        ->options(fn (): array => Category::query()
+                                        ->where('id', '!=', Supplier::LOCATION_CATEGORY_ID)
+                                            ->pluck('label', 'id')
+                                            ->all())
+                                        ->multiple()
+                                        ->searchable()
+                                        ->preload(),
                                     Components\TextInput::make('name')
                                         ->label('Venue name')
                                         ->required()

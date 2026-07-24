@@ -76,7 +76,9 @@ class ImportVenuesCommand extends Command
                     $created++;
 
                     if (! $dryRun) {
-                        Supplier::query()->create($data);
+                        Supplier::query()
+                            ->create($data)
+                            ->syncCategoriesFromMainAndOther();
                     }
 
                     continue;
@@ -109,6 +111,7 @@ class ImportVenuesCommand extends Command
 
                 if (! $dryRun) {
                     $supplier->forceFill($changes)->save();
+                    $supplier->syncCategoriesFromMainAndOther();
                 }
             }
 

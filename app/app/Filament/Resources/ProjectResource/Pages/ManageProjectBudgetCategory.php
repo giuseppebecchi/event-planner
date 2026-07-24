@@ -664,7 +664,7 @@ class ManageProjectBudgetCategory extends Page
             ->all();
 
         return Supplier::query()
-            ->whereIn('category_id', $this->searchableSupplierCategoryIds())
+            ->where(fn ($query) => $this->whereSupplierMatchesSearchableCategories($query))
             ->when(
                 filled($trackedSupplierIds),
                 fn ($query) => $query->whereNotIn('id', $trackedSupplierIds)
@@ -692,7 +692,7 @@ class ManageProjectBudgetCategory extends Page
     public function getServiceAreaOptions(): array
     {
         return Supplier::query()
-            ->whereIn('category_id', $this->searchableSupplierCategoryIds())
+            ->where(fn ($query) => $this->whereSupplierMatchesSearchableCategories($query))
             ->whereNotNull('service_area')
             ->where('service_area', '!=', '')
             ->orderBy('service_area')
@@ -703,7 +703,7 @@ class ManageProjectBudgetCategory extends Page
     public function getCityOptions(): array
     {
         return Supplier::query()
-            ->whereIn('category_id', $this->searchableSupplierCategoryIds())
+            ->where(fn ($query) => $this->whereSupplierMatchesSearchableCategories($query))
             ->whereNotNull('city')
             ->where('city', '!=', '')
             ->orderBy('city')
@@ -714,7 +714,7 @@ class ManageProjectBudgetCategory extends Page
     public function getPriceRangeOptions(): array
     {
         return Supplier::query()
-            ->whereIn('category_id', $this->searchableSupplierCategoryIds())
+            ->where(fn ($query) => $this->whereSupplierMatchesSearchableCategories($query))
             ->whereNotNull('price_range')
             ->where('price_range', '!=', '')
             ->orderBy('price_range')
@@ -744,6 +744,7 @@ class ManageProjectBudgetCategory extends Page
                 $data['category_id'] = $this->categoryBudgetRecord->category_id;
 
                 $supplier = Supplier::query()->create($data);
+                $supplier->syncCategoriesFromMainAndOther();
 
                 $this->refreshBudgetContext();
                 $this->cancelSendRequest();
@@ -861,8 +862,17 @@ class ManageProjectBudgetCategory extends Page
     protected function findSearchableSupplierOrFail(int $supplierId): Supplier
     {
         return Supplier::query()
-            ->whereIn('category_id', $this->searchableSupplierCategoryIds())
+            ->where(fn ($query) => $this->whereSupplierMatchesSearchableCategories($query))
             ->findOrFail($supplierId);
+    }
+
+    protected function whereSupplierMatchesSearchableCategories($query): void
+    {
+        $categoryIds = $this->searchableSupplierCategoryIds();
+
+        $query
+            ->whereIn('category_id', $categoryIds)
+            ->orWhereHas('categories', fn ($categoriesQuery) => $categoriesQuery->whereIn('categories.id', $categoryIds));
     }
 
     protected function findProposalById(int $proposalId, bool $fail = false): ?CategoryBudgetSupplier

@@ -165,6 +165,10 @@
             width: 20%;
         }
 
+        .lead-budget-table col.add-to-budget-col {
+            width: 18%;
+        }
+
         .lead-budget-table th {
             text-align: left;
             font-size: 11px;
@@ -209,6 +213,28 @@
             outline: none;
             border-color: #c4a17d;
             box-shadow: 0 0 0 3px rgba(196, 161, 125, 0.12);
+        }
+
+        .lead-budget-checkbox-cell {
+            vertical-align: middle;
+        }
+
+        .lead-budget-checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            color: #5d4637;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.25;
+            cursor: pointer;
+        }
+
+        .lead-budget-checkbox {
+            width: 16px;
+            height: 16px;
+            accent-color: #8a6a53;
+            flex: 0 0 auto;
         }
 
         .lead-budget-actions {
@@ -275,7 +301,7 @@
                 <p class="lead-budget-eyebrow">Total recap</p>
                 <h3 class="lead-budget-recap-title">Budget total summary</h3>
                 <p class="lead-budget-recap-copy">
-                    Includes vendor budget, wedding planner fee, extra services, and special packages currently entered below.
+                    Includes vendor budget, wedding planner fee, and extra services or special packages selected with Add to budget.
                 </p>
             </div>
             <div class="lead-budget-recap-card">
@@ -384,12 +410,14 @@
                         <h3 class="lead-budget-panel-title">Wedding planner extra services</h3>
                         <table class="lead-budget-table">
                             <colgroup>
-                                <col style="width: 76%">
+                                <col style="width: 58%">
+                                <col class="add-to-budget-col">
                                 <col class="amount-col">
                             </colgroup>
                             <thead>
                                 <tr>
                                     <th>Label</th>
+                                    <th>Add to budget</th>
                                     <th>Amount</th>
                                 </tr>
                             </thead>
@@ -397,6 +425,12 @@
                                 @foreach(($data['budget_wedding_planner_extra_services'] ?? []) as $index => $row)
                                     <tr>
                                         <td><textarea class="lead-budget-textarea" wire:model="data.budget_wedding_planner_extra_services.{{ $index }}.label"></textarea></td>
+                                        <td class="lead-budget-checkbox-cell">
+                                            <label class="lead-budget-checkbox-label">
+                                                <input class="lead-budget-checkbox" type="checkbox" wire:model.live="data.budget_wedding_planner_extra_services.{{ $index }}.add_to_budget">
+                                                <span>Selected</span>
+                                            </label>
+                                        </td>
                                         <td><input class="lead-budget-input" type="text" wire:model.live.debounce.500ms="data.budget_wedding_planner_extra_services.{{ $index }}.amount"></td>
                                     </tr>
                                 @endforeach
@@ -408,12 +442,14 @@
                         <h3 class="lead-budget-panel-title">Wedding planner special packages</h3>
                         <table class="lead-budget-table">
                             <colgroup>
-                                <col style="width: 76%">
+                                <col style="width: 58%">
+                                <col class="add-to-budget-col">
                                 <col class="amount-col">
                             </colgroup>
                             <thead>
                                 <tr>
                                     <th>Label</th>
+                                    <th>Add to budget</th>
                                     <th>Amount</th>
                                 </tr>
                             </thead>
@@ -423,6 +459,12 @@
                                         <td>
                                             <textarea class="lead-budget-textarea" wire:model="data.budget_wedding_planner_special_packages.{{ $index }}.label"></textarea>
                                             <button class="lead-budget-remove" type="button" wire:click="removeSpecialPackage({{ $index }})">Remove row</button>
+                                        </td>
+                                        <td class="lead-budget-checkbox-cell">
+                                            <label class="lead-budget-checkbox-label">
+                                                <input class="lead-budget-checkbox" type="checkbox" wire:model.live="data.budget_wedding_planner_special_packages.{{ $index }}.add_to_budget">
+                                                <span>Selected</span>
+                                            </label>
                                         </td>
                                         <td><input class="lead-budget-input" type="text" wire:model.live.debounce.500ms="data.budget_wedding_planner_special_packages.{{ $index }}.amount"></td>
                                     </tr>

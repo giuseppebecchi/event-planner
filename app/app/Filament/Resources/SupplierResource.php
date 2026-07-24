@@ -73,9 +73,18 @@ class SupplierResource extends Resource
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('category.label')
-                    ->label('Category')
+                    ->label('Main category')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('other_categories')
+                    ->label('Other categories')
+                    ->badge()
+                    ->state(fn (Supplier $record): array => $record->categories
+                        ->where('id', '!=', $record->category_id)
+                        ->pluck('label')
+                        ->values()
+                        ->all())
+                    ->toggleable(),
                 TextColumn::make('service_area')
                     ->label('Service area')
                     ->searchable()

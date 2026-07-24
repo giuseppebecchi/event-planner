@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -176,6 +177,34 @@ class Supplier extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(Category::class)->withTimestamps();
+    }
+
+    public function otherCategoryIds(): array
+    {
+        return $this->categories()
+            ->when($this->category_id, fn ($query): mixed => $query->whereKeyNot($this->category_id))
+            ->pluck('categories.id')
+            ->map(fn (int|string $id): int => (int) $id)
+            ->values()
+            ->all();
+    }
+
+    public function syncCategoriesFromMainAndOther(mixed $otherCategoryIds = []): void
+    {
+        $categoryIds = collect([$this->category_id])
+            ->merge(is_array($otherCategoryIds) ? $otherCategoryIds : [])
+            ->map(fn (mixed $id): int => (int) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $this->categories()->sync($categoryIds);
     }
 
     public function documents(): HasMany
