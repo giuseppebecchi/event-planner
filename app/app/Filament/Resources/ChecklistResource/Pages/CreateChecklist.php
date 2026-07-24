@@ -11,4 +11,9 @@ class CreateChecklist extends CreateRecord
     protected static string $resource = ChecklistResource::class;
 
     protected Width|string|null $maxContentWidth = Width::Full;
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        return ChecklistResource::normalizeOptionsForSave($data);
+    }
 }

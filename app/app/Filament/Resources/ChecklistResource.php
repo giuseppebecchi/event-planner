@@ -11,7 +11,9 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -40,6 +42,7 @@ class ChecklistResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
+            View::make('filament.resources.checklist-resource.form-styles'),
             Section::make('Checklist')
                 ->columns(2)
                 ->columnSpanFull()
@@ -57,55 +60,144 @@ class ChecklistResource extends Resource
                         ->columnSpan(1)
                         ->helperText('Leave empty for general checklists not tied to a supplier category.'),
                     Components\Repeater::make('options')
+                        ->label('Options')
+                        ->extraAttributes(['class' => 'wm-checklist-options-repeater'])
                         ->columnSpanFull()
                         ->schema([
-                            Components\TextInput::make('order')
-                                ->label('Order')
-                                ->numeric()
-                                ->required()
-                                ->minValue(1)
-                                ->columnSpan(1)
-                                ->extraInputAttributes(['style' => 'max-width: 5.5rem;']),
-                            Components\RichEditor::make('title')
-                                ->required()
-                                ->columnSpan(3)
-                                ->maxLength(1000),
-                            Components\Toggle::make('default')
-                                ->default(false)
-                                ->columnSpan(1)
-                                ->live(),
-                            Components\Toggle::make('to_be_filled')
-                                ->label('To be filled')
-                                ->default(false)
-                                ->columnSpan(1)
-                                ->helperText('Requires a written response instead of only a checkbox.'),
-                            Components\Toggle::make('insert_into_recap')
-                                ->label('Insert into recap')
-                                ->default(false)
-                                ->columnSpan(1)
-                                ->helperText('Show the compiled text in the project recap.'),
-                            Components\TextInput::make('anticipation')
-                                ->placeholder('e.g. 3 days, 4 weeks, 9 months')
-                                ->columnSpan(1)
-                                ->visible(fn (callable $get): bool => (bool) $get('default'))
-                                ->helperText('Only used for default checklist items.'),
-                            Components\Select::make('assigned_to')
-                                ->options([
-                                    'admin' => 'Admin',
-                                    'client' => 'Client',
-                                    'supplier' => 'Supplier',
-                                    'none' => 'None',
+                            Grid::make([
+                                'default' => 1,
+                                'lg' => 12,
+                            ])
+                                ->schema([
+                                    Components\TextInput::make('order')
+                                        ->label('Order')
+                                        ->numeric()
+                                        ->required()
+                                        ->minValue(1)
+                                        ->columnSpan([
+                                            'default' => 1,
+                                            'lg' => 1,
+                                        ]),
+                                    Components\RichEditor::make('title')
+                                        ->label('Label')
+                                        ->placeholder('Write the checklist instruction...')
+                                        ->required()
+                                        ->columnSpan([
+                                            'default' => 1,
+                                            'lg' => 11,
+                                        ])
+                                        ->maxLength(1000)
+                                        ->toolbarButtons([
+                                            'bold',
+                                            'italic',
+                                            'bulletList',
+                                            'orderedList',
+                                            'link',
+                                            'undo',
+                                            'redo',
+                                        ]),
                                 ])
-                                ->columnSpan(2)
-                                ->required()
-                                ->default('none'),
+                                ->columnSpanFull(),
+                            Grid::make([
+                                'default' => 1,
+                                'lg' => 12,
+                            ])
+                                ->schema([
+                                    Components\Select::make('assigned_to')
+                                        ->label('Assigned to')
+                                        ->options([
+                                            'admin' => 'Admin',
+                                            'client' => 'Client',
+                                            'supplier' => 'Supplier',
+                                            'none' => 'None',
+                                        ])
+                                        ->columnSpan([
+                                            'default' => 1,
+                                            'lg' => 3,
+                                        ])
+                                        ->required()
+                                        ->default('none'),
+                                    Components\TextInput::make('anticipation')
+                                        ->label('Timing')
+                                        ->placeholder('e.g. 3 days, 4 weeks, 9 months')
+                                        ->columnSpan([
+                                            'default' => 1,
+                                            'lg' => 3,
+                                        ])
+                                        ->visible(fn (callable $get): bool => (bool) $get('default'))
+                                        ->helperText('Only for default items.'),
+                                    Components\Toggle::make('default')
+                                        ->label('Default')
+                                        ->default(false)
+                                        ->columnSpan([
+                                            'default' => 1,
+                                            'lg' => 2,
+                                        ])
+                                        ->live(),
+                                    Components\Toggle::make('to_be_filled')
+                                        ->label('To be filled')
+                                        ->default(false)
+                                        ->columnSpan([
+                                            'default' => 1,
+                                            'lg' => 2,
+                                        ])
+                                        ->live()
+                                        ->helperText('Requires a written response.'),
+                                    Components\Toggle::make('insert_into_recap')
+                                        ->label('Insert into recap')
+                                        ->default(false)
+                                        ->columnSpan([
+                                            'default' => 1,
+                                            'lg' => 2,
+                                        ])
+                                        ->visible(fn (callable $get): bool => (bool) $get('to_be_filled'))
+                                        ->helperText('Show response in recap.'),
+                                ])
+                                ->columnSpanFull(),
+                            Components\RichEditor::make('answer_template')
+                                ->label('Answer template')
+                                ->placeholder('Add a prefilled response structure...')
+                                ->columnSpanFull()
+                                ->visible(fn (callable $get): bool => (bool) $get('to_be_filled'))
+                                ->toolbarButtons([
+                                    'bold',
+                                    'italic',
+                                    'bulletList',
+                                    'orderedList',
+                                    'link',
+                                    'undo',
+                                    'redo',
+                                ]),
                         ])
-                        ->columns(10)
+                        ->columns(1)
                         ->defaultItems(0)
+                        ->itemLabel(fn (?array $state): ?string => filled($state['title'] ?? null)
+                            ? str((string) $state['title'])->stripTags()->squish()->limit(90)->toString()
+                            : 'Checklist option')
+                        ->collapsible()
                         ->reorderableWithButtons()
                         ->required(),
                 ]),
         ]);
+    }
+
+    public static function normalizeOptionsForSave(array $data): array
+    {
+        $data['options'] = collect($data['options'] ?? [])
+            ->map(function (array $option): array {
+                $toBeFilled = (bool) ($option['to_be_filled'] ?? false);
+
+                $option['insert_into_recap'] = $toBeFilled && (bool) ($option['insert_into_recap'] ?? false);
+                $option['answer_template'] = $toBeFilled && filled($option['answer_template'] ?? null)
+                    ? (string) $option['answer_template']
+                    : null;
+
+                return $option;
+            })
+            ->values()
+            ->all();
+
+        return $data;
     }
 
     public static function table(Table $table): Table

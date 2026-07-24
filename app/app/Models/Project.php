@@ -926,6 +926,9 @@ class Project extends Model
                     $item->enabled = $isDefault;
                     $item->completed = false;
                     $item->completed_at = null;
+                    $item->response = (bool) ($option['to_be_filled'] ?? false) && filled($option['answer_template'] ?? null)
+                        ? (string) $option['answer_template']
+                        : null;
                 }
 
                 if ($item->isDirty()) {

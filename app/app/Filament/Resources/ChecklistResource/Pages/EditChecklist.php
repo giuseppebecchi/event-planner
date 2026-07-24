@@ -11,4 +11,9 @@ class EditChecklist extends EditRecord
     protected static string $resource = ChecklistResource::class;
 
     protected Width|string|null $maxContentWidth = Width::Full;
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        return ChecklistResource::normalizeOptionsForSave($data);
+    }
 }
