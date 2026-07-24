@@ -50,10 +50,9 @@ class ViewLeadContract extends BaseLeadPhasePage
                 ->color('success')
                 ->requiresConfirmation()
                 ->modalHeading('Send contract by email?')
-                ->modalDescription(fn (): string => sprintf(
-                    'Confirm sending the contract by email to %s.',
-                    $this->getRecord()->email ?: 'the client email'
-                ))
+                ->modalDescription(fn (): string => 'Confirm sending the contract by email to '.$this->formatContractEmailRecipients(
+                    $this->contractEmailRecipients($this->getRecord())
+                ).'.')
                 ->action(function (): void {
                     $this->sendContractByEmail();
                 }),
@@ -139,8 +138,9 @@ class ViewLeadContract extends BaseLeadPhasePage
     {
         /** @var Lead $lead */
         $lead = $this->getRecord()->loadMissing('project');
+        $recipients = $this->contractEmailRecipients($lead);
 
-        if (blank($lead->email)) {
+        if ($recipients === []) {
             Notification::make()
                 ->title('Client email missing')
                 ->body('Add an email address to this lead before sending the contract.')
@@ -165,7 +165,7 @@ class ViewLeadContract extends BaseLeadPhasePage
         }
 
         try {
-            NotificationFacade::route('mail', $lead->email)
+            NotificationFacade::route('mail', $recipients)
                 ->notify(new LeadContractNotification($lead));
 
             $lead->forceFill([
@@ -174,7 +174,7 @@ class ViewLeadContract extends BaseLeadPhasePage
 
             Notification::make()
                 ->title('Contract sent')
-                ->body('The contract email was sent to '.$lead->email.'.')
+                ->body('The contract email was sent to '.$this->formatContractEmailRecipients($recipients).'.')
                 ->success()
                 ->send();
         } catch (Throwable $exception) {
@@ -186,6 +186,38 @@ class ViewLeadContract extends BaseLeadPhasePage
                 ->danger()
                 ->send();
         }
+    }
+
+    protected function contractEmailRecipients(Lead $lead): array
+    {
+        if (blank($lead->email)) {
+            return [];
+        }
+
+        return collect([
+            $lead->email,
+            $lead->secondary_email,
+        ])
+            ->map(fn (mixed $email): ?string => is_string($email) ? trim($email) : null)
+            ->filter(fn (?string $email): bool => filled($email))
+            ->unique(fn (string $email): string => mb_strtolower($email))
+            ->values()
+            ->all();
+    }
+
+    protected function formatContractEmailRecipients(array $recipients): string
+    {
+        if ($recipients === []) {
+            return 'the client email';
+        }
+
+        if (count($recipients) === 1) {
+            return $recipients[0];
+        }
+
+        $lastRecipient = array_pop($recipients);
+
+        return implode(', ', $recipients).' and '.$lastRecipient;
     }
 
     protected function projectPayloadFromLead(Lead $lead): array
