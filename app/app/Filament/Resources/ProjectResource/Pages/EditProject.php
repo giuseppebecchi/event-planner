@@ -7,6 +7,7 @@ use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDa
 use App\Models\Role;
 use App\Models\User;
 use App\Notifications\CustomerCredentialsNotification;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Enums\Width;
@@ -43,6 +44,25 @@ class EditProject extends EditRecord
     protected function getHeaderActions(): array
     {
         return [];
+    }
+
+    public function sendCustomerCredentialsAction(): Action
+    {
+        return Action::make('sendCustomerCredentials')
+            ->label('Send credentials')
+            ->icon('heroicon-o-key')
+            ->color('success')
+            ->requiresConfirmation()
+            ->modalHeading('Send customer portal credentials?')
+            ->modalDescription(fn (array $arguments): string => sprintf(
+                'Confirm creating or linking a Customer user and sending the portal credentials to %s at %s.',
+                $this->customerCredentialsRecipientLabel((string) ($arguments['field'] ?? 'email')),
+                $this->customerCredentialsEmailForField((string) ($arguments['field'] ?? 'email')) ?: 'the saved email address'
+            ))
+            ->modalSubmitActionLabel('Send credentials')
+            ->action(function (array $arguments): void {
+                $this->sendCustomerCredentials((string) ($arguments['field'] ?? 'email'));
+            });
     }
 
     protected function getRedirectUrl(): string
@@ -99,5 +119,21 @@ class EditProject extends EditRecord
             ->body($email . ' is linked to this event.')
             ->success()
             ->send();
+    }
+
+    protected function customerCredentialsEmailForField(string $field): ?string
+    {
+        if (! in_array($field, ['email', 'secondary_email'], true)) {
+            return null;
+        }
+
+        $email = trim((string) data_get($this->getRecord(), $field));
+
+        return $email !== '' ? $email : null;
+    }
+
+    protected function customerCredentialsRecipientLabel(string $field): string
+    {
+        return $field === 'secondary_email' ? 'Partner 2' : 'Partner 1';
     }
 }
