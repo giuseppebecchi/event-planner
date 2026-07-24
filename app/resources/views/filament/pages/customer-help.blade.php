@@ -57,7 +57,7 @@
         .customer-help-update-note {
             display: block;
             margin-top: 0.55rem;
-            color: #b42318;
+            color: #000;
             font-weight: 800;
         }
 
