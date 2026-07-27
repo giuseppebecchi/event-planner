@@ -231,7 +231,10 @@ class ViewProjectBudget extends Page
             ? $this->getBudgetRows()
             : $project->categoryBudgets;
         $venueBudgets = $allBudgets->filter(fn (CategoryBudget $budget): bool => $this->isVenueBudget($budget));
-        $budgets = $allBudgets->values();
+        $venueExcluded = ! (bool) $project->venue_included_in_budget && $venueBudgets->isNotEmpty();
+        $budgets = $venueExcluded
+            ? $allBudgets->reject(fn (CategoryBudget $budget): bool => $this->isVenueBudget($budget))->values()
+            : $allBudgets->values();
         $confirmed = $budgets->where('budget_status', CategoryBudget::STATUS_CONFIRMED);
         $inEvaluation = $budgets->where('budget_status', CategoryBudget::STATUS_IN_EVALUATION);
 
@@ -260,7 +263,7 @@ class ViewProjectBudget extends Page
             'confirmed_hypothetical_total' => $confirmedHypotheticalTotal,
             'difference_total' => $comparisonTotal - $estimatedTotal,
             'completion' => $budgets->count() > 0 ? (int) round(($confirmed->count() / $budgets->count()) * 100) : 0,
-            'venue_excluded' => false,
+            'venue_excluded' => $venueExcluded,
             'venue_budget_count' => $venueBudgets->count(),
             'venue_estimated_total' => $venueEstimatedTotal,
             'venue_comparison_total' => $venueComparisonTotal,
@@ -269,7 +272,7 @@ class ViewProjectBudget extends Page
         ];
     }
 
-    protected function isVenueBudget(CategoryBudget $budget): bool
+    public function isVenueBudget(CategoryBudget $budget): bool
     {
         $category = $budget->category;
 

@@ -660,6 +660,12 @@
                     </div>
                 </div>
 
+                @if ($budgetSummary['venue_excluded'])
+                    <div class="wm-budget-venue-note">
+                        <strong>Venue extra budget</strong>
+                        <span>The summary calculations exclude the venue: the location cost is not included in the couple budget.</span>
+                    </div>
+                @endif
             </aside>
         </section>
 
@@ -700,6 +706,7 @@
                                             ->where('proposal_status', \App\Models\CategoryBudgetSupplier::STATUS_CONFIRMED)
                                             ->values();
                                         $difference = $budget->amountDifference();
+                                        $isVenueExtraBudget = $budgetSummary['venue_excluded'] && $this->isVenueBudget($budget);
                                         $statusClass = match ($budget->budget_status) {
                                             \App\Models\CategoryBudget::STATUS_CONFIRMED => 'is-confirmed',
                                             \App\Models\CategoryBudget::STATUS_IN_EVALUATION => 'is-evaluation',
@@ -710,6 +717,11 @@
                                         <td>
                                             <div class="wm-budget-category">
                                                 <span class="wm-budget-category-name">{{ $budget->category?->label ?? 'Category' }}</span>
+                                                @if ($isVenueExtraBudget)
+                                                    <span class="wm-budget-category-meta">
+                                                        Extra budget: the venue cost is not included in the couple budget.
+                                                    </span>
+                                                @endif
                                                 <span class="wm-budget-category-meta">
                                                     {{ $budget->supplierProposals->count() }} supplier {{ \Illuminate\Support\Str::plural('request', $budget->supplierProposals->count()) }}
                                                     @if ($confirmedProposals->isNotEmpty())

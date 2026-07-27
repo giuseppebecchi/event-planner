@@ -137,7 +137,7 @@ class CustomerBudgetAccessTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_budget_summary_totals_include_all_rows_even_unconfirmed_and_venue(): void
+    public function test_budget_summary_totals_exclude_venue_when_it_is_extra_budget(): void
     {
         $adminRole = Role::query()->firstOrCreate(['name' => Role::ADMIN]);
         $admin = User::factory()->create(['role_id' => $adminRole->id]);
@@ -180,12 +180,24 @@ class CustomerBudgetAccessTest extends TestCase
             'record' => $project->id,
         ])->instance()->getBudgetSummary();
 
-        $this->assertSame(3, $summary['categories_count']);
-        $this->assertFalse($summary['venue_excluded']);
-        $this->assertSame(2200.0, $summary['estimated_total']);
-        $this->assertSame(2160.0, $summary['comparison_total']);
-        $this->assertSame(1550.0, $summary['final_total']);
-        $this->assertSame(2200.0, $summary['confirmed_hypothetical_total']);
+        $this->assertSame(2, $summary['categories_count']);
+        $this->assertSame(3, $summary['all_categories_count']);
+        $this->assertTrue($summary['venue_excluded']);
+        $this->assertSame(1, $summary['venue_budget_count']);
+        $this->assertSame(1200.0, $summary['estimated_total']);
+        $this->assertSame(1160.0, $summary['comparison_total']);
+        $this->assertSame(650.0, $summary['final_total']);
+        $this->assertSame(1200.0, $summary['confirmed_hypothetical_total']);
+        $this->assertSame(1000.0, $summary['venue_estimated_total']);
+        $this->assertSame(1000.0, $summary['venue_comparison_total']);
+        $this->assertSame(900.0, $summary['venue_final_total']);
+
+        Livewire::test(ViewProjectBudget::class, [
+            'record' => $project->id,
+        ])
+            ->assertSee('Venue extra budget')
+            ->assertSee('The summary calculations exclude the venue: the location cost is not included in the couple budget.')
+            ->assertSee('Extra budget: the venue cost is not included in the couple budget.');
     }
 
     protected function createCustomerBudgetContext(): array
