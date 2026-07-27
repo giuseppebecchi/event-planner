@@ -158,8 +158,7 @@ class ViewProjectTimeline extends Page
                 'icon' => $this->coverActivityIconDataUri($item->cover_activity_type),
             ])
             ->values();
-        $confirmedSuppliers = $project->categoryBudgetSuppliers
-            ->filter(fn (CategoryBudgetSupplier $proposal): bool => $proposal->proposal_status === CategoryBudgetSupplier::STATUS_CONFIRMED && $proposal->supplier)
+        $confirmedSuppliers = $this->confirmedSupplierProposalsForRecap($project)
             ->sortBy(fn (CategoryBudgetSupplier $proposal): string => sprintf(
                 '%s-%s',
                 $proposal->category?->label ?? $proposal->supplier?->category?->label ?? '',
@@ -762,6 +761,34 @@ class ViewProjectTimeline extends Page
             'notes' => $proposal->notes,
             'confirmed_at' => $proposal->confirmed_at?->format('F j, Y'),
         ];
+    }
+
+    protected function confirmedSupplierProposalsForRecap(Project $project): Collection
+    {
+        return $project
+            ->loadMissing('categoryBudgetSuppliers.supplier.category', 'categoryBudgetSuppliers.category')
+            ->categoryBudgetSuppliers
+            ->filter(fn (CategoryBudgetSupplier $proposal): bool => $proposal->proposal_status === CategoryBudgetSupplier::STATUS_CONFIRMED && $proposal->supplier)
+            ->reject(fn (CategoryBudgetSupplier $proposal): bool => $this->isSiaeSupplierProposal($proposal))
+            ->values();
+    }
+
+    protected function isSiaeSupplierProposal(CategoryBudgetSupplier $proposal): bool
+    {
+        $labels = [
+            $proposal->category?->label,
+            $proposal->category?->label_it,
+            $proposal->supplier?->category?->label,
+            $proposal->supplier?->category?->label_it,
+        ];
+
+        foreach ($labels as $label) {
+            if (strcasecmp(trim((string) $label), 'SIAE') === 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function coverActivityIconDataUri(?string $type): ?string

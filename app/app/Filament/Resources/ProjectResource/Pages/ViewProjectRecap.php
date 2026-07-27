@@ -109,10 +109,7 @@ class ViewProjectRecap extends ViewProjectTimeline
 
     public function getRecapConfirmedSuppliers(): Collection
     {
-        return $this->getRecord()
-            ->loadMissing('categoryBudgetSuppliers.supplier.category', 'categoryBudgetSuppliers.category')
-            ->categoryBudgetSuppliers
-            ->filter(fn (CategoryBudgetSupplier $proposal): bool => $proposal->proposal_status === CategoryBudgetSupplier::STATUS_CONFIRMED && $proposal->supplier)
+        return $this->confirmedSupplierProposalsForRecap($this->getRecord())
             ->sortBy(fn (CategoryBudgetSupplier $proposal): string => sprintf(
                 '%s-%s',
                 $proposal->category?->label ?? $proposal->supplier?->category?->label ?? '',
