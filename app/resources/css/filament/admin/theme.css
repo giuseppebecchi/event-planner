@@ -196,18 +196,17 @@
 }
 
 .fi-resource-list-records-page.fi-resource-leads .fi-tabs {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(9.5rem, 1fr);
-    grid-template-columns: none;
+    display: flex;
+    flex-wrap: nowrap;
     gap: 0.8rem;
     margin-bottom: 1.6rem;
     border: 0;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
+    overflow: visible;
 }
 
 .fi-resource-list-records-page.fi-resource-leads .fi-tabs-item {
+    flex: 1 1 0;
+    min-width: 0;
     min-height: 7.25rem;
     display: flex;
     flex-direction: column;
@@ -239,6 +238,7 @@
     letter-spacing: 0.16em;
     text-transform: uppercase;
     line-height: 1.35;
+    white-space: normal;
 }
 
 .fi-resource-list-records-page.fi-resource-leads .fi-tabs-item.fi-active {
