@@ -5,6 +5,7 @@ namespace App\Filament\Resources\LeadResource\Pages;
 use App\Filament\Resources\LeadResource;
 use App\Support\LeadQuestionnaire;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Support\Enums\Width;
@@ -43,13 +44,23 @@ class ViewLeadFormData extends Page
                 ->icon('heroicon-o-arrow-top-right-on-square')
                 ->url(fn (): string => $this->getRecord()->public_form_url, shouldOpenInNewTab: true),
             Action::make('markAsSent')
-                ->label('Mark as sent')
-                ->icon('heroicon-o-paper-airplane')
-                ->color('gray')
+                ->label(fn (): string => $this->getRecord()->form_sent_at ? 'Marked as sent' : 'Mark as sent')
+                ->icon(fn (): string => $this->getRecord()->form_sent_at ? 'heroicon-o-check-circle' : 'heroicon-o-paper-airplane')
+                ->color(fn (): string => $this->getRecord()->form_sent_at ? 'success' : 'gray')
+                ->disabled(fn (): bool => filled($this->getRecord()->form_sent_at))
                 ->action(function (): void {
-                    $this->getRecord()->forceFill([
+                    $lead = $this->getRecord();
+
+                    $lead->forceFill([
                         'form_sent_at' => now(),
                     ])->save();
+
+                    $this->record = $lead->refresh();
+
+                    Notification::make()
+                        ->title('Questionnaire marked as sent')
+                        ->success()
+                        ->send();
                 }),
             Action::make('regenerateLink')
                 ->label('Regenerate link')
