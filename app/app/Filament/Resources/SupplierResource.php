@@ -100,6 +100,10 @@ class SupplierResource extends Resource
                 TextColumn::make('email')
                     ->searchable()
                     ->toggleable(),
+                TextColumn::make('lang_comunication')
+                    ->label('Lang')
+                    ->badge()
+                    ->toggleable(),
                 TextColumn::make('phone')
                     ->searchable()
                     ->toggleable(),

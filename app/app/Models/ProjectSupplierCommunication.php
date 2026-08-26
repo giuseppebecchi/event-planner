@@ -10,6 +10,7 @@ class ProjectSupplierCommunication extends Model
     public const TYPE_OPTIONS = [
         'quote_request' => 'Quote request',
         'quote_response' => 'Quote response',
+        'supplier_courtesy_not_selected' => 'Courtesy message',
         'email' => 'Email',
         'call' => 'Call',
         'meeting' => 'Meeting',

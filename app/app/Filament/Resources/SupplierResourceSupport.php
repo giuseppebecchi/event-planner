@@ -142,6 +142,14 @@ class SupplierResourceSupport
             Components\TextInput::make('email')
                 ->email()
                 ->maxLength(255),
+            Components\Select::make('lang_comunication')
+                ->label('Communication language')
+                ->options([
+                    'it' => 'Italian',
+                    'en' => 'English',
+                ])
+                ->default('it')
+                ->required(),
             Components\TextInput::make('phone')
                 ->tel()
                 ->maxLength(50),

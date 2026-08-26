@@ -66,6 +66,7 @@ class Supplier extends Model
         'service_area',
         'location',
         'email',
+        'lang_comunication',
         'phone',
         'contact_person',
         'style_description',

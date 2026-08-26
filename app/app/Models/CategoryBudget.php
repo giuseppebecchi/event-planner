@@ -25,6 +25,7 @@ class CategoryBudget extends Model
         'comparison_amount',
         'final_amount',
         'budget_status',
+        'ref_courtesy_messagge_sent_at',
         'notes',
     ];
 
@@ -32,6 +33,7 @@ class CategoryBudget extends Model
         'initial_estimated_amount' => 'decimal:2',
         'comparison_amount' => 'decimal:2',
         'final_amount' => 'decimal:2',
+        'ref_courtesy_messagge_sent_at' => 'boolean',
     ];
 
     public function project(): BelongsTo

@@ -936,6 +936,15 @@
                     <h3 class="wm-scout-section-title">Requests sent</h3>
                 </div>
                 <div class="wm-scout-section-actions">
+                    @if (! $isCustomer && $this->canSendSupplierCourtesyMessages())
+                        <x-filament::button
+                            color="gray"
+                            icon="heroicon-m-paper-airplane"
+                            wire:click="openSupplierCourtesyMessageModal"
+                        >
+                            Send courtesy message to suppliers not selected
+                        </x-filament::button>
+                    @endif
                     @if ($canExportPresentationPdf && $presentationExportCount > 0)
                         <a
                             href="{{ route('admin.projects.budget.proposals.pdf', ['project' => $record, 'categoryBudget' => $budget]) }}"

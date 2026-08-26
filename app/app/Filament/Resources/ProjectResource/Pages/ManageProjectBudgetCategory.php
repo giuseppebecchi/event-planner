@@ -10,7 +10,9 @@ use App\Models\CategoryBudgetSupplier;
 use App\Models\ProjectDocument;
 use App\Models\ProjectSupplierCommunication;
 use App\Models\Supplier;
+use App\Notifications\SupplierCourtesyMessageNotification;
 use Filament\Actions\Action;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Placeholder;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
@@ -18,8 +20,9 @@ use Filament\Resources\Pages\Page;
 use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Notification as MailNotification;
+use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
 
 class ManageProjectBudgetCategory extends Page
@@ -487,6 +490,13 @@ class ManageProjectBudgetCategory extends Page
         $this->mountAction('acceptProposal', ['proposal' => $proposalId]);
     }
 
+    public function openSupplierCourtesyMessageModal(): void
+    {
+        $this->ensureCanManageScouting();
+
+        $this->mountAction('sendSupplierCourtesyMessages');
+    }
+
     public function getBudgetSummary(): array
     {
         $budget = $this->categoryBudgetRecord->loadMissing('category', 'supplierProposals.supplier');
@@ -641,6 +651,79 @@ class ManageProjectBudgetCategory extends Page
         ];
     }
 
+    public function canSendSupplierCourtesyMessages(): bool
+    {
+        return $this->getBudgetSummary()['confirmed_count'] > 0
+            && $this->getUnselectedSupplierOptions() !== [];
+    }
+
+    public function getUnselectedSupplierOptions(): array
+    {
+        return $this->eligibleUnselectedSupplierProposals()
+            ->mapWithKeys(fn (CategoryBudgetSupplier $proposal): array => [
+                $proposal->id => sprintf(
+                    '%s (%s, %s)',
+                    $proposal->supplier?->name ?? 'Supplier',
+                    $proposal->supplier?->email,
+                    strtoupper((string) ($proposal->supplier?->lang_comunication ?: 'it')),
+                ),
+            ])
+            ->all();
+    }
+
+    public function sendSupplierCourtesyMessages(array $proposalIds): int
+    {
+        $this->ensureCanManageScouting();
+
+        $proposalIds = collect($proposalIds)
+            ->map(fn (mixed $id): int => (int) $id)
+            ->filter()
+            ->values();
+
+        if ($proposalIds->isEmpty()) {
+            return 0;
+        }
+
+        $proposals = $this->eligibleUnselectedSupplierProposals()
+            ->whereIn('id', $proposalIds)
+            ->values();
+
+        $sentCount = 0;
+
+        foreach ($proposals as $proposal) {
+            $supplier = $proposal->supplier;
+
+            if (! $supplier?->email) {
+                continue;
+            }
+
+            MailNotification::route('mail', $supplier->email)
+                ->notify(new SupplierCourtesyMessageNotification($proposal));
+
+            $proposal->communications()->create([
+                'project_id' => $proposal->project_id,
+                'supplier_id' => $proposal->supplier_id,
+                'communication_type' => 'supplier_courtesy_not_selected',
+                'direction' => 'outgoing',
+                'communication_at' => now(),
+                'subject' => 'Courtesy message',
+                'message' => 'Courtesy message sent to supplier not selected.',
+            ]);
+
+            $sentCount++;
+        }
+
+        if ($sentCount > 0) {
+            $this->categoryBudgetRecord->forceFill([
+                'ref_courtesy_messagge_sent_at' => true,
+            ])->save();
+        }
+
+        $this->refreshBudgetContext();
+
+        return $sentCount;
+    }
+
     public function comparisonPdfUrl(): string
     {
         return route('admin.projects.budget.comparison.pdf', [
@@ -786,6 +869,53 @@ class ManageProjectBudgetCategory extends Page
             });
     }
 
+    public function sendSupplierCourtesyMessagesAction(): Action
+    {
+        return Action::make('sendSupplierCourtesyMessages')
+            ->label('Send courtesy message to suppliers not selected')
+            ->color('gray')
+            ->icon('heroicon-m-paper-airplane')
+            ->visible(fn (): bool => ! auth()->user()?->isCustomer() && $this->canSendSupplierCourtesyMessages())
+            ->modalHeading('Send courtesy message to suppliers not selected')
+            ->modalDescription('Select the suppliers that should receive the courtesy message.')
+            ->modalWidth(Width::Large)
+            ->form([
+                CheckboxList::make('proposal_ids')
+                    ->label('Suppliers not selected')
+                    ->options(fn (): array => $this->getUnselectedSupplierOptions())
+                    ->required(),
+            ])
+            ->action(function (array $data): void {
+                $this->ensureCanManageScouting();
+
+                if (empty($data['proposal_ids'] ?? [])) {
+                    Notification::make()
+                        ->title('Select at least one supplier')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $sentCount = $this->sendSupplierCourtesyMessages($data['proposal_ids']);
+
+                if ($sentCount === 0) {
+                    Notification::make()
+                        ->title('No selectable suppliers found')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                Notification::make()
+                    ->title($sentCount === 1 ? 'Courtesy message sent' : 'Courtesy messages sent')
+                    ->body($sentCount . ' supplier' . ($sentCount === 1 ? '' : 's') . ' notified.')
+                    ->success()
+                    ->send();
+            });
+    }
+
     protected function resolveCategoryBudget(int|string $categoryBudget): CategoryBudget
     {
         return CategoryBudget::query()
@@ -829,6 +959,19 @@ class ManageProjectBudgetCategory extends Page
         return $this->categoryBudgetRecord
             ->supplierProposals
             ->firstWhere('supplier_id', $supplierId);
+    }
+
+    protected function eligibleUnselectedSupplierProposals(): Collection
+    {
+        return $this->categoryBudgetRecord
+            ->loadMissing('supplierProposals.supplier', 'supplierProposals.communications')
+            ->supplierProposals
+            ->filter(fn (CategoryBudgetSupplier $proposal): bool => $proposal->proposal_status !== CategoryBudgetSupplier::STATUS_CONFIRMED)
+            ->filter(fn (CategoryBudgetSupplier $proposal): bool => filled($proposal->supplier?->email))
+            ->reject(fn (CategoryBudgetSupplier $proposal): bool => $proposal->communications
+                ->contains('communication_type', 'supplier_courtesy_not_selected'))
+            ->sortBy(fn (CategoryBudgetSupplier $proposal): string => (string) ($proposal->supplier?->name ?? ''))
+            ->values();
     }
 
     protected function makeProposalForSupplier(int $supplierId): CategoryBudgetSupplier
