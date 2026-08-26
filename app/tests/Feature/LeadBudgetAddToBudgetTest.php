@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Http\Controllers\LeadBudgetPdfController;
 use App\Http\Controllers\LeadProposalPdfController;
 use App\Models\Lead;
+use App\Models\Supplier;
 use App\Support\LeadContractPdfRenderer;
 use ReflectionMethod;
 use Tests\TestCase;
@@ -86,6 +87,36 @@ class LeadBudgetAddToBudgetTest extends TestCase
             'Selected package',
             'Proposal-only package',
         ], collect($data['extra_rows'])->pluck('label')->all());
+    }
+
+    public function test_proposal_title_includes_selected_venue_before_period(): void
+    {
+        $venue = Supplier::query()->create([
+            'name' => 'Villa Aurora',
+        ]);
+        $lead = Lead::query()->create([
+            'couple_name' => 'Anna and Marco',
+            'wedding_period' => 'September 2027',
+            'desired_region' => 'Tuscany',
+            'venue_id' => $venue->id,
+        ]);
+
+        $data = $this->callProtected(new LeadProposalPdfController(), 'buildData', $lead);
+
+        $this->assertSame("WEDDING IN TUSCANY\nVILLA AURORA\nSEPTEMBER 2027", $data['proposal_title']);
+    }
+
+    public function test_proposal_title_uses_lead_wedding_date_when_period_is_empty(): void
+    {
+        $lead = new Lead([
+            'wedding_date' => '2027-09-18',
+            'desired_region' => 'Tuscany',
+            'proposal_wedding_planning_service' => '<p>Planning support</p>',
+        ]);
+
+        $data = $this->callProtected(new LeadProposalPdfController(), 'buildData', $lead);
+
+        $this->assertSame("WEDDING IN TUSCANY\nSEPTEMBER 18, 2027", $data['proposal_title']);
     }
 
     protected function callProtected(object $object, string $method, mixed ...$arguments): mixed

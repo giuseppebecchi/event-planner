@@ -16,7 +16,7 @@ class LeadProposalPdfController extends Controller
 
     public function __invoke(Lead $lead)
     {
-        $lead->loadMissing('project');
+        $lead->loadMissing('project.venueRecord', 'venueRecord');
 
         $pdf = Pdf::loadView('pdf.lead-proposal', [
             'lead' => $lead,
@@ -32,7 +32,11 @@ class LeadProposalPdfController extends Controller
     {
         $project = $lead->project;
         $region = $project?->region ?: $lead->desired_region ?: 'Tuscany';
-        $period = $lead->wedding_period ?: $this->formatDate($project?->event_start_date) ?: 'September 2027';
+        $period = $lead->wedding_period
+            ?: $this->formatFullDate($lead->wedding_date)
+            ?: $this->formatDate($project?->event_start_date)
+            ?: 'September 2027';
+        $venueName = $this->venueName($lead);
         $guestText = $this->guestText($lead);
         $plannerRows = $this->normalizedRows($lead->budget_wedding_planner);
         $extraRows = [
@@ -45,7 +49,7 @@ class LeadProposalPdfController extends Controller
 
         return [
             'couple_name' => $lead->couple_name ?: ($project?->coupleNames() ?: ''),
-            'proposal_title' => $this->proposalTitle($lead, $region, $period),
+            'proposal_title' => $this->proposalTitle($lead, $region, $period, $venueName),
             'offer_title' => Str::upper($this->mainOfferLabel($mainOffer, $guestText)),
             'main_fee' => $mainFee ?: $this->money($project?->budget_amount ?? $lead->budget_amount) ?: $this->defaultMainFee($lead),
             'planning_rows_left' => $planningRows->get(0, []),
@@ -264,13 +268,41 @@ class LeadProposalPdfController extends Controller
         return Carbon::parse($value)->format('F Y');
     }
 
-    protected function proposalTitle(Lead $lead, string $region, string $period): string
+    protected function formatFullDate(mixed $value): ?string
     {
-        if ($this->proposalTemplate($lead) === self::PROPOSAL_TEMPLATE_LAKE_COMO) {
-            return Str::upper(sprintf("Wedding Lake Como\n%s", $period));
+        if (! $value) {
+            return null;
         }
 
-        return Str::upper(sprintf("Wedding in %s\n%s", $region, $period));
+        return Carbon::parse($value)->format('F j, Y');
+    }
+
+    protected function proposalTitle(Lead $lead, string $region, string $period, ?string $venueName = null): string
+    {
+        $lines = [];
+
+        if ($this->proposalTemplate($lead) === self::PROPOSAL_TEMPLATE_LAKE_COMO) {
+            $lines[] = 'Wedding Lake Como';
+        } else {
+            $lines[] = sprintf('Wedding in %s', $region);
+        }
+
+        if (filled($venueName)) {
+            $lines[] = $venueName;
+        }
+
+        $lines[] = $period;
+
+        return Str::upper(implode("\n", $lines));
+    }
+
+    protected function venueName(Lead $lead): ?string
+    {
+        $project = $lead->project;
+
+        return $project?->venueRecord?->name
+            ?: $project?->venue
+            ?: $lead->venueDisplayName();
     }
 
     protected function defaultMainFee(Lead $lead): string
