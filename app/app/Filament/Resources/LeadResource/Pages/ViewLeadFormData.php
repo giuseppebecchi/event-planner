@@ -3,6 +3,9 @@
 namespace App\Filament\Resources\LeadResource\Pages;
 
 use App\Filament\Resources\LeadResource;
+use App\Models\Lead;
+use App\Models\Template;
+use App\Notifications\LeadQuestionnaireRequestNotification;
 use App\Support\LeadQuestionnaire;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -11,8 +14,10 @@ use Filament\Resources\Pages\Page;
 use Filament\Support\Enums\Width;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
+use Throwable;
 
 class ViewLeadFormData extends Page
 {
@@ -39,6 +44,18 @@ class ViewLeadFormData extends Page
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('sendFormByMail')
+                ->label('Send Form by mail')
+                ->icon('heroicon-o-envelope')
+                ->color('primary')
+                ->requiresConfirmation()
+                ->modalHeading('Send questionnaire by email?')
+                ->modalDescription(fn (): string => 'The questionnaire link will be sent to '.$this->formatEmailRecipients(
+                    $this->emailRecipients($this->getRecord())
+                ).'.')
+                ->action(function (): void {
+                    $this->sendFormByMail();
+                }),
             Action::make('openPublicForm')
                 ->label('Open public form')
                 ->icon('heroicon-o-arrow-top-right-on-square')
@@ -74,9 +91,93 @@ class ViewLeadFormData extends Page
         ];
     }
 
+    public function sendFormByMail(): void
+    {
+        /** @var Lead $lead */
+        $lead = $this->getRecord();
+        $recipients = $this->emailRecipients($lead);
+
+        if ($recipients === []) {
+            Notification::make()
+                ->title('Client email missing')
+                ->body('Add an email address to this lead before sending the questionnaire.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        if (! Template::query()->where('slug', 'mail-lead-questionnaire')->where('language', 'en')->exists()) {
+            Notification::make()
+                ->title('Questionnaire email template missing')
+                ->body('Missing template slug: mail-lead-questionnaire.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        try {
+            NotificationFacade::route('mail', $recipients)
+                ->notify(new LeadQuestionnaireRequestNotification($lead));
+
+            $lead->forceFill([
+                'form_sent_at' => now(),
+            ])->save();
+
+            $this->record = $lead->refresh();
+
+            Notification::make()
+                ->title('Questionnaire sent')
+                ->body('The questionnaire email was sent to '.$this->formatEmailRecipients($recipients).'.')
+                ->success()
+                ->send();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            Notification::make()
+                ->title('Questionnaire could not be sent')
+                ->body('Check the mail configuration and questionnaire email template, then try again.')
+                ->danger()
+                ->send();
+        }
+    }
+
     public function getQuestionMap(): array
     {
         return LeadQuestionnaire::byKey();
+    }
+
+    protected function emailRecipients(Lead $lead): array
+    {
+        if (blank($lead->email)) {
+            return [];
+        }
+
+        return collect([
+            $lead->email,
+            $lead->secondary_email,
+        ])
+            ->map(fn (mixed $email): ?string => is_string($email) ? trim($email) : null)
+            ->filter(fn (?string $email): bool => filled($email))
+            ->unique(fn (string $email): string => mb_strtolower($email))
+            ->values()
+            ->all();
+    }
+
+    protected function formatEmailRecipients(array $recipients): string
+    {
+        if ($recipients === []) {
+            return 'the client email';
+        }
+
+        if (count($recipients) === 1) {
+            return $recipients[0];
+        }
+
+        $lastRecipient = array_pop($recipients);
+
+        return implode(', ', $recipients).' and '.$lastRecipient;
     }
 
     public function getSections(): array
