@@ -7,15 +7,31 @@ use App\Filament\Resources\ProjectResource;
 use App\Models\Checklist;
 use App\Models\Project;
 use App\Models\ProjectChecklistOption;
+use App\Models\ProjectEvent;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 class ViewProjectCalendarTest extends TestCase
 {
     use DatabaseTransactions;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Carbon::setTestNow('2026-07-20 09:00:00');
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
 
     public function test_created_project_event_moves_calendar_to_event_month(): void
     {
@@ -136,5 +152,55 @@ class ViewProjectCalendarTest extends TestCase
             ['Book florist', 'Confirm music'],
             $component->instance()->getOverdueChecklistItems()->pluck('title')->all(),
         );
+    }
+
+    public function test_project_event_can_be_deleted_from_calendar_detail(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => Role::ADMIN]);
+        $this->actingAs(User::factory()->create(['role_id' => $adminRole->id]));
+
+        $project = Project::query()->create([
+            'name' => 'Delete calendar wedding',
+            'last_name' => 'Client',
+        ]);
+        $event = ProjectEvent::query()->create([
+            'project_id' => $project->id,
+            'title' => 'Makeup trial',
+            'description' => 'Confirm details',
+            'starts_at' => '2026-11-28 09:00:00',
+            'ends_at' => '2026-11-28 10:00:00',
+            'is_all_day' => false,
+        ]);
+
+        Livewire::test(ViewProjectCalendar::class, [
+            'record' => $project->id,
+        ])
+            ->call('openCalendarItem', 'event', $event->id)
+            ->assertSet('selectedCalendarItemKind', 'event')
+            ->assertSet('selectedCalendarItemId', $event->id)
+            ->assertSee('Delete')
+            ->call('promptDeleteCalendarEvent', $event->id)
+            ->assertSet('confirmDeleteProjectEventId', $event->id)
+            ->assertSet('selectedCalendarItemKind', null)
+            ->assertSet('selectedCalendarItemId', null)
+            ->assertSee('Delete event?')
+            ->call('cancelDeleteCalendarEvent')
+            ->assertSet('confirmDeleteProjectEventId', null);
+
+        $this->assertDatabaseHas('project_events', [
+            'id' => $event->id,
+        ]);
+
+        Livewire::test(ViewProjectCalendar::class, [
+            'record' => $project->id,
+        ])
+            ->call('promptDeleteCalendarEvent', $event->id)
+            ->assertSet('confirmDeleteProjectEventId', $event->id)
+            ->call('confirmDeleteCalendarEvent')
+            ->assertSet('confirmDeleteProjectEventId', null);
+
+        $this->assertDatabaseMissing('project_events', [
+            'id' => $event->id,
+        ]);
     }
 }

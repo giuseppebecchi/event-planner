@@ -15,6 +15,7 @@ use App\Models\Role;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -83,6 +84,83 @@ class ManageProjectSupplierPaymentsTest extends TestCase
             'invoice_reference' => 'INV-100',
             'notes' => 'Updated note',
         ]);
+    }
+
+    public function test_payment_receipt_can_be_added_from_edit_modal(): void
+    {
+        Storage::fake('public');
+
+        [$project, $budget, $payment, $paymentMode] = $this->createSupplierPaymentContext();
+        $payment->update([
+            'payment_status' => Payment::STATUS_PAID,
+            'paid_at' => '2026-08-01',
+        ]);
+
+        $this->actingAsAdmin();
+
+        Livewire::test(ManageProjectConfirmedSupplier::class, [
+            'record' => $project->id,
+            'categoryBudget' => $budget->id,
+        ])
+            ->call('setActiveWorkspaceTab', 'payments')
+            ->call('editPayment', $payment->id)
+            ->set('paymentEditForm.payment_mode_id', (string) $paymentMode->id)
+            ->set('paymentEditReceiptUpload', UploadedFile::fake()->create('receipt.pdf', 100, 'application/pdf'))
+            ->call('savePaymentEdit')
+            ->assertSet('editingPaymentId', null);
+
+        $payment->refresh();
+        $receipt = $payment->paymentReceiptDocument;
+
+        $this->assertNotNull($receipt);
+        $this->assertSame(ProjectDocument::TYPE_PAYMENT_RECEIPT, $receipt->type);
+        $this->assertStringStartsWith('projects/payment-receipts/', $receipt->file_path);
+        Storage::disk('public')->assertExists($receipt->file_path);
+    }
+
+    public function test_payment_receipt_can_be_replaced_from_edit_modal(): void
+    {
+        Storage::fake('public');
+
+        [$project, $budget, $payment, $paymentMode, $proposal] = $this->createSupplierPaymentContext();
+        $document = $proposal->projectDocuments()->create([
+            'project_id' => $project->id,
+            'supplier_id' => $proposal->supplier_id,
+            'title' => 'Payment receipt - Initial deposit',
+            'document_type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
+            'type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
+            'file_path' => 'projects/payment-receipts/old-receipt.pdf',
+            'description' => null,
+        ]);
+        Storage::disk('public')->put($document->file_path, 'old');
+        $payment->update([
+            'payment_status' => Payment::STATUS_PAID,
+            'paid_at' => '2026-08-01',
+            'payment_receipt_document_id' => $document->id,
+        ]);
+
+        $this->actingAsAdmin();
+
+        Livewire::test(ManageProjectConfirmedSupplier::class, [
+            'record' => $project->id,
+            'categoryBudget' => $budget->id,
+        ])
+            ->call('setActiveWorkspaceTab', 'payments')
+            ->call('editPayment', $payment->id)
+            ->set('paymentEditForm.payment_mode_id', (string) $paymentMode->id)
+            ->set('paymentEditForm.reason', 'Updated deposit')
+            ->set('paymentEditReceiptUpload', UploadedFile::fake()->create('new-receipt.pdf', 100, 'application/pdf'))
+            ->call('savePaymentEdit');
+
+        $payment->refresh();
+        $document->refresh();
+
+        $this->assertSame($document->id, $payment->payment_receipt_document_id);
+        $this->assertSame('Payment receipt - Updated deposit', $document->title);
+        $this->assertStringStartsWith('projects/payment-receipts/', $document->file_path);
+        $this->assertNotSame('projects/payment-receipts/old-receipt.pdf', $document->file_path);
+        Storage::disk('public')->assertMissing('projects/payment-receipts/old-receipt.pdf');
+        Storage::disk('public')->assertExists($document->file_path);
     }
 
     public function test_payment_can_be_created_with_standard_reason_option(): void

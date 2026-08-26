@@ -34,6 +34,7 @@ class ViewProjectCalendar extends Page
     public ?string $selectedCalendarItemKind = null;
     public ?int $selectedCalendarItemId = null;
     public ?int $editingProjectEventId = null;
+    public ?int $confirmDeleteProjectEventId = null;
     public bool $showOverdueChecklistSummary = false;
 
     public array $monthPickerForm = [
@@ -329,6 +330,59 @@ class ViewProjectCalendar extends Page
             ->title('Event updated')
             ->success()
             ->send();
+    }
+
+    public function promptDeleteCalendarEvent(int $eventId): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        $this->getRecord()->projectEvents()->findOrFail($eventId);
+
+        $this->confirmDeleteProjectEventId = $eventId;
+        $this->closeCalendarItem();
+    }
+
+    public function cancelDeleteCalendarEvent(): void
+    {
+        $this->confirmDeleteProjectEventId = null;
+    }
+
+    public function confirmDeleteCalendarEvent(): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        if (! $this->confirmDeleteProjectEventId) {
+            return;
+        }
+
+        $eventId = $this->confirmDeleteProjectEventId;
+
+        $this->getRecord()->projectEvents()->findOrFail($eventId)->delete();
+
+        $this->getRecord()->unsetRelation('projectEvents');
+        $this->confirmDeleteProjectEventId = null;
+
+        if ($this->editingProjectEventId === $eventId) {
+            $this->closeProjectEventEditor();
+        }
+
+        Notification::make()
+            ->title('Event deleted')
+            ->success()
+            ->send();
+    }
+
+    public function getProjectEventPendingDeletion(): ?ProjectEvent
+    {
+        if (! $this->confirmDeleteProjectEventId) {
+            return null;
+        }
+
+        return $this->getRecord()->projectEvents()->find($this->confirmDeleteProjectEventId);
     }
 
     public function getCalendarSummary(): array

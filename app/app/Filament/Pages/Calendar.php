@@ -42,6 +42,8 @@ class Calendar extends Page
 
     public ?int $editingProjectEventId = null;
 
+    public ?int $confirmDeleteProjectEventId = null;
+
     public array $monthPickerForm = [
         'month' => '',
         'year' => '',
@@ -189,6 +191,59 @@ class Calendar extends Page
             ->title('Event updated')
             ->success()
             ->send();
+    }
+
+    public function promptDeleteCalendarEvent(int $eventId): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        ProjectEvent::query()->findOrFail($eventId);
+
+        $this->confirmDeleteProjectEventId = $eventId;
+        $this->closeCalendarItem();
+    }
+
+    public function cancelDeleteCalendarEvent(): void
+    {
+        $this->confirmDeleteProjectEventId = null;
+    }
+
+    public function confirmDeleteCalendarEvent(): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            abort(403);
+        }
+
+        if (! $this->confirmDeleteProjectEventId) {
+            return;
+        }
+
+        $eventId = $this->confirmDeleteProjectEventId;
+
+        ProjectEvent::query()->findOrFail($eventId)->delete();
+
+        $this->timelineItemsCache = null;
+        $this->confirmDeleteProjectEventId = null;
+
+        if ($this->editingProjectEventId === $eventId) {
+            $this->closeProjectEventEditor();
+        }
+
+        Notification::make()
+            ->title('Event deleted')
+            ->success()
+            ->send();
+    }
+
+    public function getProjectEventPendingDeletion(): ?ProjectEvent
+    {
+        if (! $this->confirmDeleteProjectEventId) {
+            return null;
+        }
+
+        return ProjectEvent::query()->find($this->confirmDeleteProjectEventId);
     }
 
     public function getMonthLabel(): string

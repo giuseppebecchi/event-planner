@@ -1071,11 +1071,47 @@
 
                 @if ($selectedItem['kind'] === 'event' && ! auth()->user()?->isCustomer())
                     <div class="wm-calendar-detail-actions">
+                        <x-filament::button
+                            color="danger"
+                            wire:click="promptDeleteCalendarEvent({{ $selectedItem['id'] }})"
+                        >
+                            Delete
+                        </x-filament::button>
                         <x-filament::button color="gray" wire:click="editCalendarEvent({{ $selectedItem['id'] }})">
                             Edit
                         </x-filament::button>
                     </div>
                 @endif
+            </div>
+        @endif
+
+        @if ($confirmDeleteProjectEventId)
+            @php
+                $eventToDelete = $this->getProjectEventPendingDeletion();
+            @endphp
+            <div class="wm-calendar-detail-backdrop" wire:click="cancelDeleteCalendarEvent"></div>
+            <div class="wm-calendar-detail" role="dialog" aria-modal="true">
+                <div class="wm-calendar-detail-head">
+                    <div>
+                        <h3 class="wm-calendar-detail-title">Delete event?</h3>
+                        <p class="wm-calendar-detail-meta">
+                            This will permanently delete {{ $eventToDelete?->title ? '"' . $eventToDelete->title . '"' : 'this event' }} from the project calendar.
+                        </p>
+                    </div>
+
+                    <button type="button" class="wm-calendar-detail-close" wire:click="cancelDeleteCalendarEvent">
+                        <x-heroicon-o-x-mark />
+                    </button>
+                </div>
+
+                <div class="wm-calendar-detail-actions">
+                    <x-filament::button color="gray" wire:click="cancelDeleteCalendarEvent">
+                        Cancel
+                    </x-filament::button>
+                    <x-filament::button color="danger" wire:click="confirmDeleteCalendarEvent">
+                        Delete event
+                    </x-filament::button>
+                </div>
             </div>
         @endif
 

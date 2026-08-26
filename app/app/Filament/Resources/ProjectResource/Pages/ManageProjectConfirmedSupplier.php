@@ -104,6 +104,8 @@ class ManageProjectConfirmedSupplier extends Page
 
     public ?int $confirmDeletePaymentId = null;
 
+    public $paymentEditReceiptUpload = null;
+
     public array $paymentEditForm = [
         'payment_mode_id' => '',
         'reason' => '',
@@ -1266,6 +1268,7 @@ class ManageProjectConfirmedSupplier extends Page
     {
         $this->editingPaymentId = null;
         $this->paymentEditForm = $this->emptyPaymentEditForm();
+        $this->paymentEditReceiptUpload = null;
     }
 
     public function savePaymentEdit(): void
@@ -1279,7 +1282,10 @@ class ManageProjectConfirmedSupplier extends Page
         }
 
         $data = validator(
-            ['form' => $this->paymentEditForm],
+            [
+                'form' => $this->paymentEditForm,
+                'receipt' => $this->paymentEditReceiptUpload,
+            ],
             [
                 'form.reason' => ['required', 'string', 'max:255'],
                 'form.payment_mode_id' => ['required', 'integer'],
@@ -1289,6 +1295,7 @@ class ManageProjectConfirmedSupplier extends Page
                 'form.paid_at' => ['nullable', 'date'],
                 'form.invoice_reference' => ['nullable', 'string', 'max:255'],
                 'form.notes' => ['nullable', 'string'],
+                'receipt' => ['nullable', 'file', 'max:20480'],
             ]
         )->validate();
 
@@ -1309,7 +1316,35 @@ class ManageProjectConfirmedSupplier extends Page
             ? ($data['form']['paid_at'] ?: now()->toDateString())
             : null;
 
-        $payment = $this->proposalRecord->payments()->whereKey($this->editingPaymentId)->firstOrFail();
+        $payment = $this->proposalRecord->payments()->with('paymentReceiptDocument')->whereKey($this->editingPaymentId)->firstOrFail();
+        $receiptDocumentId = $payment->payment_receipt_document_id;
+
+        if ($this->paymentEditReceiptUpload) {
+            $storedPath = $this->paymentEditReceiptUpload->store('projects/payment-receipts', 'public');
+
+            if ($payment->paymentReceiptDocument) {
+                Storage::disk('public')->delete($payment->paymentReceiptDocument->file_path);
+
+                $payment->paymentReceiptDocument->update([
+                    'title' => 'Payment receipt - ' . $data['form']['reason'],
+                    'file_path' => $storedPath,
+                    'description' => $data['form']['notes'] ?: null,
+                ]);
+            } else {
+                $receiptDocument = $this->proposalRecord->projectDocuments()->create([
+                    'project_id' => $this->getRecord()->getKey(),
+                    'supplier_id' => $this->proposalRecord->supplier_id,
+                    'title' => 'Payment receipt - ' . $data['form']['reason'],
+                    'document_type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
+                    'type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
+                    'file_path' => $storedPath,
+                    'description' => $data['form']['notes'] ?: null,
+                ]);
+
+                $receiptDocumentId = $receiptDocument->id;
+            }
+        }
+
         $payment->update([
             'payment_mode_id' => $paymentModeId,
             'reason' => $data['form']['reason'],
@@ -1318,6 +1353,7 @@ class ManageProjectConfirmedSupplier extends Page
             'payment_status' => $status,
             'paid_at' => $paidAt,
             'invoice_reference' => $data['form']['invoice_reference'] ?: null,
+            'payment_receipt_document_id' => $receiptDocumentId,
             'notes' => $data['form']['notes'] ?: null,
         ]);
 

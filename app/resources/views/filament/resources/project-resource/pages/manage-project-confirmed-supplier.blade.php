@@ -666,6 +666,10 @@
             flex: 1 1 auto;
         }
 
+        .wm-current-receipt-actions {
+            margin-bottom: 0.75rem;
+        }
+
         .wm-radio-group {
             display: flex;
             flex-wrap: wrap;
@@ -1963,12 +1967,15 @@
         @endif
 
         @if (! $isCustomer && $editingPaymentId)
+            @php
+                $editingPayment = $payments->firstWhere('id', $editingPaymentId);
+            @endphp
             <div class="wm-payment-modal-backdrop" wire:click="cancelPaymentEdit"></div>
             <div class="wm-payment-modal" role="dialog" aria-modal="true">
                 <div class="wm-payment-modal-head">
                     <div>
                         <h3 class="wm-payment-modal-title">Edit payment</h3>
-                        <p class="wm-payment-modal-copy">Update the payment details, status, due date and internal notes.</p>
+                        <p class="wm-payment-modal-copy">Update the payment details, status, due date, receipt and internal notes.</p>
                     </div>
                     <button type="button" class="wm-button" wire:click="cancelPaymentEdit">Close</button>
                 </div>
@@ -2019,6 +2026,19 @@
                             <label class="wm-label" for="edit-payment-invoice-reference">Invoice reference</label>
                             <input id="edit-payment-invoice-reference" type="text" class="wm-field" wire:model="paymentEditForm.invoice_reference">
                         </div>
+                    </div>
+
+                    <div>
+                        <label class="wm-label" for="edit-payment-receipt">Payment receipt</label>
+                        @if ($editingPayment?->paymentReceiptDocument)
+                            <div class="wm-actions wm-current-receipt-actions">
+                                <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($editingPayment->paymentReceiptDocument->file_path) }}" target="_blank" class="wm-button">
+                                    <x-heroicon-o-arrow-top-right-on-square />
+                                    Open current receipt
+                                </a>
+                            </div>
+                        @endif
+                        <input id="edit-payment-receipt" type="file" class="wm-field" wire:model="paymentEditReceiptUpload">
                     </div>
 
                     <div>
