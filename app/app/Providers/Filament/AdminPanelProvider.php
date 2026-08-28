@@ -2,6 +2,9 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Auth\Login;
+use App\Filament\Auth\RequestPasswordReset;
+use App\Filament\Auth\ResetPassword;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\CustomerEventDashboard;
 use App\Filament\Pages\CustomerHelp;
@@ -21,7 +24,6 @@ use Filament\Support\Colors\Color;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Filament\View\PanelsRenderHook;
-use Filament\Auth\Pages\Login;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -37,7 +39,8 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(Login::class)
+            ->passwordReset(RequestPasswordReset::class, ResetPassword::class)
             ->profile(EditProfile::class, isSimple: false)
             ->topNavigation()
             ->databaseNotifications()
@@ -58,12 +61,26 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::SIMPLE_PAGE_START,
                 fn (): string => view('filament.auth.login-branding')->render(),
-                scopes: Login::class,
+                scopes: [
+                    Login::class,
+                    RequestPasswordReset::class,
+                    ResetPassword::class,
+                ],
             )
             ->renderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
                 fn (): string => view('filament.auth.login-credit')->render(),
                 scopes: Login::class,
+            )
+            ->renderHook(
+                PanelsRenderHook::AUTH_PASSWORD_RESET_REQUEST_FORM_AFTER,
+                fn (): string => view('filament.auth.login-credit')->render(),
+                scopes: RequestPasswordReset::class,
+            )
+            ->renderHook(
+                PanelsRenderHook::AUTH_PASSWORD_RESET_RESET_FORM_AFTER,
+                fn (): string => view('filament.auth.login-credit')->render(),
+                scopes: ResetPassword::class,
             )
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
