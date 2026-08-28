@@ -247,7 +247,7 @@ class ProjectResource extends Resource
                             Section::make('Main Contact')
                                 ->description('Primary communication details for the couple.')
                                 ->icon('heroicon-o-envelope')
-                                ->columns(4)
+                                ->columns(3)
                                 ->schema([
                                     Components\TextInput::make('first_name')
                                         ->label('First name')
@@ -267,17 +267,22 @@ class ProjectResource extends Resource
                                     Components\TextInput::make('nationality')
                                         ->label('Nationality')
                                         ->maxLength(100),
+                                    Components\Placeholder::make('main_contact_spacer')
+                                        ->hiddenLabel()
+                                        ->content(''),
+                                    Components\TextInput::make('address')
+                                        ->label('Address'),
                                     Components\TextInput::make('city')
                                         ->label('City')
                                         ->maxLength(255),
-                                    Components\TextInput::make('address')
-                                        ->label('Address')
-                                        ->columnSpan(2),
+                                    Components\TextInput::make('country')
+                                        ->label('Country')
+                                        ->maxLength(255),
                                 ]),
                             Section::make('Partner Contact')
                                 ->description('Secondary communication details for the partner.')
                                 ->icon('heroicon-o-user-plus')
-                                ->columns(4)
+                                ->columns(3)
                                 ->schema([
                                     Components\TextInput::make('secondary_first_name')
                                         ->label('First name')
@@ -293,6 +298,9 @@ class ProjectResource extends Resource
                                         ->label('Phone')
                                         ->tel()
                                         ->maxLength(50),
+                                    Components\TextInput::make('secondary_nationality')
+                                        ->label('Nationality')
+                                        ->maxLength(100),
                                 ]),
                             Section::make('Style and internal notes')
                                 ->description('Moodboard direction, planner notes and internal context.')

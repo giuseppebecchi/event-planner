@@ -131,7 +131,7 @@ class LeadResource extends Resource
                             Section::make('Main Contact')
                                 ->description('Primary communication details for the couple.')
                                 ->icon('heroicon-o-envelope')
-                                ->columns(4)
+                                ->columns(3)
                                 ->schema([
                                     Components\TextInput::make('first_name')
                                         ->label('First name')
@@ -150,18 +150,23 @@ class LeadResource extends Resource
                                     Components\TextInput::make('nationality')
                                         ->label('Nationality')
                                         ->maxLength(100),
+                                    Components\Placeholder::make('main_contact_spacer')
+                                        ->hiddenLabel()
+                                        ->content(''),
+                                    Components\TextInput::make('address')
+                                        ->label('Address'),
                                     Components\TextInput::make('city')
                                         ->label('City')
                                         ->maxLength(255),
-                                    Components\TextInput::make('address')
-                                        ->label('Address')
-                                        ->columnSpan(2),
+                                    Components\TextInput::make('country')
+                                        ->label('Country')
+                                        ->maxLength(255),
                                 ]),
 
                             Section::make('Partner Contact')
                                 ->description('Secondary communication details for the partner.')
                                 ->icon('heroicon-o-user-plus')
-                                ->columns(4)
+                                ->columns(3)
                                 ->schema([
                                     Components\TextInput::make('secondary_first_name')
                                         ->label('First name')
@@ -177,6 +182,9 @@ class LeadResource extends Resource
                                         ->label('Phone')
                                         ->tel()
                                         ->maxLength(50),
+                                    Components\TextInput::make('secondary_nationality')
+                                        ->label('Nationality')
+                                        ->maxLength(100),
                                 ]),
                         ]),
                 ]),
@@ -403,7 +411,7 @@ class LeadResource extends Resource
                 ]),
             Section::make('Main Contact')
                 ->icon('heroicon-o-envelope')
-                ->columns(4)
+                ->columns(3)
                 ->schema([
                     TextEntry::make('first_name')
                         ->label('First name'),
@@ -415,11 +423,15 @@ class LeadResource extends Resource
                         ->label('Phone'),
                     TextEntry::make('nationality')
                         ->label('Nationality'),
+                    TextEntry::make('main_contact_spacer')
+                        ->hiddenLabel()
+                        ->state(''),
+                    TextEntry::make('address')
+                        ->label('Address'),
                     TextEntry::make('city')
                         ->label('City'),
-                    TextEntry::make('address')
-                        ->label('Address')
-                        ->columnSpanFull(),
+                    TextEntry::make('country')
+                        ->label('Country'),
                     TextEntry::make('wedding_period')
                         ->label('Wedding period'),
                     TextEntry::make('wedding_date')
@@ -428,7 +440,7 @@ class LeadResource extends Resource
                 ]),
             Section::make('Partner Contact')
                 ->icon('heroicon-o-user-plus')
-                ->columns(4)
+                ->columns(3)
                 ->schema([
                     TextEntry::make('secondary_first_name')
                         ->label('First name'),
@@ -438,6 +450,8 @@ class LeadResource extends Resource
                         ->label('Email'),
                     TextEntry::make('secondary_phone')
                         ->label('Phone'),
+                    TextEntry::make('secondary_nationality')
+                        ->label('Nationality'),
                 ]),
             Section::make('Ceremony and venue')
                 ->icon('heroicon-o-building-library')
