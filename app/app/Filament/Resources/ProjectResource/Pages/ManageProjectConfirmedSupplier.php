@@ -219,7 +219,7 @@ class ManageProjectConfirmedSupplier extends Page
             : null;
 
         return [
-            'category' => $proposal->category?->label_it ?? 'Category',
+            'category' => $proposal->category?->label ?? 'Category',
             'supplier' => $proposal->supplier?->name ?? 'Supplier',
             'estimated_amount' => $estimatedAmount,
             'confirmed_amount' => $confirmedAmount,
@@ -570,7 +570,7 @@ class ManageProjectConfirmedSupplier extends Page
         $record = $this->getRecord();
         $clientLabel = $record->coupleNames();
         $supplierName = $this->proposalRecord->supplier?->name ?? 'Supplier';
-        $supplierSubtitle = $this->proposalRecord->supplier?->category?->label_it ?? ($this->proposalRecord->supplier?->category?->label ?? 'supplier');
+        $supplierSubtitle = $this->proposalRecord->supplier?->category?->label ?? 'supplier';
 
         $sections = collect([
             [
