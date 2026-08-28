@@ -105,7 +105,7 @@
 
         .wm-stats {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 1rem;
         }
 
@@ -201,7 +201,7 @@
 
         .wm-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 1rem;
         }
 
@@ -309,6 +309,72 @@
         .wm-badge.gold { background: rgba(201, 169, 106, 0.16); color: #9a7a39; }
         .wm-badge.rose { background: rgba(227, 183, 178, 0.22); color: #9c6f6b; }
 
+        .wm-filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+            margin: -0.15rem 0 0.95rem;
+            border: 1px solid #e8e0d8;
+            border-radius: 1rem;
+            padding: 0.55rem;
+            background: rgba(250, 247, 242, 0.75);
+        }
+
+        .wm-filter-label {
+            display: inline-flex;
+            align-items: center;
+            min-height: 2rem;
+            padding: 0 0.2rem;
+            color: #8b847d;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .wm-filter-toggle {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .wm-filter-toggle input {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .wm-filter-toggle span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 2rem;
+            border: 1px solid #e2d6ca;
+            border-radius: 999px;
+            padding: 0.42rem 0.72rem;
+            background: #fffdfa;
+            color: #756f68;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+        }
+
+        .wm-filter-toggle input:checked + span {
+            border-color: rgba(46, 74, 98, 0.48);
+            background: rgba(46, 74, 98, 0.1);
+            color: #2e4a62;
+        }
+
+        .wm-filter-toggle input:focus-visible + span {
+            outline: 2px solid rgba(46, 74, 98, 0.32);
+            outline-offset: 2px;
+        }
+
         .wm-item-note {
             font-size: 0.79rem;
             color: #9a938c;
@@ -376,15 +442,21 @@
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
-            .wm-grid,
             .wm-hero {
                 grid-template-columns: 1fr;
             }
         }
 
+        @media (max-width: 1400px) {
+            .wm-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
         @media (max-width: 720px) {
             .wm-stats,
-            .wm-deadlines {
+            .wm-deadlines,
+            .wm-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -405,7 +477,7 @@
                 <p class="wm-eyebrow">Planning cockpit</p>
                 <h1 class="wm-hero-title">Keep hot leads and active weddings in view.</h1>
                 <p class="wm-hero-copy">
-                    The dashboard is organized to surface what needs attention first: promising leads, active projects, confirmed upcoming events, operational deadlines, and next follow ups.
+                    The dashboard is organized to surface what needs attention first: promising leads, active projects, confirmed upcoming events, operational deadlines, payments, and next follow ups.
                 </p>
             </div>
 
@@ -488,38 +560,6 @@
                 <article class="wm-panel">
                     <div class="wm-panel-header">
                         <div class="wm-panel-heading">
-                            <span class="wm-icon-chip gold">
-                                <x-filament::icon icon="heroicon-o-calendar-days" />
-                            </span>
-                            <div>
-                                <h2 class="wm-panel-title">Upcoming confirmed events</h2>
-                                <p class="wm-panel-subtitle">Confirmed celebrations approaching soon.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="wm-list">
-                        @forelse($upcomingConfirmedEvents as $event)
-                            <a class="wm-item" href="{{ $event['url'] }}">
-                                <div>
-                                    <p class="wm-item-title">{{ $event['name'] }}</p>
-                                    <p class="wm-item-meta">{{ $event['couple'] }}</p>
-                                    <p class="wm-item-copy">{{ $event['place'] }} · {{ $event['guests'] ? $event['guests'] . ' guests' : 'Guest list to define' }}</p>
-                                </div>
-                                <div class="wm-item-aside">
-                                    <span class="wm-badge gold">{{ $event['date'] }}</span>
-                                    <div class="wm-item-note">{{ $event['days'] }} days</div>
-                                </div>
-                            </a>
-                        @empty
-                            <div class="wm-empty">No confirmed upcoming events found.</div>
-                        @endforelse
-                    </div>
-                </article>
-
-                <article class="wm-panel">
-                    <div class="wm-panel-header">
-                        <div class="wm-panel-heading">
                             <span class="wm-icon-chip blue">
                                 <x-filament::icon icon="heroicon-o-folder-open" />
                             </span>
@@ -555,13 +595,29 @@
                     <div class="wm-panel-header">
                         <div class="wm-panel-heading">
                             <span class="wm-icon-chip rose">
-                                <x-filament::icon icon="heroicon-o-banknotes" />
+                                <x-filament::icon icon="heroicon-o-clipboard-document-check" />
                             </span>
                             <div>
                                 <h2 class="wm-panel-title">Deadlines</h2>
-                                <p class="wm-panel-subtitle">Next 10 operational dates from payments, checklist items and project events.</p>
+                                <p class="wm-panel-subtitle">Next 10 operational dates from checklist items and project events.</p>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="wm-filter-group" aria-label="Deadline filters">
+                        <span class="wm-filter-label">Filters</span>
+                        <label class="wm-filter-toggle">
+                            <input type="checkbox" wire:model.live="showMyChecklistDeadlines">
+                            <span>My checklist</span>
+                        </label>
+                        <label class="wm-filter-toggle">
+                            <input type="checkbox" wire:model.live="showCouplesChecklistDeadlines">
+                            <span>Couples checklist</span>
+                        </label>
+                        <label class="wm-filter-toggle">
+                            <input type="checkbox" wire:model.live="showUpcomingEventDeadlines">
+                            <span>Upcoming events</span>
+                        </label>
                     </div>
 
                     <div class="wm-deadlines">
@@ -610,6 +666,76 @@
                             </a>
                         @empty
                             <div class="wm-empty">No pending follow ups scheduled.</div>
+                        @endforelse
+                    </div>
+                </article>
+            </div>
+
+            <div class="wm-stack">
+                <article class="wm-panel">
+                    <div class="wm-panel-header">
+                        <div class="wm-panel-heading">
+                            <span class="wm-icon-chip gold">
+                                <x-filament::icon icon="heroicon-o-banknotes" />
+                            </span>
+                            <div>
+                                <h2 class="wm-panel-title">Payments</h2>
+                                <p class="wm-panel-subtitle">Unpaid and next payments across active projects.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="wm-deadlines">
+                        @forelse($upcomingPayments as $payment)
+                            <a class="wm-deadline {{ $payment['is_critical'] ? 'is-critical' : '' }} {{ $payment['tone'] }}" href="{{ $payment['url'] }}">
+                                <div>
+                                    <span class="wm-badge {{ $payment['tone'] }}">{{ $payment['kind'] }}</span>
+                                    <p class="wm-item-title" style="margin-top: .55rem;">{{ $payment['title'] }}</p>
+                                    <p class="wm-item-meta">{{ $payment['context'] }}</p>
+                                </div>
+                                <div class="wm-deadline-due">
+                                    <span class="wm-deadline-date">{{ $payment['due'] }}</span>
+                                    @if($payment['amount'])
+                                        <span class="wm-badge {{ $payment['tone'] }}">{{ $payment['amount'] }}</span>
+                                    @else
+                                        <span class="wm-badge {{ $payment['tone'] }}">{{ $payment['urgency'] }}</span>
+                                    @endif
+                                </div>
+                            </a>
+                        @empty
+                            <div class="wm-empty">No unpaid upcoming payments found.</div>
+                        @endforelse
+                    </div>
+                </article>
+
+                <article class="wm-panel">
+                    <div class="wm-panel-header">
+                        <div class="wm-panel-heading">
+                            <span class="wm-icon-chip gold">
+                                <x-filament::icon icon="heroicon-o-calendar-days" />
+                            </span>
+                            <div>
+                                <h2 class="wm-panel-title">Upcoming confirmed events</h2>
+                                <p class="wm-panel-subtitle">Confirmed celebrations approaching soon.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="wm-list">
+                        @forelse($upcomingConfirmedEvents as $event)
+                            <a class="wm-item" href="{{ $event['url'] }}">
+                                <div>
+                                    <p class="wm-item-title">{{ $event['name'] }}</p>
+                                    <p class="wm-item-meta">{{ $event['couple'] }}</p>
+                                    <p class="wm-item-copy">{{ $event['place'] }} · {{ $event['guests'] ? $event['guests'] . ' guests' : 'Guest list to define' }}</p>
+                                </div>
+                                <div class="wm-item-aside">
+                                    <span class="wm-badge gold">{{ $event['date'] }}</span>
+                                    <div class="wm-item-note">{{ $event['days'] }} days</div>
+                                </div>
+                            </a>
+                        @empty
+                            <div class="wm-empty">No confirmed upcoming events found.</div>
                         @endforelse
                     </div>
                 </article>

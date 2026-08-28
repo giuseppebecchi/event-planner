@@ -27,6 +27,12 @@ class Dashboard extends \Filament\Pages\Dashboard
 
     protected string $view = 'filament.pages.dashboard';
 
+    public bool $showMyChecklistDeadlines = true;
+
+    public bool $showCouplesChecklistDeadlines = false;
+
+    public bool $showUpcomingEventDeadlines = true;
+
     public static function canAccess(): bool
     {
         return true;
@@ -59,6 +65,7 @@ class Dashboard extends \Filament\Pages\Dashboard
                 'upcomingConfirmedEvents' => collect(),
                 'upcomingFollowUps' => collect(),
                 'upcomingDeadlines' => collect(),
+                'upcomingPayments' => collect(),
             ];
         }
 
@@ -69,6 +76,7 @@ class Dashboard extends \Filament\Pages\Dashboard
             'upcomingConfirmedEvents' => $this->getUpcomingConfirmedEvents(),
             'upcomingFollowUps' => $this->getUpcomingFollowUps(),
             'upcomingDeadlines' => $this->getUpcomingDeadlines(),
+            'upcomingPayments' => $this->getUpcomingPayments(),
         ];
     }
 
@@ -120,18 +128,6 @@ class Dashboard extends \Filament\Pages\Dashboard
                 'caption' => 'Active weddings being planned',
                 'tone' => 'blue',
                 'icon' => 'heroicon-o-folder-open',
-                'url' => ProjectResource::getUrl(),
-            ],
-            [
-                'label' => 'Confirmed events soon',
-                'value' => Project::query()
-                    ->where('status', 'confirmed')
-                    ->whereDate('event_date', '>=', $today)
-                    ->whereDate('event_date', '<=', now()->copy()->addDays(60))
-                    ->count(),
-                'caption' => 'Events happening in the next 60 days',
-                'tone' => 'gold',
-                'icon' => 'heroicon-o-calendar-days',
                 'url' => ProjectResource::getUrl(),
             ],
             [
@@ -267,14 +263,71 @@ class Dashboard extends \Filament\Pages\Dashboard
         $today = now()->startOfDay();
         $activeProjectStatuses = ['proposal', 'confirmed'];
 
-        $payments = Payment::query()
+        $checklists = collect();
+
+        if ($this->showMyChecklistDeadlines || $this->showCouplesChecklistDeadlines) {
+            $checklists = ProjectChecklistOption::query()
+                ->with(['project', 'supplier'])
+                ->where('enabled', true)
+                ->where(function ($query): void {
+                    $query
+                        ->where('completed', false)
+                        ->orWhereNull('completed');
+                })
+                ->whereNull('completed_at')
+                ->whereNotNull('due_date')
+                ->whereIn('assigned_to', collect([
+                    $this->showMyChecklistDeadlines ? 'admin' : null,
+                    $this->showCouplesChecklistDeadlines ? 'client' : null,
+                ])->filter()->all())
+                ->whereHas('project', fn ($query) => $query->whereIn('status', $activeProjectStatuses))
+                ->get()
+                ->map(fn (ProjectChecklistOption $item): array => $this->deadlinePayload(
+                    title: $item->title ?: 'Checklist item',
+                    context: collect([$item->project?->name, $item->supplier?->name])->filter()->implode(' · '),
+                    date: $item->due_date->copy()->startOfDay(),
+                    kind: 'Checklist',
+                    url: $item->project ? ProjectResource::getUrl('checklist', ['record' => $item->project]) : ProjectResource::getUrl(),
+                    today: $today,
+                ));
+        }
+
+        $events = $this->showUpcomingEventDeadlines
+            ? ProjectEvent::query()
+                ->with('project')
+                ->where('starts_at', '>=', $today)
+                ->whereHas('project', fn ($query) => $query->whereIn('status', $activeProjectStatuses))
+                ->get()
+                ->map(fn (ProjectEvent $event): array => $this->deadlinePayload(
+                    title: $event->title ?: 'Project event',
+                    context: $event->project?->name ?? 'Project',
+                    date: $event->starts_at,
+                    kind: 'Event',
+                    url: $event->project ? ProjectResource::getUrl('calendar', ['record' => $event->project]) : ProjectResource::getUrl(),
+                    today: $today,
+                    includeTime: ! $event->is_all_day,
+                ))
+            : collect();
+
+        return $checklists
+            ->concat($events)
+            ->sortBy(fn (array $deadline): string => sprintf('%s-%s-%s', $deadline['date_sort'], $deadline['kind'], mb_strtolower($deadline['title'])))
+            ->take(10)
+            ->values();
+    }
+
+    protected function getUpcomingPayments(): Collection
+    {
+        $today = now()->startOfDay();
+        $activeProjectStatuses = ['proposal', 'confirmed'];
+
+        return Payment::query()
             ->with(['project', 'supplier', 'categoryBudgetSupplier.categoryBudget'])
             ->whereNotNull('due_date')
             ->where('payment_status', '!=', Payment::STATUS_PAID)
             ->whereHas('project', fn ($query) => $query->whereIn('status', $activeProjectStatuses))
             ->get()
             ->map(function (Payment $payment) use ($today): array {
-                $date = $payment->due_date->copy()->startOfDay();
                 $proposal = $payment->categoryBudgetSupplier;
                 $url = ($payment->project && $proposal?->categoryBudget)
                     ? ProjectResource::getUrl('budget-manage', [
@@ -286,53 +339,15 @@ class Dashboard extends \Filament\Pages\Dashboard
                 return $this->deadlinePayload(
                     title: $payment->reason ?: 'Supplier payment',
                     context: collect([$payment->project?->name, $payment->supplier?->name])->filter()->implode(' · '),
-                    date: $date,
+                    date: $payment->due_date->copy()->startOfDay(),
                     kind: 'Payment',
                     url: $url,
                     today: $today,
-                );
-            });
-
-        $checklists = ProjectChecklistOption::query()
-            ->with(['project', 'supplier'])
-            ->where('enabled', true)
-            ->where(function ($query): void {
-                $query
-                    ->where('completed', false)
-                    ->orWhereNull('completed');
+                ) + [
+                    'amount' => $payment->amount !== null ? 'EUR ' . number_format((float) $payment->amount, 2, ',', '.') : null,
+                ];
             })
-            ->whereNull('completed_at')
-            ->whereNotNull('due_date')
-            ->whereHas('project', fn ($query) => $query->whereIn('status', $activeProjectStatuses))
-            ->get()
-            ->map(fn (ProjectChecklistOption $item): array => $this->deadlinePayload(
-                title: $item->title ?: 'Checklist item',
-                context: collect([$item->project?->name, $item->supplier?->name])->filter()->implode(' · '),
-                date: $item->due_date->copy()->startOfDay(),
-                kind: 'Checklist',
-                url: $item->project ? ProjectResource::getUrl('checklist', ['record' => $item->project]) : ProjectResource::getUrl(),
-                today: $today,
-            ));
-
-        $events = ProjectEvent::query()
-            ->with('project')
-            ->where('starts_at', '>=', $today)
-            ->whereHas('project', fn ($query) => $query->whereIn('status', $activeProjectStatuses))
-            ->get()
-            ->map(fn (ProjectEvent $event): array => $this->deadlinePayload(
-                title: $event->title ?: 'Project event',
-                context: $event->project?->name ?? 'Project',
-                date: $event->starts_at,
-                kind: 'Event',
-                url: $event->project ? ProjectResource::getUrl('calendar', ['record' => $event->project]) : ProjectResource::getUrl(),
-                today: $today,
-                includeTime: ! $event->is_all_day,
-            ));
-
-        return $payments
-            ->concat($checklists)
-            ->concat($events)
-            ->sortBy(fn (array $deadline): string => sprintf('%s-%s-%s', $deadline['date_sort'], $deadline['kind'], mb_strtolower($deadline['title'])))
+            ->sortBy(fn (array $payment): string => sprintf('%s-%s', $payment['date_sort'], mb_strtolower($payment['title'])))
             ->take(10)
             ->values();
     }
