@@ -106,6 +106,46 @@ HTML,
 
         Template::query()->firstOrCreate(
             [
+                'slug' => 'mail-reminder-payment',
+                'language' => 'en',
+            ],
+            [
+                'title' => 'Payment reminder',
+                'subject' => 'Payment reminder for {{ supplier_name }}',
+                'type' => Template::TYPE_HTML,
+                'content' => <<<'HTML'
+<p>Dear {{ couple_names }},</p>
+
+<p>
+    This is a quick, automated reminder that a payment for {{ supplier_name }}
+    is due in 7 days (by {{ date }}).
+</p>
+
+<p>
+    You can easily review the exact amount and details directly in our planning software,
+    or simply reply to this email if you have any questions or need assistance.
+</p>
+
+<p>Kind regards,</p>
+HTML,
+            ],
+        );
+
+        Template::query()->firstOrCreate(
+            [
+                'slug' => 'mail-signature',
+                'language' => 'en',
+            ],
+            [
+                'title' => 'Mail signature',
+                'subject' => null,
+                'type' => Template::TYPE_HTML,
+                'content' => '',
+            ],
+        );
+
+        Template::query()->firstOrCreate(
+            [
                 'slug' => 'supplier-courtesy-message',
                 'language' => 'en',
             ],
