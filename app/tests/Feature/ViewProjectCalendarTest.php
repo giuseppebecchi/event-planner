@@ -90,6 +90,69 @@ class ViewProjectCalendarTest extends TestCase
         ]);
     }
 
+    public function test_project_event_program_html_is_saved_and_can_show_pdf_export_action(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => Role::ADMIN]);
+        $this->actingAs(User::factory()->create(['role_id' => $adminRole->id]));
+
+        $project = Project::query()->create([
+            'name' => 'Program calendar wedding',
+            'last_name' => 'Client',
+        ]);
+
+        Livewire::test(ViewProjectCalendar::class, [
+            'record' => $project->id,
+        ])
+            ->set('eventForm.title', 'Wedding day')
+            ->set('eventForm.start_date', '2026-07-25')
+            ->set('eventForm.include_program', true)
+            ->set('eventForm.program_html', '<h2>Ceremony</h2><p>Guests arrive.</p>')
+            ->call('saveProjectEvent')
+            ->assertHasNoErrors();
+
+        $event = $project->projectEvents()->firstOrFail();
+
+        $this->assertSame('<h2>Ceremony</h2><p>Guests arrive.</p>', $event->program_html);
+
+        Livewire::test(ViewProjectCalendar::class, [
+            'record' => $project->id,
+        ])
+            ->call('openCalendarItem', 'event', $event->id)
+            ->assertSee('Export program PDF')
+            ->assertSee(route('admin.projects.calendar.events.program.pdf', ['project' => $project, 'event' => $event]));
+    }
+
+    public function test_project_event_program_pdf_can_be_downloaded(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => Role::ADMIN]);
+        $this->actingAs(User::factory()->create(['role_id' => $adminRole->id]));
+
+        $project = Project::query()->create([
+            'name' => 'Program PDF Wedding',
+            'first_name' => 'Anna',
+            'last_name' => 'Rossi',
+            'secondary_first_name' => 'Luca',
+            'secondary_last_name' => 'Bianchi',
+            'event_date' => '2026-07-25',
+            'event_start_date' => '2026-07-25',
+            'event_end_date' => '2026-07-25',
+        ]);
+        $event = ProjectEvent::query()->create([
+            'project_id' => $project->id,
+            'title' => 'Wedding day',
+            'description' => 'Main wedding program',
+            'starts_at' => '2026-07-25 14:00:00',
+            'ends_at' => '2026-07-25 23:30:00',
+            'is_all_day' => false,
+            'program_html' => '<h2>Ceremony</h2><p>Guests arrive.</p>',
+        ]);
+
+        $this
+            ->get(route('admin.projects.calendar.events.program.pdf', ['project' => $project, 'event' => $event]))
+            ->assertOk()
+            ->assertDownload('program-pdf-wedding-wedding-day-program.pdf');
+    }
+
     public function test_today_cell_shows_overdue_checklist_recap_and_popup(): void
     {
         $adminRole = Role::query()->firstOrCreate(['name' => Role::ADMIN]);

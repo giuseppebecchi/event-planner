@@ -123,6 +123,28 @@ class LeadResource extends Resource
                                 ->native(false)
                                 ->format('Y-m-d')
                                 ->displayFormat('M d, Y'),
+                            Components\Toggle::make('send_automatic_follow_up')
+                                ->label('Send automatic follow up')
+                                ->helperText('Enable only for leads that should receive an automatic follow-up email.')
+                                ->default(false)
+                                ->live()
+                                ->columnSpan(2),
+                            Components\TextInput::make('follow_up_days')
+                                ->label('Follow up days')
+                                ->numeric()
+                                ->minValue(1)
+                                ->maxValue(60)
+                                ->default(7)
+                                ->required(fn (callable $get): bool => (bool) $get('send_automatic_follow_up'))
+                                ->visible(fn (callable $get): bool => (bool) $get('send_automatic_follow_up')),
+                            Components\DateTimePicker::make('follow_up_sent_at')
+                                ->label('Follow up sent at')
+                                ->native(false)
+                                ->seconds(false)
+                                ->disabled()
+                                ->dehydrated(false)
+                                ->visible(fn (?Lead $record): bool => filled($record?->follow_up_sent_at))
+                                ->columnSpanFull(),
                         ]),
 
                     Group::make()
@@ -286,6 +308,17 @@ class LeadResource extends Resource
                 TextColumn::make('follow_up_summary')
                     ->label('Follow up')
                     ->state(function (Lead $record): HtmlString {
+                        if ($record->send_automatic_follow_up) {
+                            $sentAt = $record->follow_up_sent_at?->format('d M Y H:i');
+
+                            return new HtmlString(
+                                '<div style="display:flex;flex-direction:column;gap:4px;">' .
+                                '<span style="font-weight:700;color:' . ($sentAt ? '#617563' : '#8f6a2a') . ';">Automatic ' . ($sentAt ? 'sent' : 'enabled') . '</span>' .
+                                '<span style="font-size:12px;color:#8c857e;">' . ($sentAt ? 'Sent ' . e($sentAt) : 'After ' . (int) $record->follow_up_days . ' days') . '</span>' .
+                                '</div>'
+                            );
+                        }
+
                         $total = (int) ($record->follow_ups_count ?? 0);
                         $pending = (int) ($record->pending_follow_ups_count ?? 0);
                         $nextDueRaw = $record->next_pending_follow_up_due_at ?? null;

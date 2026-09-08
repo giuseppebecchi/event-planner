@@ -133,6 +133,32 @@ HTML,
 
         Template::query()->firstOrCreate(
             [
+                'slug' => 'mail-lead-follow-up',
+                'language' => 'en',
+            ],
+            [
+                'title' => 'Lead follow up',
+                'subject' => 'Just following up',
+                'type' => Template::TYPE_HTML,
+                'content' => <<<'HTML'
+<p>Hi {{ couple_names }},</p>
+
+<p>
+    I'm following up to make sure you received my previous email with our brochure.
+    If you have any questions, feel free to let me know, I'll be pleased to answer you.
+</p>
+
+<p>
+    Looking forward to hearing you, I remain at your complete disposal.
+</p>
+
+<p>Kind regards,</p>
+HTML,
+            ],
+        );
+
+        Template::query()->firstOrCreate(
+            [
                 'slug' => 'mail-signature',
                 'language' => 'en',
             ],

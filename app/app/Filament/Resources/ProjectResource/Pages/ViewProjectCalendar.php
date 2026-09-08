@@ -7,16 +7,23 @@ use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDa
 use App\Models\Payment;
 use App\Models\ProjectEvent;
 use App\Models\ProjectChecklistOption;
+use App\Support\RichEditorHtmlNormalizer;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
+use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
-class ViewProjectCalendar extends Page
+class ViewProjectCalendar extends Page implements HasForms
 {
+    use InteractsWithForms;
     use InteractsWithRecord;
     use InteractsWithProjectDateEditor;
 
@@ -78,6 +85,32 @@ class ViewProjectCalendar extends Page
 
         $this->eventForm['start_date'] = $anchorDate->format('Y-m-d');
         $this->eventForm['end_date'] = $anchorDate->format('Y-m-d');
+    }
+
+    protected function getForms(): array
+    {
+        return [
+            'eventProgramForm',
+            'editEventProgramForm',
+        ];
+    }
+
+    public function eventProgramForm(Schema $schema): Schema
+    {
+        return $schema
+            ->statePath('eventForm')
+            ->components([
+                $this->programRichEditor(),
+            ]);
+    }
+
+    public function editEventProgramForm(Schema $schema): Schema
+    {
+        return $schema
+            ->statePath('editEventForm')
+            ->components([
+                $this->programRichEditor(),
+            ]);
     }
 
     public function getTitle(): string|Htmlable
@@ -240,7 +273,7 @@ class ViewProjectCalendar extends Page
             'start_time' => ['nullable', 'date_format:H:i', 'required_if:is_all_day,false'],
             'end_time' => ['nullable', 'date_format:H:i', 'required_if:is_all_day,false'],
             'include_program' => ['required', 'boolean'],
-            'program_html' => ['nullable', 'string'],
+            'program_html' => ['nullable'],
         ])->validate();
 
         $startDate = Carbon::parse($data['start_date']);
@@ -270,7 +303,7 @@ class ViewProjectCalendar extends Page
             'ends_at' => $endsAt,
             'is_all_day' => (bool) $data['is_all_day'],
             'program_html' => ($data['include_program'] ?? false) && filled($data['program_html'] ?? null)
-                ? trim((string) $data['program_html'])
+                ? $this->normalizeProgramHtml($data['program_html'])
                 : null,
         ]);
 
@@ -636,7 +669,7 @@ class ViewProjectCalendar extends Page
             'start_time' => ['nullable', 'date_format:H:i', 'required_if:is_all_day,false'],
             'end_time' => ['nullable', 'date_format:H:i', 'required_if:is_all_day,false'],
             'include_program' => ['required', 'boolean'],
-            'program_html' => ['nullable', 'string'],
+            'program_html' => ['nullable'],
         ])->validate();
 
         $startDate = Carbon::parse($data['start_date']);
@@ -666,9 +699,43 @@ class ViewProjectCalendar extends Page
             'ends_at' => $endsAt,
             'is_all_day' => (bool) $data['is_all_day'],
             'program_html' => ($data['include_program'] ?? false) && filled($data['program_html'] ?? null)
-                ? trim((string) $data['program_html'])
+                ? $this->normalizeProgramHtml($data['program_html'])
                 : null,
         ];
+    }
+
+    protected function programRichEditor(): RichEditor
+    {
+        return RichEditor::make('program_html')
+            ->label('Program')
+            ->toolbarButtons([
+                'bold',
+                'italic',
+                'underline',
+                'strike',
+                'h2',
+                'h3',
+                'bulletList',
+                'orderedList',
+                'blockquote',
+                'link',
+                'undo',
+                'redo',
+            ])
+            ->afterStateHydrated(function (RichEditor $component, mixed $state): void {
+                $component->state($this->normalizeProgramHtml($state));
+            })
+            ->dehydrateStateUsing(fn (mixed $state): string => $this->normalizeProgramHtml($state))
+            ->columnSpanFull();
+    }
+
+    protected function normalizeProgramHtml(mixed $html): string
+    {
+        if (is_array($html)) {
+            $html = RichContentRenderer::make($html)->toHtml();
+        }
+
+        return RichEditorHtmlNormalizer::normalizeListItems(trim((string) $html));
     }
 
     protected function visibleMonthDate(): Carbon

@@ -1277,8 +1277,7 @@
 
                 @if ($eventForm['include_program'] ?? false)
                     <div class="wm-calendar-field">
-                        <label for="calendar-program-html">Program HTML</label>
-                        <textarea id="calendar-program-html" class="wm-calendar-textarea" rows="8" wire:model="eventForm.program_html"></textarea>
+                        {{ $this->eventProgramForm }}
                     </div>
                 @endif
 
@@ -1327,17 +1326,27 @@
                     <div class="wm-calendar-detail-program">{!! $selectedItem['program_html'] !!}</div>
                 @endif
 
-                @if ($selectedItem['kind'] === 'event' && ! auth()->user()?->isCustomer())
+                @if ($selectedItem['kind'] === 'event' && (filled($selectedItem['program_html']) || ! auth()->user()?->isCustomer()))
                     <div class="wm-calendar-detail-actions">
-                        <x-filament::button
-                            color="danger"
-                            wire:click="promptDeleteCalendarEvent({{ $selectedItem['id'] }})"
-                        >
-                            Delete
-                        </x-filament::button>
-                        <x-filament::button color="gray" wire:click="editCalendarEvent({{ $selectedItem['id'] }})">
-                            Edit
-                        </x-filament::button>
+                        @if (filled($selectedItem['program_html']))
+                            <x-filament::button
+                                tag="a"
+                                href="{{ route('admin.projects.calendar.events.program.pdf', ['project' => $record, 'event' => $selectedItem['id']]) }}"
+                            >
+                                Export program PDF
+                            </x-filament::button>
+                        @endif
+                        @if (! auth()->user()?->isCustomer())
+                            <x-filament::button
+                                color="danger"
+                                wire:click="promptDeleteCalendarEvent({{ $selectedItem['id'] }})"
+                            >
+                                Delete
+                            </x-filament::button>
+                            <x-filament::button color="gray" wire:click="editCalendarEvent({{ $selectedItem['id'] }})">
+                                Edit
+                            </x-filament::button>
+                        @endif
                     </div>
                 @endif
             </div>
@@ -1504,8 +1513,7 @@
 
                 @if ($editEventForm['include_program'] ?? false)
                     <div class="wm-calendar-field" style="margin-top: 0.85rem;">
-                        <label for="calendar-edit-program-html">Program HTML</label>
-                        <textarea id="calendar-edit-program-html" class="wm-calendar-textarea" rows="8" wire:model="editEventForm.program_html"></textarea>
+                        {{ $this->editEventProgramForm }}
                     </div>
                 @endif
 
