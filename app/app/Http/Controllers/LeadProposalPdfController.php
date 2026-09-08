@@ -200,7 +200,7 @@ class LeadProposalPdfController extends Controller
             ['label' => 'Management of guests accommodation out of the venue', 'amount' => 300],
             ['label' => 'Extra guests on the wedding day: extra every 10 guests', 'amount' => 100],
             ['label' => 'Help with guests transfers on the wedding day', 'amount' => 300],
-            ['label' => 'Extra coordinator/hostess if needed: from each per day', 'amount' => 250],
+            ['label' => 'Extra coordinator from EUR 300 each per day', 'amount' => 300],
             ['label' => 'Second venue research', 'amount' => 500],
             ['label' => 'Extra pre and post wedding events (planning and coordination): each', 'amount' => 800],
             ['label' => 'Extra video calls: each', 'amount' => 50],

@@ -192,7 +192,7 @@ class ViewLeadBudgetComposition extends Page
             ['label' => 'Management of guests accommodation out of the venue', 'notes' => null, 'amount' => 0],
             ['label' => "Extra guests on the wedding day\nextra every 10 guests", 'notes' => null, 'amount' => 0],
             ['label' => 'Help with guests transfers on the wedding day', 'notes' => null, 'amount' => 0],
-            ['label' => "Extra coordinator needed if the venue is not walking distance from the church\nfrom EUR 300 each per day", 'notes' => null, 'amount' => 0],
+            ['label' => "Extra coordinator from EUR 300 each per day", 'notes' => null, 'amount' => 0],
             ['label' => 'Second venue research', 'notes' => null, 'amount' => 0],
             ['label' => "Extra pre and post wedding events (planning and coordination)\neach event", 'notes' => null, 'amount' => 0],
             ['label' => "Extra video calls\neach call", 'notes' => null, 'amount' => 0],
