@@ -157,6 +157,49 @@ HTML,
             ],
         );
 
+        Template::query()->updateOrCreate(
+            [
+                'slug' => 'mail-rsvp-invitation',
+                'language' => 'en',
+            ],
+            [
+                'title' => 'RSVP invitation',
+                'subject' => 'RSVP for {{ couple_name }}',
+                'type' => Template::TYPE_HTML,
+                'content' => <<<'HTML'
+<p>Dear {{ guest_names }},</p>
+
+<p>
+    We are so happy to invite you to celebrate our wedding with us.
+</p>
+
+<p>
+    You can find all the event information on our wedding website:
+    {{ website_link }}
+</p>
+
+<p>
+    Please confirm your attendance using your personal RSVP link:
+    {{ rsvp_link }}
+</p>
+
+<p>
+    Date: {{ event_date }}<br>
+    Location: {{ event_location }}
+</p>
+
+<p>With love,<br>{{ couple_name }}</p>
+
+<p>
+    Main contact:<br>
+    {{ contact_name }}<br>
+    {{ contact_email }}<br>
+    {{ contact_phone }}
+</p>
+HTML,
+            ],
+        );
+
         Template::query()->firstOrCreate(
             [
                 'slug' => 'mail-signature',

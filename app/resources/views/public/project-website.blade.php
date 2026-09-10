@@ -262,9 +262,12 @@
         @if ($website['rsvp']['enabled'] ?? true)
             <section id="rsvp" class="section">
                 <h2>{{ $website['rsvp']['title'] }}</h2>
-                <p>{{ $website['rsvp']['intro'] }}</p>
                 @if ($guest)
+                    <p>Dear {{ $guest->displayName() }} please use the following personal RSVP link.</p>
                     <a class="button" href="{{ $guest->publicRsvpUrl() }}">Open RSVP form</a>
+                @else
+                    <p>{{ $website['rsvp']['intro'] }}</p>
+                    <a class="button" href="{{ route('public.project-rsvp.lookup', ['projectAlias' => $project->alias]) }}">Find your RSVP</a>
                 @endif
             </section>
         @endif

@@ -283,6 +283,26 @@
             align-items: center;
         }
 
+        .wm-guests-actions-stack {
+            display: flex;
+            flex: 1 1 auto;
+            min-width: 0;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .wm-guests-action-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+            align-items: center;
+        }
+
+        .wm-guests-action-row.is-mail {
+            padding-top: 0.75rem;
+            border-top: 1px solid #eee7de;
+        }
+
         .wm-guests-button {
             display: inline-flex;
             align-items: center;
@@ -305,6 +325,76 @@
             background: #fffdfa;
             color: #7a5e28;
             border-color: #dfd0bf;
+        }
+
+        .wm-guests-button.is-mail-action {
+            background: #f4f7f2;
+            color: #446545;
+            border-color: #cfdacb;
+        }
+
+        .wm-guests-button.is-mail-action.is-primary {
+            background: #6d8a63;
+            color: #fff;
+            border-color: #6d8a63;
+        }
+
+        .wm-guests-rsvp-lookup-card {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 0.85rem 1rem;
+            align-items: center;
+            padding: 0.95rem 1rem;
+            border: 1px solid #cfdacb;
+            border-radius: 0.8rem;
+            background: #f8fbf6;
+        }
+
+        .wm-guests-rsvp-lookup-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0;
+            color: #446545;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-size: 0.76rem;
+        }
+
+        .wm-guests-rsvp-lookup-title svg {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .wm-guests-rsvp-lookup-copy {
+            margin: 0.22rem 0 0;
+            color: #687362;
+            font-size: 0.84rem;
+            line-height: 1.45;
+        }
+
+        .wm-guests-rsvp-lookup-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 2.45rem;
+            max-width: 100%;
+            padding: 0 0.8rem;
+            border: 1px solid #cfdacb;
+            border-radius: 0.45rem;
+            background: #fff;
+            color: #446545;
+            font-size: 0.82rem;
+            font-weight: 800;
+            text-decoration: none;
+            overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 1000px) {
+            .wm-guests-rsvp-lookup-card {
+                grid-template-columns: minmax(0, 1fr);
+            }
         }
 
         .wm-guests-button svg,
@@ -339,6 +429,33 @@
 
         .wm-guests-table-card {
             overflow: hidden;
+        }
+
+        .wm-guests-mail-card {
+            display: grid;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .wm-guests-mail-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .wm-guests-mail-title {
+            margin: 0;
+            color: #2d2a26;
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+
+        .wm-guests-mail-copy {
+            margin: 0.25rem 0 0;
+            color: #746d66;
+            font-size: 0.84rem;
+            line-height: 1.5;
         }
 
         .wm-guests-table-scroll {
@@ -580,6 +697,7 @@
         }
 
         .wm-guests-input,
+        .wm-guests-inline-input,
         .wm-guests-textarea,
         .wm-guests-select {
             width: 100%;
@@ -589,6 +707,13 @@
             background: #fff;
             padding: 0.68rem 0.78rem;
             color: #2d2a26;
+        }
+
+        .wm-guests-inline-input {
+            min-width: 13rem;
+            min-height: 2.35rem;
+            padding: 0.48rem 0.62rem;
+            font-size: 0.82rem;
         }
 
         .wm-guests-textarea {
@@ -680,34 +805,46 @@
 
         <div class="wm-guests-shell">
             <section class="wm-event-card wm-guests-toolbar">
-                <div class="wm-guests-actions">
-                    <button type="button" class="wm-guests-button" wire:click="startCreateGuest">
-                        <x-heroicon-o-user-plus />
-                        <span>Add guests</span>
-                    </button>
-                    <button type="button" class="wm-guests-button is-secondary" wire:click="openImportPanel">
-                        <x-heroicon-o-arrow-up-tray />
-                        <span>Import guest list</span>
-                    </button>
-                    @if (! $isCustomer)
-                        <button type="button" class="wm-guests-button {{ $record->rsvp_submissions_locked ? '' : 'is-secondary' }}" wire:click="toggleRsvpSubmissionsLocked">
-                            @if ($record->rsvp_submissions_locked)
-                                <x-heroicon-o-lock-open />
-                                <span>Reopen RSVP</span>
-                            @else
-                                <x-heroicon-o-lock-closed />
-                                <span>Lock RSVP</span>
-                            @endif
+                <div class="wm-guests-actions-stack">
+                    <div class="wm-guests-action-row">
+                        <button type="button" class="wm-guests-button" wire:click="startCreateGuest">
+                            <x-heroicon-o-user-plus />
+                            <span>Add guests</span>
                         </button>
-                        <a href="{{ \App\Filament\Resources\ProjectResource::getUrl('guests-rsvp-configuration', ['record' => $record]) }}" class="wm-guests-button is-secondary">
-                            <x-heroicon-o-adjustments-horizontal />
-                            <span>RSVP form</span>
+                        <button type="button" class="wm-guests-button is-secondary" wire:click="openImportPanel">
+                            <x-heroicon-o-arrow-up-tray />
+                            <span>Import guest list</span>
+                        </button>
+                        @if (! $isCustomer)
+                            <button type="button" class="wm-guests-button {{ $record->rsvp_submissions_locked ? '' : 'is-secondary' }}" wire:click="toggleRsvpSubmissionsLocked">
+                                @if ($record->rsvp_submissions_locked)
+                                    <x-heroicon-o-lock-open />
+                                    <span>Reopen RSVP</span>
+                                @else
+                                    <x-heroicon-o-lock-closed />
+                                    <span>Lock RSVP</span>
+                                @endif
+                            </button>
+                            <a href="{{ \App\Filament\Resources\ProjectResource::getUrl('guests-rsvp-configuration', ['record' => $record]) }}" class="wm-guests-button is-secondary">
+                                <x-heroicon-o-adjustments-horizontal />
+                                <span>RSVP form</span>
+                            </a>
+                        @endif
+                        <a href="{{ \App\Filament\Resources\ProjectResource::getUrl('guests-rsvp-responses', ['record' => $record]) }}" class="wm-guests-button is-secondary">
+                            <x-heroicon-o-table-cells />
+                            <span>RSVP responses</span>
                         </a>
-                    @endif
-                    <a href="{{ \App\Filament\Resources\ProjectResource::getUrl('guests-rsvp-responses', ['record' => $record]) }}" class="wm-guests-button is-secondary">
-                        <x-heroicon-o-table-cells />
-                        <span>RSVP responses</span>
-                    </a>
+                    </div>
+                    <div class="wm-guests-action-row is-mail">
+                        <button type="button" class="wm-guests-button is-mail-action" wire:click="toggleRsvpMailEditor">
+                            <x-heroicon-o-pencil-square />
+                            <span>{{ $showRsvpMailEditor ? 'Hide RSVP Mail' : 'Personalize RSVP Mail' }}</span>
+                        </button>
+                        <button type="button" class="wm-guests-button is-mail-action is-primary" wire:click="sendAllGuestRsvpInvitations" wire:confirm="Send RSVP email to all guests with a valid email address?">
+                            <x-heroicon-o-envelope />
+                            <span>Send all RSVP</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="wm-guests-stats">
@@ -734,9 +871,47 @@
                 </div>
             </section>
 
+            <section class="wm-guests-rsvp-lookup-card">
+                <div>
+                    <p class="wm-guests-rsvp-lookup-title">
+                        <x-heroicon-o-link />
+                        <span>Unique RSVP link</span>
+                    </p>
+                    <p class="wm-guests-rsvp-lookup-copy">Use this shared link when guests need to find their personal RSVP without receiving an individual link.</p>
+                </div>
+                <a class="wm-guests-rsvp-lookup-link" href="{{ route('public.project-rsvp.lookup', ['projectAlias' => $record->alias]) }}" target="_blank" rel="noopener">
+                    {{ route('public.project-rsvp.lookup', ['projectAlias' => $record->alias]) }}
+                </a>
+            </section>
+
             @if ($record->rsvp_submissions_locked)
                 <section class="wm-event-card wm-guests-toolbar">
                     <span class="wm-guests-chip is-warning">Guest RSVP forms are read-only. Only wedding planners/admins can update responses now.</span>
+                </section>
+            @endif
+
+            @if ($showRsvpMailEditor)
+                <section class="wm-event-card wm-guests-mail-card">
+                    <div class="wm-guests-mail-head">
+                        <div>
+                            <h3 class="wm-guests-mail-title">RSVP email</h3>
+                            <p class="wm-guests-mail-copy">
+                                Available placeholders: @{{ guest_names }}, @{{ website_link }}, @{{ rsvp_link }}.
+                            </p>
+                        </div>
+                        <div class="wm-guests-actions">
+                            <button type="button" class="wm-guests-button is-secondary" wire:click="resetRsvpInvitationMailToDefault">
+                                <x-heroicon-o-arrow-path />
+                                <span>Default copy</span>
+                            </button>
+                            <button type="button" class="wm-guests-button is-secondary" wire:click="saveRsvpInvitationMail">
+                                <x-heroicon-o-bookmark-square />
+                                <span>Save email</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{ $this->rsvpInvitationMailForm }}
                 </section>
             @endif
 
@@ -759,6 +934,7 @@
                                     <th>Group</th>
                                     <th>RSVP</th>
                                     <th>Public Link</th>
+                                    <th>RSVP Sent</th>
                                     <th>Phone</th>
                                     <th>Email</th>
                                     <th></th>
@@ -810,10 +986,47 @@
                                         <td>
                                             <a class="wm-guests-chip" href="{{ $guest->publicRsvpUrl() }}" target="_blank" rel="noopener">Open RSVP</a>
                                         </td>
-                                        <td>{{ $guest->phone ?: '—' }}</td>
-                                        <td>{{ $guest->email ?: '—' }}</td>
+                                        <td>
+                                            @if ($guest->rsvp_invitation_sent_at)
+                                                <span class="wm-guests-chip is-positive">{{ $guest->rsvp_invitation_sent_at->format('d/m/Y H:i') }}</span>
+                                            @elseif ($guest->rsvp_invitation_scheduled_at)
+                                                <span class="wm-guests-chip is-warning">Scheduled {{ $guest->rsvp_invitation_scheduled_at->format('d/m/Y H:i') }}</span>
+                                            @else
+                                                <span class="wm-guests-muted">Not sent</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="tel"
+                                                class="wm-guests-inline-input"
+                                                wire:model.blur="guestContactForms.{{ $guest->id }}.phone"
+                                                wire:change="saveGuestContact({{ $guest->id }}, 'phone', $event.target.value)"
+                                                wire:keydown.enter="saveGuestContact({{ $guest->id }}, 'phone', $event.target.value)"
+                                                placeholder="Phone"
+                                            >
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="email"
+                                                class="wm-guests-inline-input"
+                                                wire:model.blur="guestContactForms.{{ $guest->id }}.email"
+                                                wire:change="saveGuestContact({{ $guest->id }}, 'email', $event.target.value)"
+                                                wire:keydown.enter="saveGuestContact({{ $guest->id }}, 'email', $event.target.value)"
+                                                placeholder="Email"
+                                            >
+                                        </td>
                                         <td>
                                             <div class="wm-guests-row-actions">
+                                                <button
+                                                    type="button"
+                                                    class="wm-guests-icon-button"
+                                                    wire:click="sendGuestRsvpInvitation({{ $guest->id }})"
+                                                    wire:confirm="Send RSVP email to {{ $guest->displayName() }}?"
+                                                    title="Send RSVP email"
+                                                    @disabled(! filter_var($guest->email, FILTER_VALIDATE_EMAIL))
+                                                >
+                                                    <x-heroicon-o-envelope />
+                                                </button>
                                                 <button type="button" class="wm-guests-icon-button" wire:click="editGuest({{ $guest->id }})" title="Edit guest">
                                                     <x-heroicon-o-pencil-square />
                                                 </button>

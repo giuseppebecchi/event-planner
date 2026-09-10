@@ -7,7 +7,7 @@ use Illuminate\View\View;
 
 class PublicProjectWebsiteController extends Controller
 {
-    public function __invoke(string $projectAlias): View
+    public function __invoke(string $projectAlias, ?string $rsvpToken = null): View
     {
         $project = Project::query()->where('alias', $projectAlias)->first();
 
@@ -24,8 +24,8 @@ class PublicProjectWebsiteController extends Controller
         return view('public.project-website', [
             'project' => $project,
             'website' => $website,
-            'guest' => request('rsvp')
-                ? $project->guests()->where('rsvp_token', request('rsvp'))->first()
+            'guest' => ($rsvpToken ?: request('rsvp'))
+                ? $project->guests()->where('rsvp_token', $rsvpToken ?: request('rsvp'))->first()
                 : null,
         ]);
     }

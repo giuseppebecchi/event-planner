@@ -49,6 +49,18 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
+        'notify' => [
+            'transport' => env('NOTIFY_MAIL_MAILER', 'smtp'),
+            'url' => env('NOTIFY_MAIL_URL'),
+            'host' => env('NOTIFY_MAIL_HOST', '127.0.0.1'),
+            'port' => env('NOTIFY_MAIL_PORT', 587),
+            'encryption' => env('NOTIFY_MAIL_ENCRYPTION', 'tls'),
+            'username' => env('NOTIFY_MAIL_USERNAME'),
+            'password' => env('NOTIFY_MAIL_PASSWORD'),
+            'timeout' => null,
+            'local_domain' => env('NOTIFY_MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
         'ses' => [
             'transport' => 'ses',
         ],
@@ -111,6 +123,11 @@ return [
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
         'name' => env('MAIL_FROM_NAME', 'Example'),
+    ],
+
+    'notify_from' => [
+        'address' => env('NOTIFY_MAIL_FROM_ADDRESS', env('MAIL_FROM_ADDRESS', 'hello@example.com')),
+        'name' => env('NOTIFY_MAIL_FROM_NAME', env('MAIL_FROM_NAME', 'Example')),
     ],
 
     'test_to' => env('MAIL_TEST_TO'),

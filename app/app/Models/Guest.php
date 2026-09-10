@@ -39,6 +39,8 @@ class Guest extends Model
         'phone',
         'email',
         'invite_sent',
+        'rsvp_invitation_scheduled_at',
+        'rsvp_invitation_sent_at',
         'ceremony',
         'reception',
         'out_of_town',
@@ -64,6 +66,8 @@ class Guest extends Model
         'rsvp_response' => 'array',
         'presence_confirmed' => 'boolean',
         'rsvp_completed_at' => 'datetime',
+        'rsvp_invitation_scheduled_at' => 'datetime',
+        'rsvp_invitation_sent_at' => 'datetime',
     ];
 
     protected static function booted(): void

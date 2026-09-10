@@ -5,12 +5,22 @@ namespace App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\ProjectResource;
 use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDateEditor;
 use App\Models\Guest;
+use App\Models\Template;
+use App\Notifications\GuestRsvpInvitationNotification;
+use App\Support\RichEditorHtmlNormalizer;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
+use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Notification as MailNotification;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
 use OpenSpout\Common\Entity\Row;
@@ -18,9 +28,11 @@ use OpenSpout\Reader\XLSX\Options as XlsxReaderOptions;
 use OpenSpout\Reader\XLSX\Reader;
 use OpenSpout\Writer\XLSX\Writer;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
-class ViewProjectGuests extends Page
+class ViewProjectGuests extends Page implements HasForms
 {
+    use InteractsWithForms;
     use InteractsWithRecord;
     use InteractsWithProjectDateEditor;
     use WithFileUploads;
@@ -46,6 +58,8 @@ class ViewProjectGuests extends Page
 
     public bool $showImportPanel = false;
 
+    public bool $showRsvpMailEditor = false;
+
     public ?int $editingGuestId = null;
 
     public ?int $confirmDeleteGuestId = null;
@@ -53,6 +67,13 @@ class ViewProjectGuests extends Page
     public ?int $confirmCancelParticipationGuestId = null;
 
     public array $guestForm = [];
+
+    public array $guestContactForms = [];
+
+    public array $rsvpMailForm = [
+        'subject' => '',
+        'body_html' => '',
+    ];
 
     public array $importOptions = [
         'replace_existing' => false,
@@ -64,6 +85,47 @@ class ViewProjectGuests extends Page
     {
         $this->record = $this->resolveRecord($record);
         $this->resetGuestForm();
+        $this->fillRsvpMailForm();
+    }
+
+    protected function getForms(): array
+    {
+        return [
+            'rsvpInvitationMailForm',
+        ];
+    }
+
+    public function rsvpInvitationMailForm(Schema $schema): Schema
+    {
+        return $schema
+            ->statePath('rsvpMailForm')
+            ->components([
+                TextInput::make('subject')
+                    ->label('Subject')
+                    ->required()
+                    ->maxLength(255),
+                RichEditor::make('body_html')
+                    ->label('Email content')
+                    ->toolbarButtons([
+                        'bold',
+                        'italic',
+                        'underline',
+                        'strike',
+                        'h2',
+                        'h3',
+                        'bulletList',
+                        'orderedList',
+                        'blockquote',
+                        'link',
+                        'undo',
+                        'redo',
+                    ])
+                    ->afterStateHydrated(function (RichEditor $component, mixed $state): void {
+                        $component->state($this->normalizeMailHtml($state));
+                    })
+                    ->dehydrateStateUsing(fn (mixed $state): string => $this->normalizeMailHtml($state))
+                    ->columnSpanFull(),
+            ]);
     }
 
     public function getTitle(): string|Htmlable
@@ -93,7 +155,7 @@ class ViewProjectGuests extends Page
 
     public function getGuests(): Collection
     {
-        return $this->getRecord()
+        $guests = $this->getRecord()
             ->loadMissing('guests')
             ->guests
             ->sortBy([
@@ -104,6 +166,10 @@ class ViewProjectGuests extends Page
                 ['rsvp_number', 'asc'],
             ])
             ->values();
+
+        $this->syncGuestContactForms($guests);
+
+        return $guests;
     }
 
     public function getGuestSummary(): array
@@ -190,6 +256,104 @@ class ViewProjectGuests extends Page
 
         Notification::make()
             ->title($record->rsvp_submissions_locked ? 'RSVP submissions locked' : 'RSVP submissions reopened')
+            ->success()
+            ->send();
+    }
+
+    public function saveRsvpInvitationMail(): void
+    {
+        $this->persistRsvpInvitationMail();
+
+        Notification::make()
+            ->title('RSVP email saved')
+            ->success()
+            ->send();
+    }
+
+    public function resetRsvpInvitationMailToDefault(): void
+    {
+        $this->rsvpMailForm = $this->defaultRsvpInvitationMailForm();
+        $this->rsvpInvitationMailForm->fill($this->rsvpMailForm);
+
+        Notification::make()
+            ->title('Default RSVP email restored')
+            ->success()
+            ->send();
+    }
+
+    public function toggleRsvpMailEditor(): void
+    {
+        $this->showRsvpMailEditor = ! $this->showRsvpMailEditor;
+    }
+
+    public function sendGuestRsvpInvitation(int $guestId): void
+    {
+        $this->persistRsvpInvitationMail();
+
+        $guest = $this->findGuest($guestId);
+
+        if (! $this->guestHasValidEmail($guest)) {
+            Notification::make()
+                ->title('Guest has no valid email')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        try {
+            MailNotification::route('mail', $guest->email)
+                ->notify(new GuestRsvpInvitationNotification($this->getRecord(), $guest));
+
+            $guest->forceFill([
+                'invite_sent' => 1,
+                'rsvp_invitation_scheduled_at' => null,
+                'rsvp_invitation_sent_at' => now(),
+            ])->save();
+            $this->getRecord()->unsetRelation('guests');
+
+            Notification::make()
+                ->title('RSVP email sent')
+                ->success()
+                ->send();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            Notification::make()
+                ->title('RSVP email could not be sent')
+                ->body('Check the notify mail configuration and try again.')
+                ->danger()
+                ->send();
+        }
+    }
+
+    public function sendAllGuestRsvpInvitations(): void
+    {
+        $this->persistRsvpInvitationMail();
+
+        $scheduled = 0;
+        $skipped = 0;
+
+        foreach ($this->getRecord()->guests()->orderBy('rsvp_number')->orderBy('id')->get() as $guest) {
+            if (! $this->guestHasValidEmail($guest)) {
+                $skipped++;
+
+                continue;
+            }
+
+            $guest->forceFill([
+                'rsvp_invitation_scheduled_at' => now(),
+                'rsvp_invitation_sent_at' => null,
+            ])->save();
+
+            $scheduled++;
+        }
+
+        $this->getRecord()->unsetRelation('guests');
+
+        Notification::make()
+            ->title(sprintf('RSVP emails queued: %d', $scheduled))
+            ->body(sprintf('Skipped: %d. The scheduler sends up to 10 emails per minute.', $skipped))
             ->success()
             ->send();
     }
@@ -501,12 +665,216 @@ class ViewProjectGuests extends Page
         $this->getRecord()->unsetRelation('guests');
     }
 
+    public function saveGuestContact(int $guestId, string $field, mixed $inputValue = '__wm_missing__'): void
+    {
+        if (! in_array($field, ['phone', 'email'], true)) {
+            return;
+        }
+
+        $guest = $this->findGuest($guestId);
+        $value = $this->nullableString($inputValue === '__wm_missing__' ? ($this->guestContactForms[$guestId][$field] ?? null) : $inputValue);
+
+        $validator = validator(
+            [$field => $value],
+            [$field => $field === 'email' ? ['nullable', 'email', 'max:255'] : ['nullable', 'string', 'max:255']],
+        );
+
+        if ($validator->fails()) {
+            Notification::make()
+                ->title($field === 'email' ? 'Enter a valid email' : 'Enter a valid phone')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        if ($guest->{$field} === $value) {
+            return;
+        }
+
+        $guest->forceFill([$field => $value])->save();
+        $this->getRecord()->unsetRelation('guests');
+        $this->guestContactForms[$guestId][$field] = $value ?? '';
+
+        Notification::make()
+            ->title($field === 'email' ? 'Guest email updated' : 'Guest phone updated')
+            ->success()
+            ->send();
+    }
+
     protected function findGuest(int $guestId): Guest
     {
         /** @var Guest $guest */
         $guest = $this->getRecord()->guests()->findOrFail($guestId);
 
         return $guest;
+    }
+
+    protected function syncGuestContactForms(Collection $guests): void
+    {
+        foreach ($guests as $guest) {
+            if (array_key_exists($guest->id, $this->guestContactForms)) {
+                continue;
+            }
+
+            $this->guestContactForms[$guest->id] = [
+                'phone' => $guest->phone ?? '',
+                'email' => $guest->email ?? '',
+            ];
+        }
+    }
+
+    protected function fillRsvpMailForm(): void
+    {
+        $project = $this->getRecord();
+
+        $this->rsvpMailForm = (filled($project->rsvp_invitation_email_subject) || filled($project->rsvp_invitation_email_html))
+            && ! $this->hasLegacyDefaultRsvpInvitationMail()
+            ? [
+                'subject' => (string) $project->rsvp_invitation_email_subject,
+                'body_html' => $this->normalizeMailHtml((string) $project->rsvp_invitation_email_html),
+            ]
+            : $this->defaultRsvpInvitationMailForm();
+
+        $this->rsvpInvitationMailForm->fill($this->rsvpMailForm);
+    }
+
+    protected function defaultRsvpInvitationMailForm(): array
+    {
+        $template = $this->rsvpInvitationTemplate();
+
+        return [
+            'subject' => $this->renderProjectTemplate((string) ($template?->subject ?: $template?->title ?: 'RSVP for {{ couple_name }}'), escapeValues: false),
+            'body_html' => $this->normalizeMailHtml($this->renderProjectTemplate((string) ($template?->content ?: $this->defaultRsvpInvitationBodyHtml()))),
+        ];
+    }
+
+    protected function hasLegacyDefaultRsvpInvitationMail(): bool
+    {
+        $project = $this->getRecord();
+        $bodyHtml = (string) $project->rsvp_invitation_email_html;
+
+        return str_contains($bodyHtml, 'We are delighted to share the wedding website')
+            && str_contains($bodyHtml, 'Open wedding website')
+            && str_contains($bodyHtml, 'Complete your RSVP')
+            && ! str_contains($bodyHtml, 'href=');
+    }
+
+    protected function persistRsvpInvitationMail(): void
+    {
+        $subject = trim((string) ($this->rsvpMailForm['subject'] ?? ''));
+        $bodyHtml = $this->normalizeMailHtml($this->rsvpMailForm['body_html'] ?? '');
+
+        validator([
+            'subject' => $subject,
+            'body_html' => $bodyHtml,
+        ], [
+            'subject' => ['required', 'string', 'max:255'],
+            'body_html' => ['required', 'string'],
+        ])->validate();
+
+        $this->getRecord()->forceFill([
+            'rsvp_invitation_email_subject' => $subject,
+            'rsvp_invitation_email_html' => $bodyHtml,
+        ])->save();
+
+        $this->record = $this->getRecord()->refresh();
+    }
+
+    protected function rsvpInvitationTemplate(): ?Template
+    {
+        return Template::query()
+            ->where('slug', 'mail-rsvp-invitation')
+            ->where('language', 'en')
+            ->first();
+    }
+
+    protected function defaultRsvpInvitationBodyHtml(): string
+    {
+        return <<<'HTML'
+<p>Dear {{ guest_names }},</p>
+
+<p>
+    We are so happy to invite you to celebrate our wedding with us.
+</p>
+
+<p>
+    You can find all the event information on our wedding website:
+    {{ website_link }}
+</p>
+
+<p>
+    Please confirm your attendance using your personal RSVP link:
+    {{ rsvp_link }}
+</p>
+
+<p>
+    Date: {{ event_date }}<br>
+    Location: {{ event_location }}
+</p>
+
+<p>With love,<br>{{ couple_name }}</p>
+
+<p>
+    Main contact:<br>
+    {{ contact_name }}<br>
+    {{ contact_email }}<br>
+    {{ contact_phone }}
+</p>
+HTML;
+    }
+
+    protected function renderProjectTemplate(string $content, bool $escapeValues = true): string
+    {
+        $project = $this->getRecord();
+        $contactName = trim(collect([$project->first_name, $project->last_name])->filter()->implode(' '));
+
+        $replacements = [
+            'couple_name' => $project->coupleNames() ?: $project->name,
+            'couple_names' => $project->coupleNames() ?: $project->name,
+            'event_date' => $project->event_start_date
+                ? $project->event_start_date->format('F j, Y') . ($project->event_end_date && ! $project->event_start_date->isSameDay($project->event_end_date) ? ' - ' . $project->event_end_date->format('F j, Y') : '')
+                : 'Date to be confirmed',
+            'rsvp_deadline_date' => $this->rsvpDeadlineDate(),
+            'event_location' => $project->displayLocationLabel(),
+            'contact_name' => $contactName !== '' ? $contactName : $project->name,
+            'contact_email' => $project->email ?: $project->secondary_email ?: '',
+            'contact_phone' => $project->phone ?: $project->secondary_phone ?: '',
+        ];
+
+        foreach ($replacements as $key => $value) {
+            $value = $escapeValues ? e($value) : $value;
+
+            $content = str_replace([
+                '{{ ' . $key . ' }}',
+                '{{' . $key . '}}',
+            ], $value, $content);
+        }
+
+        return $content;
+    }
+
+    protected function rsvpDeadlineDate(): string
+    {
+        $eventDate = $this->getRecord()->event_start_date ?: $this->getRecord()->event_date;
+
+        return $eventDate
+            ? $eventDate->copy()->subMonthsNoOverflow(3)->format('F j, Y')
+            : 'Date to be confirmed';
+    }
+
+    protected function normalizeMailHtml(mixed $html): string
+    {
+        if (is_array($html)) {
+            $html = RichContentRenderer::make($html)->toHtml();
+        }
+
+        return RichEditorHtmlNormalizer::normalizeListItems(trim((string) $html));
+    }
+
+    protected function guestHasValidEmail(Guest $guest): bool
+    {
+        return is_string($guest->email) && filter_var($guest->email, FILTER_VALIDATE_EMAIL);
     }
 
     protected function resetGuestForm(): void

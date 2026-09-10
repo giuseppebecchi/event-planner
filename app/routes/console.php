@@ -15,3 +15,7 @@ Schedule::command('payments:send-reminders')
 Schedule::command('leads:send-follow-ups')
     ->dailyAt('09:15')
     ->withoutOverlapping();
+
+Schedule::command('rsvp:send-scheduled-invitations')
+    ->everyMinute()
+    ->withoutOverlapping();

@@ -94,6 +94,8 @@ class Project extends Model
         'recap_left_rail_image_path',
         'rsvp_configuration',
         'rsvp_submissions_locked',
+        'rsvp_invitation_email_subject',
+        'rsvp_invitation_email_html',
         'website_json',
     ];
 

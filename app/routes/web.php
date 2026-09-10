@@ -10,6 +10,7 @@ use App\Http\Controllers\ProjectPaymentsPdfController;
 use App\Http\Controllers\ProjectSeatingPlanPdfController;
 use App\Http\Controllers\PublicLeadFormController;
 use App\Http\Controllers\PublicGuestRsvpController;
+use App\Http\Controllers\PublicProjectRsvpLookupController;
 use App\Http\Controllers\PublicProjectWebsiteController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +27,15 @@ Route::get('/rsvp/{token}', [PublicGuestRsvpController::class, 'show'])
 
 Route::post('/rsvp/{token}', [PublicGuestRsvpController::class, 'submit'])
     ->name('public.rsvp.submit');
+
+Route::get('/event/{projectAlias}/rsvp', [PublicProjectRsvpLookupController::class, 'show'])
+    ->name('public.project-rsvp.lookup');
+
+Route::post('/event/{projectAlias}/rsvp', [PublicProjectRsvpLookupController::class, 'submit'])
+    ->name('public.project-rsvp.lookup.submit');
+
+Route::get('/event/{projectAlias}/rsvp/{rsvpToken}', PublicProjectWebsiteController::class)
+    ->name('public.project-website.rsvp');
 
 Route::get('/event/{projectAlias}', PublicProjectWebsiteController::class)
     ->name('public.project-website.show');
