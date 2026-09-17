@@ -6,8 +6,12 @@ use App\Filament\Resources\ProjectResource;
 use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDateEditor;
 use App\Models\CategoryBudget;
 use App\Models\CategoryBudgetSupplier;
-use App\Models\Project;
 use App\Models\ProjectChecklistOption;
+use App\Support\RichEditorHtmlNormalizer;
+use Filament\Actions\Action;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
@@ -25,17 +29,17 @@ class ViewProject extends ViewRecord
 
     protected Width|string|null $maxContentWidth = Width::Full;
 
-    public function getTitle(): string | Htmlable
+    public function getTitle(): string|Htmlable
     {
         return (string) $this->getRecordTitle();
     }
 
-    public function getHeading(): string | Htmlable | null
+    public function getHeading(): string|Htmlable|null
     {
         return null;
     }
 
-    public function getSubheading(): string | Htmlable | null
+    public function getSubheading(): string|Htmlable|null
     {
         return null;
     }
@@ -48,6 +52,65 @@ class ViewProject extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [];
+    }
+
+    public function manageInternalNotesAction(): Action
+    {
+        return Action::make('manageInternalNotes')
+            ->label('Manage notes')
+            ->modalHeading('Internal notes')
+            ->modalDescription('These notes are private and are never visible to the client.')
+            ->modalWidth(Width::FiveExtraLarge)
+            ->modalSubmitActionLabel('Save notes')
+            ->visible(fn (): bool => ! auth()->user()?->isCustomer())
+            ->fillForm(fn (): array => [
+                'internal_notes' => $this->getRecord()->internal_notes ?? '',
+            ])
+            ->form([
+                RichEditor::make('internal_notes')
+                    ->label('Notes')
+                    ->hiddenLabel()
+                    ->toolbarButtons([
+                        'bold',
+                        'italic',
+                        'underline',
+                        'strike',
+                        'h2',
+                        'h3',
+                        'bulletList',
+                        'orderedList',
+                        'blockquote',
+                        'link',
+                        'undo',
+                        'redo',
+                    ])
+                    ->columnSpanFull(),
+            ])
+            ->action(function (array $data): void {
+                abort_if(auth()->user()?->isCustomer(), 403);
+
+                $this->getRecord()->forceFill([
+                    'internal_notes' => $this->normalizeInternalNotes($data['internal_notes'] ?? null),
+                ])->save();
+
+                $this->record = $this->getRecord()->fresh();
+
+                Notification::make()
+                    ->title('Internal notes saved')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    protected function normalizeInternalNotes(mixed $html): ?string
+    {
+        if (is_array($html)) {
+            $html = RichContentRenderer::make($html)->toHtml();
+        }
+
+        $html = RichEditorHtmlNormalizer::normalizeListItems(trim((string) $html));
+
+        return trim(strip_tags(html_entity_decode($html))) !== '' ? $html : null;
     }
 
     public function getBudgetSummary(): array
@@ -258,13 +321,13 @@ class ViewProject extends ViewRecord
             [
                 'label' => 'Budget categories',
                 'value' => $budgetSummary['categories_count'],
-                'caption' => $budgetSummary['confirmed_count'] . ' confirmed',
+                'caption' => $budgetSummary['confirmed_count'].' confirmed',
                 'tone' => 'olive',
             ],
             [
                 'label' => 'Supplier proposals',
                 'value' => $supplierSummary['total'],
-                'caption' => $supplierSummary['awaiting'] . ' awaiting',
+                'caption' => $supplierSummary['awaiting'].' awaiting',
                 'tone' => 'blue',
             ],
             [

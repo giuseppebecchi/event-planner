@@ -48,4 +48,9 @@ class Category extends Model
     {
         return $this->hasMany(Checklist::class);
     }
+
+    public function strategicInfos(): HasMany
+    {
+        return $this->hasMany(StrategicInfo::class);
+    }
 }

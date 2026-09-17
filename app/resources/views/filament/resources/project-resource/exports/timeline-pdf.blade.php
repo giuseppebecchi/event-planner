@@ -312,6 +312,40 @@
         </section>
     @endif
 
+    @if (($recapStrategicInfos ?? collect())->isNotEmpty())
+        <section class="page">
+            <div class="page-shell">
+                <aside class="left-rail {{ $leftRailImage ? 'has-image' : '' }}" @if ($leftRailImage) style="background-image: url('{{ $leftRailImage }}')" @endif>
+                    <div class="left-rail-overlay"></div>
+                    <div class="left-rail-copy">Strategic information</div>
+                </aside>
+
+                <div class="page-main">
+                    <div class="corner-flower-bottom"></div>
+                    <div class="section-band">Strategic information</div>
+                    <p class="section-copy">Completed operational choices for confirmed suppliers.</p>
+
+                    @foreach ($recapStrategicInfos as $info)
+                        <div class="recap-card">
+                            <h3 class="recap-title">{{ $info['title'] }}</h3>
+                            <p class="recap-meta">{{ $info['category'] ?: 'Event information' }}</p>
+                            @if ($info['content'])
+                                <div class="recap-html">{!! $info['content'] !!}</div>
+                            @endif
+                            @if (! empty($info['images']))
+                                <div class="item-images">
+                                    @foreach ($info['images'] as $image)
+                                        <span class="item-image"><img src="{{ $image }}" alt=""></span>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
+
     @foreach (($seatingPlans ?? collect()) as $plan)
         <section class="page">
             <div class="page-shell">

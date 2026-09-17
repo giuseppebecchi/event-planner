@@ -16,6 +16,8 @@
         $checklistSections = $this->getChecklistSections();
         $supplierOptions = $this->getSupplierOptions();
         $commissionSummary = $this->getCommissionSummary();
+        $strategicInfos = $this->getStrategicInfos();
+        $canManageStrategicInfos = $this->canManageStrategicInfos();
         $isCustomer = auth()->user()?->isCustomer();
     @endphp
 
@@ -276,15 +278,97 @@
             box-shadow: 0 20px 42px rgba(45, 42, 38, 0.06);
         }
 
+        .wm-strategic-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem;
+            align-self: stretch;
+        }
+
+        .wm-strategic-card {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: space-between;
+            gap: 1rem;
+            min-height: 100%;
+            padding: 1rem 1.1rem;
+            border: 1px solid transparent;
+            border-radius: 1.2rem;
+            box-shadow: 0 16px 34px rgba(45, 42, 38, 0.06);
+        }
+
+        .wm-strategic-card.is-empty {
+            border-color: #efb7b1;
+            background: #fcebea;
+        }
+
+        .wm-strategic-card.is-in-progress {
+            border-color: #ecc591;
+            background: #fff3df;
+        }
+
+        .wm-strategic-card.is-not-required {
+            border-color: #d9d7d4;
+            background: #efefee;
+        }
+
+        .wm-strategic-card.is-completed {
+            border-color: #afd2b2;
+            background: #e9f5e9;
+        }
+
+        .wm-strategic-copy {
+            min-width: 0;
+        }
+
+        .wm-strategic-title {
+            margin: 0;
+            color: #302c28;
+            font-size: 1rem;
+            font-weight: 800;
+        }
+
+        .wm-strategic-status {
+            margin: 0.3rem 0 0;
+            color: #716961;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .wm-strategic-button {
+            align-self: flex-end;
+            flex: 0 0 auto;
+            min-height: 2.45rem;
+            padding: 0 0.9rem;
+            border: 1px solid rgba(45, 42, 38, 0.14);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.78);
+            color: #403a35;
+            font-size: 0.72rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .wm-strategic-button:hover {
+            background: #fff;
+        }
+
         .wm-panel {
             padding: 1.2rem 1.25rem;
         }
 
         .wm-head {
-            display: flex;
-            align-items: start;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: stretch;
             gap: 1rem;
+        }
+
+        .wm-head.has-strategic-info {
+            grid-template-columns: minmax(18rem, 1.25fr) minmax(26rem, 1.35fr) auto;
         }
 
         .wm-link {
@@ -1268,6 +1352,8 @@
         }
 
         @media (max-width: 1100px) {
+            .wm-head,
+            .wm-head.has-strategic-info,
             .wm-top-kpis,
             .wm-dashboard-grid,
             .wm-two-col,
@@ -1280,6 +1366,16 @@
             .wm-gallery-grid {
                 grid-template-columns: 1fr;
             }
+
+            .wm-strategic-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 680px) {
+            .wm-strategic-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 
@@ -1290,12 +1386,34 @@
         ])
 
         <section class="wm-card wm-panel">
-            <div class="wm-head">
+            <div class="wm-head {{ $strategicInfos->isNotEmpty() ? 'has-strategic-info' : '' }}">
                 <div>
                     <a href="{{ \App\Filament\Resources\ProjectResource::getUrl('suppliers', ['record' => $record]) }}" class="wm-link">← Back to suppliers</a>
                     <h2 class="wm-title" style="margin-top:.45rem;">{{ $summary['supplier'] }}</h2>
                     <p class="wm-copy">{{ $summary['category'] }} · confirmed supplier workspace for this project.</p>
                 </div>
+                @if ($strategicInfos->isNotEmpty())
+                    <div class="wm-strategic-grid" aria-label="Strategic information">
+                        @foreach ($strategicInfos as $strategicInfo)
+                            @php
+                                $strategicState = str_replace('_', '-', $strategicInfo->displayState());
+                            @endphp
+                            <article class="wm-strategic-card is-{{ $strategicState }}" wire:key="strategic-info-{{ $strategicInfo->id }}">
+                                <div class="wm-strategic-copy">
+                                    <h3 class="wm-strategic-title">{{ $strategicInfo->title }}</h3>
+                                    <p class="wm-strategic-status">{{ $strategicInfo->displayStateLabel() }}</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="wm-strategic-button"
+                                    wire:click="mountAction('{{ $canManageStrategicInfos ? 'manageStrategicInfo' : 'viewStrategicInfo' }}', { info: {{ $strategicInfo->id }} })"
+                                >
+                                    {{ $canManageStrategicInfos ? 'Manage' : 'View' }}
+                                </button>
+                            </article>
+                        @endforeach
+                    </div>
+                @endif
                 <div class="wm-quote-badge">
                     <p class="wm-quote-badge-label">Confirmed quote</p>
                     <p class="wm-quote-badge-value">{{ $summary['confirmed_amount'] !== null ? 'EUR ' . number_format($summary['confirmed_amount'], 2, ',', '.') : '—' }}</p>

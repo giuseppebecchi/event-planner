@@ -2,13 +2,14 @@
 
 namespace App\Filament\Resources\ProjectResource\Pages;
 
-use Barryvdh\DomPDF\Facade\Pdf;
 use App\Filament\Resources\ProjectResource;
 use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDateEditor;
 use App\Models\CategoryBudgetSupplier;
 use App\Models\Project;
 use App\Models\ProjectChecklistOption;
+use App\Models\ProjectStrategicInfo;
 use App\Models\ProjectTimeline;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
@@ -22,8 +23,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ViewProjectTimeline extends Page
 {
-    use InteractsWithRecord;
     use InteractsWithProjectDateEditor;
+    use InteractsWithRecord;
     use WithFileUploads;
 
     protected const DAILY_NOTES_TITLE = 'Daily notes';
@@ -191,6 +192,7 @@ class ViewProjectTimeline extends Page
             'coverImage' => $coverImage,
             'leftRailImage' => $leftRailImage,
             'recapChecklistItems' => $this->getRecapChecklistPdfItems(),
+            'recapStrategicInfos' => $this->getRecapStrategicInfoPdfItems(),
             'seatingPlans' => $seatingPlans,
             'generatedAt' => now()->format('F j, Y'),
         ])->setPaper('a4', 'portrait');
@@ -240,6 +242,37 @@ class ViewProjectTimeline extends Page
                 'details' => $item->details,
                 'supplier_name' => $item->supplier?->name,
                 'due_date' => $item->due_date?->format('F j, Y'),
+            ]);
+    }
+
+    public function getRecapStrategicInfos(): Collection
+    {
+        return $this->getRecord()
+            ->strategicInfos()
+            ->with(['category', 'strategicInfo'])
+            ->where('status', ProjectStrategicInfo::STATUS_COMPLETED)
+            ->get()
+            ->sortBy(fn (ProjectStrategicInfo $info): string => sprintf(
+                '%s-%08d-%s',
+                mb_strtolower($info->category?->label ?? ''),
+                $info->strategicInfo?->order ?? PHP_INT_MAX,
+                mb_strtolower($info->title),
+            ))
+            ->values();
+    }
+
+    protected function getRecapStrategicInfoPdfItems(): Collection
+    {
+        return $this->getRecapStrategicInfos()
+            ->map(fn (ProjectStrategicInfo $info): array => [
+                'title' => $info->title,
+                'category' => $info->category?->label,
+                'content' => $info->content,
+                'images' => collect($info->image_paths ?? [])
+                    ->map(fn (string $path): ?string => $this->imagePathToDataUri($path))
+                    ->filter()
+                    ->values()
+                    ->all(),
             ]);
     }
 
@@ -808,7 +841,7 @@ class ViewProjectTimeline extends Page
             return null;
         }
 
-        return $this->localFileToDataUri(public_path('images/timeline-icons/' . $filename));
+        return $this->localFileToDataUri(public_path('images/timeline-icons/'.$filename));
     }
 
     protected function localFileToDataUri(string $path): ?string
@@ -824,7 +857,7 @@ class ViewProjectTimeline extends Page
             return null;
         }
 
-        return 'data:' . $mimeType . ';base64,' . base64_encode($contents);
+        return 'data:'.$mimeType.';base64,'.base64_encode($contents);
     }
 
     protected function imagePathToDataUri(string $path): ?string
@@ -841,6 +874,6 @@ class ViewProjectTimeline extends Page
             return null;
         }
 
-        return 'data:' . $mimeType . ';base64,' . base64_encode($contents);
+        return 'data:'.$mimeType.';base64,'.base64_encode($contents);
     }
 }

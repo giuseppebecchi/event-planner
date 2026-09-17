@@ -13,7 +13,14 @@ use App\Models\Project;
 use App\Models\ProjectChecklistOption;
 use App\Models\ProjectDocument;
 use App\Models\ProjectImage;
+use App\Models\ProjectStrategicInfo;
 use App\Models\ProjectSupplierCommunication;
+use App\Support\RichEditorHtmlNormalizer;
+use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
@@ -27,8 +34,8 @@ use Livewire\WithFileUploads;
 
 class ManageProjectConfirmedSupplier extends Page
 {
-    use InteractsWithRecord;
     use InteractsWithProjectDateEditor;
+    use InteractsWithRecord;
     use WithFileUploads;
 
     protected static string $resource = ProjectResource::class;
@@ -171,6 +178,8 @@ class ManageProjectConfirmedSupplier extends Page
             $this->getRecord()->refresh();
         }
 
+        $this->getRecord()->syncStrategicInfosFromTemplates();
+
         $this->loadCommissionForm();
         $this->loadChecklistForms();
 
@@ -238,6 +247,158 @@ class ManageProjectConfirmedSupplier extends Page
             'images_total' => $this->getImages()->count(),
             'checklist_total' => $this->getSupplierChecklistItems()->count(),
         ];
+    }
+
+    public function canManageStrategicInfos(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) ($user?->isSuperAdmin() || $user?->isAdmin());
+    }
+
+    public function getStrategicInfos(): Collection
+    {
+        return $this->getRecord()
+            ->strategicInfos()
+            ->with('strategicInfo')
+            ->where('category_id', $this->proposalRecord->category_id)
+            ->get()
+            ->sortBy(fn (ProjectStrategicInfo $info): string => sprintf(
+                '%08d-%s',
+                $info->strategicInfo?->order ?? PHP_INT_MAX,
+                mb_strtolower($info->title),
+            ))
+            ->values();
+    }
+
+    public function manageStrategicInfoAction(): Action
+    {
+        return Action::make('manageStrategicInfo')
+            ->label('Manage')
+            ->modalHeading(fn (array $arguments): string => $this->findStrategicInfo((int) ($arguments['info'] ?? 0))->title)
+            ->modalDescription('Add the operational details and images, then choose the current completion state.')
+            ->modalWidth(Width::FiveExtraLarge)
+            ->modalSubmitActionLabel('Save')
+            ->visible(fn (): bool => $this->canManageStrategicInfos())
+            ->fillForm(fn (array $arguments): array => $this->strategicInfoFormData(
+                $this->findStrategicInfo((int) ($arguments['info'] ?? 0))
+            ))
+            ->form($this->strategicInfoFormSchema())
+            ->action(function (array $data, array $arguments): void {
+                abort_unless($this->canManageStrategicInfos(), 403);
+
+                $info = $this->findStrategicInfo((int) ($arguments['info'] ?? 0));
+                $oldImagePaths = collect($info->image_paths ?? [])->filter()->values();
+                $newImagePaths = collect($data['image_paths'] ?? [])->filter()->values();
+                $status = $data['status'] ?? ProjectStrategicInfo::STATUS_DRAFT;
+
+                $info->fill([
+                    'content' => $this->normalizeStrategicInfoHtml($data['content'] ?? null),
+                    'image_paths' => $newImagePaths->all(),
+                    'status' => $status,
+                    'completed_at' => $status === ProjectStrategicInfo::STATUS_COMPLETED
+                        ? ($info->completed_at ?? now())
+                        : null,
+                ])->save();
+
+                $removedImagePaths = $oldImagePaths->diff($newImagePaths)->all();
+
+                if ($removedImagePaths !== []) {
+                    Storage::disk('public')->delete($removedImagePaths);
+                }
+
+                $this->getRecord()->unsetRelation('strategicInfos');
+
+                Notification::make()
+                    ->title('Strategic info saved')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    public function viewStrategicInfoAction(): Action
+    {
+        return Action::make('viewStrategicInfo')
+            ->label('View')
+            ->modalHeading(fn (array $arguments): string => $this->findStrategicInfo((int) ($arguments['info'] ?? 0))->title)
+            ->modalDescription(fn (array $arguments): string => 'Status: '.$this->findStrategicInfo((int) ($arguments['info'] ?? 0))->displayStateLabel())
+            ->modalWidth(Width::FiveExtraLarge)
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Close')
+            ->visible(fn (): bool => ! $this->canManageStrategicInfos())
+            ->fillForm(fn (array $arguments): array => $this->strategicInfoFormData(
+                $this->findStrategicInfo((int) ($arguments['info'] ?? 0))
+            ))
+            ->form($this->strategicInfoFormSchema(disabled: true));
+    }
+
+    protected function strategicInfoFormSchema(bool $disabled = false): array
+    {
+        return [
+            RichEditor::make('content')
+                ->label('Information')
+                ->toolbarButtons([
+                    'bold',
+                    'italic',
+                    'underline',
+                    'strike',
+                    'h2',
+                    'h3',
+                    'bulletList',
+                    'orderedList',
+                    'blockquote',
+                    'link',
+                    'undo',
+                    'redo',
+                ])
+                ->disabled($disabled)
+                ->columnSpanFull(),
+            FileUpload::make('image_paths')
+                ->label('Images')
+                ->disk('public')
+                ->directory('projects/strategic-infos')
+                ->image()
+                ->multiple()
+                ->reorderable()
+                ->openable()
+                ->downloadable()
+                ->maxSize(20480)
+                ->disabled($disabled)
+                ->columnSpanFull(),
+            Select::make('status')
+                ->label('Status')
+                ->options(ProjectStrategicInfo::STATUS_OPTIONS)
+                ->required()
+                ->disabled($disabled),
+        ];
+    }
+
+    protected function strategicInfoFormData(ProjectStrategicInfo $info): array
+    {
+        return [
+            'content' => $info->content ?? '',
+            'image_paths' => $info->image_paths ?? [],
+            'status' => $info->status,
+        ];
+    }
+
+    protected function findStrategicInfo(int $infoId): ProjectStrategicInfo
+    {
+        return $this->getRecord()
+            ->strategicInfos()
+            ->where('category_id', $this->proposalRecord->category_id)
+            ->findOrFail($infoId);
+    }
+
+    protected function normalizeStrategicInfoHtml(mixed $html): ?string
+    {
+        if (is_array($html)) {
+            $html = RichContentRenderer::make($html)->toHtml();
+        }
+
+        $html = RichEditorHtmlNormalizer::normalizeListItems(trim((string) $html));
+
+        return trim(strip_tags(html_entity_decode($html))) !== '' ? $html : null;
     }
 
     public function getCommunications(): Collection
@@ -359,7 +520,7 @@ class ManageProjectConfirmedSupplier extends Page
                 'key' => 'documents',
                 'label' => 'Documents',
                 'value' => $this->proposalRecord->projectDocuments->count(),
-                'meta' => $quoteCount . ' quote files · ' . $this->getDocumentsByType(ProjectDocument::TYPE_CONTRACT)->count() . ' contracts',
+                'meta' => $quoteCount.' quote files · '.$this->getDocumentsByType(ProjectDocument::TYPE_CONTRACT)->count().' contracts',
             ],
             [
                 'key' => 'photogallery',
@@ -370,8 +531,8 @@ class ManageProjectConfirmedSupplier extends Page
             [
                 'key' => 'payments',
                 'label' => 'Payments',
-                'value' => 'EUR ' . number_format((float) $this->proposalRecord->payments->sum('amount'), 2, ',', '.'),
-                'meta' => $unpaidPayments . ' unpaid' . ($nextPayment?->due_date ? ' · next ' . $nextPayment->due_date->format('d/m/Y') : ''),
+                'value' => 'EUR '.number_format((float) $this->proposalRecord->payments->sum('amount'), 2, ',', '.'),
+                'meta' => $unpaidPayments.' unpaid'.($nextPayment?->due_date ? ' · next '.$nextPayment->due_date->format('d/m/Y') : ''),
             ],
             [
                 'key' => 'checklist',
@@ -395,8 +556,8 @@ class ManageProjectConfirmedSupplier extends Page
             $cards[] = [
                 'key' => 'commissions',
                 'label' => 'Commissions',
-                'value' => 'EUR ' . number_format($commissionAmount, 2, ',', '.'),
-                'meta' => 'Paid EUR ' . number_format($commissionPaid, 2, ',', '.') . ' · balance EUR ' . number_format(max(0, $commissionAmount - $commissionPaid), 2, ',', '.'),
+                'value' => 'EUR '.number_format($commissionAmount, 2, ',', '.'),
+                'meta' => 'Paid EUR '.number_format($commissionPaid, 2, ',', '.').' · balance EUR '.number_format(max(0, $commissionAmount - $commissionPaid), 2, ',', '.'),
                 'footer' => 'Not visible to clients',
             ];
         }
@@ -588,7 +749,7 @@ class ManageProjectConfirmedSupplier extends Page
                 'items' => $items->where('assigned_to', 'client')->values(),
             ],
             [
-                'key' => 'supplier-' . ($this->proposalRecord->supplier_id ?? 'unassigned'),
+                'key' => 'supplier-'.($this->proposalRecord->supplier_id ?? 'unassigned'),
                 'title' => mb_strtoupper($supplierName),
                 'subtitle' => $supplierSubtitle,
                 'avatar' => $this->getInitials($supplierName),
@@ -797,7 +958,7 @@ class ManageProjectConfirmedSupplier extends Page
             : null;
 
         $anticipation = ($value && $value > 0 && $unit)
-            ? $value . ' ' . $unit
+            ? $value.' '.$unit
             : null;
 
         $item->forceFill([
@@ -1121,7 +1282,7 @@ class ManageProjectConfirmedSupplier extends Page
             $receiptDocument = $this->proposalRecord->projectDocuments()->create([
                 'project_id' => $this->getRecord()->getKey(),
                 'supplier_id' => $this->proposalRecord->supplier_id,
-                'title' => 'Payment receipt - ' . $paymentReason,
+                'title' => 'Payment receipt - '.$paymentReason,
                 'document_type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
                 'type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
                 'file_path' => $storedPath,
@@ -1210,7 +1371,7 @@ class ManageProjectConfirmedSupplier extends Page
             $receiptDocument = $this->proposalRecord->projectDocuments()->create([
                 'project_id' => $this->getRecord()->getKey(),
                 'supplier_id' => $this->proposalRecord->supplier_id,
-                'title' => 'Payment receipt - ' . $payment->reason,
+                'title' => 'Payment receipt - '.$payment->reason,
                 'document_type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
                 'type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
                 'file_path' => $storedPath,
@@ -1326,7 +1487,7 @@ class ManageProjectConfirmedSupplier extends Page
                 Storage::disk('public')->delete($payment->paymentReceiptDocument->file_path);
 
                 $payment->paymentReceiptDocument->update([
-                    'title' => 'Payment receipt - ' . $data['form']['reason'],
+                    'title' => 'Payment receipt - '.$data['form']['reason'],
                     'file_path' => $storedPath,
                     'description' => $data['form']['notes'] ?: null,
                 ]);
@@ -1334,7 +1495,7 @@ class ManageProjectConfirmedSupplier extends Page
                 $receiptDocument = $this->proposalRecord->projectDocuments()->create([
                     'project_id' => $this->getRecord()->getKey(),
                     'supplier_id' => $this->proposalRecord->supplier_id,
-                    'title' => 'Payment receipt - ' . $data['form']['reason'],
+                    'title' => 'Payment receipt - '.$data['form']['reason'],
                     'document_type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
                     'type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
                     'file_path' => $storedPath,

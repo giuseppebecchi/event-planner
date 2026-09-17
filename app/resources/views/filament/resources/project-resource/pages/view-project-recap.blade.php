@@ -3,6 +3,7 @@
         $record = $this->getRecord();
         $days = $this->getTimelineDays();
         $recapChecklistItems = $this->getRecapChecklistItems();
+        $recapStrategicInfos = $this->getRecapStrategicInfos();
         $seatingPlans = $this->getRecapSeatingPlans();
         $confirmedSuppliers = $this->getRecapConfirmedSuppliers();
         $railImageUrl = $this->getRecapRailImageUrl();
@@ -314,6 +315,8 @@
             border-top: 1px solid #ece5dd;
         }
         .wm-recap-checklist-item:first-child { border-top: 0; padding-top: 0; }
+        .wm-recap-strategic-images { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 0.65rem; margin-top: 0.75rem; }
+        .wm-recap-strategic-images img { width: 100%; aspect-ratio: 4 / 3; border-radius: 0.75rem; object-fit: cover; border: 1px solid #e5d8cb; }
         .wm-recap-html {
             margin-top: 0.35rem;
             color: #4d473f;
@@ -559,6 +562,33 @@
                                         <div class="wm-recap-html">{!! $item->response !!}</div>
                                     @elseif ($item->details)
                                         <div class="wm-recap-html">{!! $item->details !!}</div>
+                                    @endif
+                                </article>
+                            @endforeach
+                        </div>
+                    </div>
+                    </article>
+                @endif
+
+                @if ($recapStrategicInfos->isNotEmpty())
+                    <article class="wm-recap-pdf-page">
+                    <div class="wm-recap-rail"><span>Strategic information</span></div>
+                    <div class="wm-recap-paper">
+                        <div class="wm-recap-section-band">Strategic information</div>
+                        <div class="wm-recap-checklist-list">
+                            @foreach ($recapStrategicInfos as $info)
+                                <article class="wm-recap-checklist-item">
+                                    <p class="wm-recap-item-title">{{ $info->title }}</p>
+                                    <p class="wm-recap-meta">{{ $info->category?->label ?: 'Event information' }}</p>
+                                    @if ($info->content)
+                                        <div class="wm-recap-html">{!! $info->content !!}</div>
+                                    @endif
+                                    @if (collect($info->image_paths)->filter()->isNotEmpty())
+                                        <div class="wm-recap-strategic-images">
+                                            @foreach ($info->image_paths as $imagePath)
+                                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($imagePath) }}" alt="">
+                                            @endforeach
+                                        </div>
                                     @endif
                                 </article>
                             @endforeach

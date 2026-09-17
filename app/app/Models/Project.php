@@ -3,13 +3,13 @@
 namespace App\Models;
 
 use Carbon\CarbonInterface;
-use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -133,6 +133,7 @@ class Project extends Model
 
         static::created(function (Project $project): void {
             $project->syncChecklistOptionsFromTemplates();
+            $project->syncStrategicInfosFromTemplates();
         });
 
         static::saved(function (Project $project): void {
@@ -693,6 +694,45 @@ class Project extends Model
         return $this->hasMany(ProjectSupplierCommunication::class);
     }
 
+    public function strategicInfos(): HasMany
+    {
+        return $this->hasMany(ProjectStrategicInfo::class);
+    }
+
+    public function syncStrategicInfosFromTemplates(): void
+    {
+        if (! $this->exists) {
+            return;
+        }
+
+        StrategicInfo::query()
+            ->orderBy('order')
+            ->orderBy('title')
+            ->each(function (StrategicInfo $definition): void {
+                $instance = $this->strategicInfos()->firstOrNew([
+                    'strategic_info_id' => $definition->id,
+                ]);
+
+                if (! $instance->exists || $instance->isPristine()) {
+                    $instance->fill([
+                        'category_id' => $definition->category_id,
+                        'title' => $definition->title,
+                        'content' => $definition->default_value,
+                    ]);
+                }
+
+                if (! $instance->exists) {
+                    $instance->status = ProjectStrategicInfo::STATUS_DRAFT;
+                }
+
+                if ($instance->isDirty()) {
+                    $instance->save();
+                }
+            });
+
+        $this->unsetRelation('strategicInfos');
+    }
+
     public function rsvpConfigurationFields(): array
     {
         $fields = $this->rsvp_configuration['fields'] ?? null;
@@ -835,7 +875,7 @@ class Project extends Model
             ->when($ignoreProjectId, fn ($query) => $query->whereKeyNot($ignoreProjectId))
             ->where('alias', $alias)
             ->exists()) {
-            $alias = $baseAlias . '-' . $suffix;
+            $alias = $baseAlias.'-'.$suffix;
             $suffix++;
         }
 
@@ -857,7 +897,7 @@ class Project extends Model
                 'text_color' => '#3f3434',
                 'font_preset' => 'allura',
                 'signature' => $partners,
-                'footer_text' => 'With love, ' . ($partners ?: 'the couple'),
+                'footer_text' => 'With love, '.($partners ?: 'the couple'),
             ],
             'home' => [
                 'enabled' => true,
@@ -866,8 +906,8 @@ class Project extends Model
                 'subtitle' => 'We cannot wait to celebrate with you.',
                 'date' => $date,
                 'location' => $location,
-                'hero_image' => $project?->cover_image_path ? '/storage/' . $project->cover_image_path : '',
-                'hero_images' => $project?->cover_image_path ? [['url' => '/storage/' . $project->cover_image_path, 'caption' => '']] : [],
+                'hero_image' => $project?->cover_image_path ? '/storage/'.$project->cover_image_path : '',
+                'hero_images' => $project?->cover_image_path ? [['url' => '/storage/'.$project->cover_image_path, 'caption' => '']] : [],
                 'intro_title' => $partners,
                 'intro_text' => '',
                 'intro_image' => '',
@@ -901,10 +941,9 @@ class Project extends Model
                 $isDefault = (bool) ($option['default'] ?? false);
 
                 //if not default continue
-                if(! $isDefault) {
+                if (! $isDefault) {
                     continue;
                 }
-
 
                 $categoryBudget = $checklist->category_id ? $categoryBudgets->get($checklist->category_id) : null;
 

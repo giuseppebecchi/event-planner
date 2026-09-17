@@ -523,6 +523,73 @@
             color: #8b847d;
         }
 
+        .wm-event-internal-notes {
+            border-color: rgba(201, 169, 106, 0.32);
+            background: linear-gradient(180deg, rgba(255, 251, 244, 0.98), rgba(255, 255, 255, 0.98));
+        }
+
+        .wm-event-internal-notes-content {
+            position: relative;
+            color: #514a44;
+            font-size: 0.92rem;
+            line-height: 1.7;
+        }
+
+        .wm-event-internal-notes-content.is-collapsed {
+            max-height: 8.2rem;
+            overflow: hidden;
+        }
+
+        .wm-event-internal-notes-content.is-collapsed::after {
+            content: "";
+            position: absolute;
+            inset: auto 0 0;
+            height: 3rem;
+            background: linear-gradient(transparent, rgba(255, 255, 255, 0.98));
+            pointer-events: none;
+        }
+
+        .wm-event-internal-notes-content > :first-child {
+            margin-top: 0;
+        }
+
+        .wm-event-internal-notes-content > :last-child {
+            margin-bottom: 0;
+        }
+
+        .wm-event-internal-notes-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.8rem;
+            margin-top: 0.9rem;
+        }
+
+        .wm-event-notes-toggle {
+            border: 0;
+            background: transparent;
+            padding: 0;
+            color: #2d7a39;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .wm-event-notes-manage {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 2.35rem;
+            padding: 0 0.9rem;
+            border: 1px solid rgba(46, 74, 98, 0.18);
+            border-radius: 999px;
+            background: #2e4a62;
+            color: #fff;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
         @media (max-width: 1280px) {
             .wm-event-grid {
                 grid-template-columns: 1fr;
@@ -680,6 +747,53 @@
             </div>
 
             <div class="wm-event-stack">
+                @if (! auth()->user()?->isCustomer())
+                    @php
+                        $internalNotes = (string) ($record->internal_notes ?? '');
+                        $internalNotesText = trim(strip_tags(html_entity_decode($internalNotes)));
+                        $internalNotesHtml = strip_tags($internalNotes) === $internalNotes
+                            ? nl2br(e($internalNotes))
+                            : $internalNotes;
+                        $internalNotesShouldCollapse = mb_strlen($internalNotesText) > 320;
+                    @endphp
+                    <article
+                        class="wm-event-card wm-event-panel wm-event-internal-notes"
+                        id="internal-notes"
+                        x-data="{ expanded: false }"
+                    >
+                        <div class="wm-event-panel-header">
+                            <div>
+                                <h3 class="wm-event-panel-title">Internal notes</h3>
+                                <span class="wm-event-panel-note">Not visible to clients</span>
+                            </div>
+                        </div>
+
+                        @if ($internalNotesText !== '')
+                            <div
+                                class="wm-event-internal-notes-content"
+                                @if ($internalNotesShouldCollapse) x-bind:class="{ 'is-collapsed': ! expanded }" @endif
+                            >
+                                {!! $internalNotesHtml !!}
+                            </div>
+                        @else
+                            <div class="wm-event-empty">No internal notes yet.</div>
+                        @endif
+
+                        <div class="wm-event-internal-notes-actions">
+                            @if ($internalNotesShouldCollapse)
+                                <button type="button" class="wm-event-notes-toggle" x-on:click="expanded = ! expanded">
+                                    <span x-text="expanded ? 'Show less' : 'Read all'"></span>
+                                </button>
+                            @else
+                                <span></span>
+                            @endif
+                            <button type="button" class="wm-event-notes-manage" wire:click="mountAction('manageInternalNotes')">
+                                Manage notes
+                            </button>
+                        </div>
+                    </article>
+                @endif
+
                 <article class="wm-event-card wm-event-panel" id="budget">
                     <div class="wm-event-panel-header">
                         <h3 class="wm-event-panel-title">Budget progress</h3>
