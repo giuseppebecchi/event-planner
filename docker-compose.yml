@@ -48,6 +48,7 @@ services:
 
   db:
     image: ciuster/laravel_db
+    command: ["mysqld", "--general-log=0"]
     #    ports:
     #      - target: 3306
     #        published: ${DB_PORT:-3306}

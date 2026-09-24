@@ -377,7 +377,7 @@
 
         .wm-checklist-item {
             display: grid;
-            grid-template-columns: auto minmax(0, 1fr) auto;
+            grid-template-columns: auto minmax(0, 1fr);
             gap: 0.9rem;
             align-items: start;
             padding: 0.35rem 0;
@@ -424,6 +424,9 @@
         }
 
         .wm-checklist-summary-title {
+            display: block;
+            min-width: 0;
+            max-width: 100%;
             color: #4f4943;
             font-size: 0.98rem;
             line-height: 1.45;
@@ -438,13 +441,70 @@
             min-width: 0;
         }
 
+        .wm-checklist-text-tooltip {
+            position: relative;
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+        }
+
+        .wm-checklist-text-tooltip::after {
+            content: attr(data-checklist-tooltip);
+            position: absolute;
+            top: calc(100% + 0.45rem);
+            left: 0;
+            z-index: 100;
+            width: max-content;
+            max-width: min(30rem, calc(100vw - 8rem));
+            padding: 0.65rem 0.75rem;
+            border-radius: 0.7rem;
+            background: #2e4a62;
+            box-shadow: 0 12px 28px rgba(33, 42, 50, 0.2);
+            color: #fff;
+            font-size: 0.82rem;
+            font-weight: 500;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+            white-space: normal;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(-0.2rem);
+            transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+        }
+
+        .wm-checklist-text-tooltip:hover::after,
+        .wm-checklist-text-tooltip:focus-visible::after {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .wm-checklist-text-tooltip:focus-visible {
+            outline: 2px solid rgba(46, 74, 98, 0.45);
+            outline-offset: 0.2rem;
+            border-radius: 0.25rem;
+        }
+
         .wm-checklist-summary-details {
+            display: block;
+            min-width: 0;
+            max-width: 100%;
             color: #9a9289;
             font-size: 0.82rem;
             line-height: 1.35;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .wm-checklist-editor .wm-checklist-summary-title,
+        .wm-checklist-editor .wm-checklist-summary-details {
+            overflow: visible;
+            text-overflow: clip;
+            white-space: normal;
+            overflow-wrap: anywhere;
         }
 
         .wm-checklist-item.is-completed .wm-checklist-summary-title {
@@ -624,11 +684,17 @@
 
         .wm-checklist-side {
             display: flex;
-            flex-direction: column;
+            grid-column: 2;
+            justify-content: flex-end;
             align-items: flex-end;
             gap: 0.55rem;
-            min-width: 10.8rem;
-            padding-top: 0.4rem;
+            min-width: 0;
+        }
+
+        .wm-checklist-response-row {
+            display: flex;
+            justify-content: flex-end;
+            width: 100%;
         }
 
         .wm-checklist-time {
@@ -819,10 +885,6 @@
         }
 
         @media (max-width: 720px) {
-            .wm-checklist-item {
-                grid-template-columns: auto minmax(0, 1fr);
-            }
-
             .wm-checklist-side {
                 grid-column: 2;
                 align-items: flex-start;
@@ -954,9 +1016,21 @@
                                                 wire:click="expandChecklistItem({{ $item->id }})"
                                             >
                                                 <span class="wm-checklist-summary-copy">
-                                                    <span class="wm-checklist-summary-title">{{ $titleLabel !== '' ? $titleLabel : '(Unnamed Task)' }}</span>
+                                                    <span
+                                                        class="wm-checklist-text-tooltip"
+                                                        data-checklist-tooltip="{{ $titleLabel !== '' ? $titleLabel : '(Unnamed Task)' }}"
+                                                        tabindex="0"
+                                                    >
+                                                        <span class="wm-checklist-summary-title">{{ $titleLabel !== '' ? $titleLabel : '(Unnamed Task)' }}</span>
+                                                    </span>
                                                     @if ($detailsLabel !== '')
-                                                        <span class="wm-checklist-summary-details">{{ $detailsLabel }}</span>
+                                                        <span
+                                                            class="wm-checklist-text-tooltip"
+                                                            data-checklist-tooltip="{{ $detailsLabel }}"
+                                                            tabindex="0"
+                                                        >
+                                                            <span class="wm-checklist-summary-details">{{ $detailsLabel }}</span>
+                                                        </span>
                                                     @endif
                                                 </span>
                                                 <span class="wm-checklist-time {{ $isOverdue ? 'is-overdue' : '' }}">
@@ -1088,23 +1162,25 @@
                                                 </div>
                                             </div>
                                         @endif
+
+                                        @if ($item->to_be_filled || (bool) ($checklistForms[$item->id]['to_be_filled'] ?? false))
+                                            <div class="wm-checklist-response-row">
+                                                <button
+                                                    type="button"
+                                                    data-checklist-response-control
+                                                    class="wm-checklist-response-trigger {{ $responseLabel !== '' ? 'is-filled' : '' }}"
+                                                    wire:click.stop="mountAction('editChecklistResponse', { item: {{ $item->id }} })"
+                                                    x-on:mousedown.stop
+                                                >
+                                                    <x-heroicon-o-pencil-square />
+                                                    <span>Fill info</span>
+                                                </button>
+                                            </div>
+                                        @endif
                                     </div>
 
-                                    <div class="wm-checklist-side">
-                                        @if ($item->to_be_filled || (bool) ($checklistForms[$item->id]['to_be_filled'] ?? false))
-                                            <button
-                                                type="button"
-                                                data-checklist-response-control
-                                                class="wm-checklist-response-trigger {{ $responseLabel !== '' ? 'is-filled' : '' }}"
-                                                wire:click.stop="mountAction('editChecklistResponse', { item: {{ $item->id }} })"
-                                                x-on:mousedown.stop
-                                            >
-                                                <x-heroicon-o-pencil-square />
-                                                <span>{{ $responseLabel !== '' ? 'Edit Response' : 'Insert response' }}</span>
-                                            </button>
-                                        @endif
-
-                                        @if ($isExpanded && ! $isCustomer)
+                                    @if ($isExpanded && ! $isCustomer)
+                                        <div class="wm-checklist-side">
                                             <div class="wm-checklist-actions">
                                                 <button
                                                     type="button"
@@ -1116,8 +1192,8 @@
                                                     <x-heroicon-o-trash />
                                                 </button>
                                             </div>
-                                        @endif
-                                    </div>
+                                        </div>
+                                    @endif
                                 </div>
 
                                 @if (! $loop->last)
