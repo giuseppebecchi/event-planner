@@ -112,7 +112,7 @@ class ViewProjectRecap extends ViewProjectTimeline
         return $this->confirmedSupplierProposalsForRecap($this->getRecord())
             ->sortBy(fn (CategoryBudgetSupplier $proposal): string => sprintf(
                 '%s-%s',
-                $proposal->category?->label ?? $proposal->supplier?->category?->label ?? '',
+                $proposal->categoryLabel(''),
                 $proposal->supplier?->name ?? ''
             ))
             ->map(fn (CategoryBudgetSupplier $proposal): array => $this->confirmedSupplierPdfPayload($proposal))

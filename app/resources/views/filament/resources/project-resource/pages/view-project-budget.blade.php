@@ -432,6 +432,66 @@
             font-weight: 700;
         }
 
+        .wm-budget-category-label-row,
+        .wm-budget-category-label-editor {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .wm-budget-category-label-trigger {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0;
+            color: #2d2a26;
+            font: inherit;
+            font-weight: 700;
+            text-align: left;
+            background: transparent;
+            border: 0;
+            cursor: pointer;
+        }
+
+        .wm-budget-category-label-trigger svg,
+        .wm-budget-category-label-editor button svg {
+            width: 0.9rem;
+            height: 0.9rem;
+        }
+
+        .wm-budget-category-label-input {
+            width: min(15rem, 100%);
+            padding: 0.38rem 0.55rem;
+            color: #2d2a26;
+            font-size: 0.9rem;
+            font-weight: 600;
+            background: #fff;
+            border: 1px solid #d8cec2;
+            border-radius: 0.45rem;
+        }
+
+        .wm-budget-category-label-editor button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.35rem;
+            color: #315b4c;
+            background: #eef6f1;
+            border: 0;
+            border-radius: 999px;
+            cursor: pointer;
+        }
+
+        .wm-budget-category-label-editor button:last-child {
+            color: #8a5149;
+            background: #fbefed;
+        }
+
+        .wm-budget-category-label-error {
+            color: #b33f32;
+            font-size: 0.75rem;
+        }
+
         .wm-budget-category-meta {
             color: #7d756e;
             font-size: 0.85rem;
@@ -716,7 +776,44 @@
                                     <tr class="{{ $budget->budget_status === \App\Models\CategoryBudget::STATUS_CONFIRMED ? 'is-confirmed' : '' }}">
                                         <td>
                                             <div class="wm-budget-category">
-                                                <span class="wm-budget-category-name">{{ $budget->category?->label ?? 'Category' }}</span>
+                                                @if (! $isCustomer && $editingCategoryLabelBudgetId === $budget->id)
+                                                    <div class="wm-budget-category-label-editor" wire:key="budget-label-editor-{{ $budget->id }}">
+                                                        <input
+                                                            type="text"
+                                                            class="wm-budget-category-label-input"
+                                                            wire:model="editingCategoryLabel"
+                                                            wire:keydown.enter.prevent="saveCategoryLabel({{ $budget->id }})"
+                                                            wire:keydown.escape.prevent="cancelEditingCategoryLabel"
+                                                            aria-label="Category label"
+                                                            maxlength="255"
+                                                            autofocus
+                                                        >
+                                                        <button type="button" wire:click="saveCategoryLabel({{ $budget->id }})" title="Save label" aria-label="Save label">
+                                                            <x-heroicon-o-check />
+                                                        </button>
+                                                        <button type="button" wire:click="cancelEditingCategoryLabel" title="Cancel" aria-label="Cancel">
+                                                            <x-heroicon-o-x-mark />
+                                                        </button>
+                                                    </div>
+                                                    @error('editingCategoryLabel')
+                                                        <span class="wm-budget-category-label-error">{{ $message }}</span>
+                                                    @enderror
+                                                @elseif (! $isCustomer)
+                                                    <div class="wm-budget-category-label-row">
+                                                        <button
+                                                            type="button"
+                                                            class="wm-budget-category-label-trigger"
+                                                            wire:click="startEditingCategoryLabel({{ $budget->id }})"
+                                                            title="Edit category label"
+                                                            aria-label="Edit {{ $budget->displayLabel() }} category label"
+                                                        >
+                                                            <span>{{ $budget->displayLabel() }}</span>
+                                                            <x-heroicon-o-pencil-square />
+                                                        </button>
+                                                    </div>
+                                                @else
+                                                    <span class="wm-budget-category-name">{{ $budget->displayLabel() }}</span>
+                                                @endif
                                                 @if ($isVenueExtraBudget)
                                                     <span class="wm-budget-category-meta">
                                                         Extra budget: the venue cost is not included in the couple budget.

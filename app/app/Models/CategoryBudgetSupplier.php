@@ -168,6 +168,16 @@ class CategoryBudgetSupplier extends Model
                 : $this->projectDocuments()->where('type', ProjectDocument::TYPE_QUOTE)->exists());
     }
 
+    public function categoryLabel(?string $fallback = null): string
+    {
+        $defaultLabel = $fallback
+            ?: $this->category?->label
+            ?: $this->supplier?->category?->label
+            ?: 'Category';
+
+        return $this->categoryBudget?->displayLabel($defaultLabel) ?? $defaultLabel;
+    }
+
     public function markAsConfirmed(): void
     {
         if (! $this->category_budget_id) {

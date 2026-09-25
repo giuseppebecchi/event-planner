@@ -104,7 +104,8 @@ class ViewProjectTimeline extends Page
         $project = $this->getRecord()->loadMissing(
             'projectTimelineItems.supplier',
             'categoryBudgetSuppliers.supplier.category',
-            'categoryBudgetSuppliers.category'
+            'categoryBudgetSuppliers.category',
+            'categoryBudgetSuppliers.categoryBudget.category',
         );
         $days = $this->getTimelineDays()->map(function (array $day) use ($project): array {
             $items = $day['items']->map(function (ProjectTimeline $item) use ($project): array {
@@ -162,7 +163,7 @@ class ViewProjectTimeline extends Page
         $confirmedSuppliers = $this->confirmedSupplierProposalsForRecap($project)
             ->sortBy(fn (CategoryBudgetSupplier $proposal): string => sprintf(
                 '%s-%s',
-                $proposal->category?->label ?? $proposal->supplier?->category?->label ?? '',
+                $proposal->categoryLabel(''),
                 $proposal->supplier?->name ?? ''
             ))
             ->map(fn (CategoryBudgetSupplier $proposal): array => $this->confirmedSupplierPdfPayload($proposal))
@@ -776,7 +777,7 @@ class ViewProjectTimeline extends Page
         $supplier = $proposal->supplier;
 
         return [
-            'category' => $proposal->category?->label ?? $supplier?->category?->label ?? 'Supplier',
+            'category' => $proposal->categoryLabel($supplier?->category?->label ?? 'Supplier'),
             'name' => $supplier?->name,
             'contact_person' => $supplier?->contact_person,
             'email' => $supplier?->email,
@@ -799,7 +800,11 @@ class ViewProjectTimeline extends Page
     protected function confirmedSupplierProposalsForRecap(Project $project): Collection
     {
         return $project
-            ->loadMissing('categoryBudgetSuppliers.supplier.category', 'categoryBudgetSuppliers.category')
+            ->loadMissing(
+                'categoryBudgetSuppliers.supplier.category',
+                'categoryBudgetSuppliers.category',
+                'categoryBudgetSuppliers.categoryBudget.category',
+            )
             ->categoryBudgetSuppliers
             ->filter(fn (CategoryBudgetSupplier $proposal): bool => $proposal->proposal_status === CategoryBudgetSupplier::STATUS_CONFIRMED && $proposal->supplier)
             ->reject(fn (CategoryBudgetSupplier $proposal): bool => $this->isSiaeSupplierProposal($proposal))

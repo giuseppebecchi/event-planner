@@ -161,7 +161,7 @@ class ViewProjectDocuments extends Page
     {
         return $this->getRecord()
             ->projectDocuments()
-            ->with(['supplier', 'categoryBudgetSupplier.supplier', 'categoryBudgetSupplier.category'])
+            ->with(['supplier', 'categoryBudgetSupplier.supplier', 'categoryBudgetSupplier.category', 'categoryBudgetSupplier.categoryBudget.category'])
             ->get()
             ->sortBy(fn (ProjectDocument $document): string => sprintf(
                 '%s-%s-%s-%s',
@@ -186,7 +186,7 @@ class ViewProjectDocuments extends Page
 
     public function documentCategoryLabel(ProjectDocument $document): ?string
     {
-        return $document->categoryBudgetSupplier?->category?->label;
+        return $document->categoryBudgetSupplier?->categoryLabel();
     }
 
     protected function documentSupplierId(ProjectDocument $document): ?int

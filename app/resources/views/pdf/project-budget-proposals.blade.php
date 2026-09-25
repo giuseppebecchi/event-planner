@@ -240,7 +240,7 @@
                 <img class="logo" src="{{ $logo }}" alt="">
             @endif
             <p class="kicker">{{ $usesFallback ? 'Received proposals' : 'Shortlist presentation' }}</p>
-            <h1 class="cover-title">{{ $budget->category?->label_it ?? 'Supplier' }} proposals</h1>
+            <h1 class="cover-title">{{ $budget->displayLabel($budget->category?->label_it ?? 'Supplier') }} proposals</h1>
             <div class="cover-meta">
                 <div><strong>{{ $partners ?: $project->name }}</strong></div>
                 <div>{{ collect([$project->locality, $project->region])->filter()->implode(', ') ?: 'Italy' }}</div>
@@ -421,7 +421,7 @@
                 @endif
             </div>
 
-            <div class="footer">{{ $project->name }} · {{ $budget->category?->label_it ?? 'Proposals' }}</div>
+            <div class="footer">{{ $project->name }} · {{ $budget->displayLabel($budget->category?->label_it ?? 'Proposals') }}</div>
         </section>
     @endforeach
 </body>

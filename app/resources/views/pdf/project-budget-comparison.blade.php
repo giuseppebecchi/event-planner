@@ -59,7 +59,7 @@
     </style>
 </head>
 <body>
-    <h1>{{ $budget->category?->label_it ?? 'Quote comparison' }}</h1>
+    <h1>{{ $budget->displayLabel($budget->category?->label_it ?? 'Quote comparison') }}</h1>
     <div class="meta">
         {{ $project->name }} · {{ now()->format('d/m/Y') }}
     </div>
@@ -67,7 +67,7 @@
     <table>
         <thead>
             <tr>
-                <th>{{ $budget->category?->label_it ?? 'Item' }}</th>
+                <th>{{ $budget->displayLabel($budget->category?->label_it ?? 'Item') }}</th>
                 @foreach ($proposals as $proposal)
                     <th>{{ $proposal->supplier?->name ?? 'Supplier' }}</th>
                 @endforeach

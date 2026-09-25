@@ -21,6 +21,7 @@ class CategoryBudget extends Model
     protected $fillable = [
         'project_id',
         'category_id',
+        'label',
         'initial_estimated_amount',
         'comparison_amount',
         'final_amount',
@@ -61,6 +62,23 @@ class CategoryBudget extends Model
     {
         return $this->supplierProposals()
             ->where('proposal_status', CategoryBudgetSupplier::STATUS_CONFIRMED);
+    }
+
+    public function displayLabel(?string $fallback = null): string
+    {
+        $customLabel = trim((string) $this->label);
+
+        if ($customLabel !== '') {
+            return $customLabel;
+        }
+
+        $fallbackLabel = trim((string) $fallback);
+
+        if ($fallbackLabel !== '') {
+            return $fallbackLabel;
+        }
+
+        return trim((string) ($this->category?->label ?: $this->category?->label_it)) ?: 'Category';
     }
 
     public function currentWorkingAmount(): ?float

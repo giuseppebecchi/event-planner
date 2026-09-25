@@ -30,6 +30,10 @@ class ViewProjectBudget extends Page
 
     protected Width|string|null $maxContentWidth = Width::Full;
 
+    public ?int $editingCategoryLabelBudgetId = null;
+
+    public string $editingCategoryLabel = '';
+
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
@@ -58,6 +62,52 @@ class ViewProjectBudget extends Page
     protected function getHeaderActions(): array
     {
         return [];
+    }
+
+    public function startEditingCategoryLabel(int $budgetId): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            return;
+        }
+
+        $budget = $this->findBudget($budgetId);
+
+        $this->editingCategoryLabelBudgetId = $budget->getKey();
+        $this->editingCategoryLabel = $budget->label ?? $budget->displayLabel();
+        $this->resetValidation('editingCategoryLabel');
+    }
+
+    public function cancelEditingCategoryLabel(): void
+    {
+        $this->editingCategoryLabelBudgetId = null;
+        $this->editingCategoryLabel = '';
+        $this->resetValidation('editingCategoryLabel');
+    }
+
+    public function saveCategoryLabel(int $budgetId): void
+    {
+        if (auth()->user()?->isCustomer()) {
+            return;
+        }
+
+        abort_unless($this->editingCategoryLabelBudgetId === $budgetId, 403);
+
+        $this->validate([
+            'editingCategoryLabel' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $label = trim($this->editingCategoryLabel);
+        $this->findBudget($budgetId)->update([
+            'label' => $label !== '' ? $label : null,
+        ]);
+
+        $this->record = $this->getRecord()->fresh();
+        $this->cancelEditingCategoryLabel();
+
+        Notification::make()
+            ->title('Category label updated')
+            ->success()
+            ->send();
     }
 
     public function editBudgetCategoryAction(): Action
@@ -291,7 +341,7 @@ class ViewProjectBudget extends Page
             ->sortBy(fn (CategoryBudget $budget): string => sprintf(
                 '%05d-%s',
                 (int) ($budget->category?->order ?? 99999),
-                mb_strtolower((string) ($budget->category?->label ?? 'zzz'))
+                mb_strtolower($budget->displayLabel())
             ))
             ->values();
 

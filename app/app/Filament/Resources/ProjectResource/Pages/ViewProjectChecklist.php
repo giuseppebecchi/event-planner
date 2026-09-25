@@ -179,7 +179,8 @@ class ViewProjectChecklist extends Page
                 $first = $supplierItems->first();
                 $supplier = $first->supplier;
                 $title = $supplier?->name ? mb_strtoupper($supplier->name) : 'SUPPLIER TO ASSIGN';
-                $subtitle = $supplier?->category?->label_it ?? ($supplier?->category?->label ?? 'supplier');
+                $defaultSubtitle = $supplier?->category?->label_it ?? ($supplier?->category?->label ?? 'supplier');
+                $subtitle = $first->categoryBudget?->displayLabel($defaultSubtitle) ?? $defaultSubtitle;
 
                 return [
                     'key' => $key,
@@ -477,6 +478,7 @@ class ViewProjectChecklist extends Page
             ->loadMissing([
                 'projectChecklistOptions.checklist.category',
                 'projectChecklistOptions.supplier.category',
+                'projectChecklistOptions.categoryBudget.category',
             ])
             ->projectChecklistOptions
             ->where('enabled', true)

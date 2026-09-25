@@ -215,7 +215,7 @@ class ManageProjectConfirmedSupplier extends Page
 
     public function getSummary(): array
     {
-        $proposal = $this->proposalRecord->loadMissing('supplier', 'category', 'payments.paymentReceiptDocument', 'projectDocuments');
+        $proposal = $this->proposalRecord->loadMissing('supplier', 'category', 'categoryBudget.category', 'payments.paymentReceiptDocument', 'projectDocuments');
         $estimatedAmount = $this->categoryBudgetRecord->initial_estimated_amount !== null
             ? (float) $this->categoryBudgetRecord->initial_estimated_amount
             : null;
@@ -228,7 +228,7 @@ class ManageProjectConfirmedSupplier extends Page
             : null;
 
         return [
-            'category' => $proposal->category?->label ?? 'Category',
+            'category' => $proposal->categoryLabel(),
             'supplier' => $proposal->supplier?->name ?? 'Supplier',
             'estimated_amount' => $estimatedAmount,
             'confirmed_amount' => $confirmedAmount,
@@ -731,7 +731,9 @@ class ManageProjectConfirmedSupplier extends Page
         $record = $this->getRecord();
         $clientLabel = $record->coupleNames();
         $supplierName = $this->proposalRecord->supplier?->name ?? 'Supplier';
-        $supplierSubtitle = $this->proposalRecord->supplier?->category?->label ?? 'supplier';
+        $supplierSubtitle = $this->proposalRecord->categoryLabel(
+            $this->proposalRecord->supplier?->category?->label ?? 'supplier',
+        );
 
         $sections = collect([
             [

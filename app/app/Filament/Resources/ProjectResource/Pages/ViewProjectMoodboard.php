@@ -86,23 +86,29 @@ class ViewProjectMoodboard extends Page
 
     public function getSupplierBoards(): Collection
     {
-        return $this->getRecord()
-            ->loadMissing('projectImages.supplier.category')
-            ->projectImages
+        $project = $this->getRecord()->loadMissing(
+            'projectImages.supplier.category',
+            'categoryBudgetSuppliers.categoryBudget.category',
+        );
+        $proposalsBySupplier = $project->categoryBudgetSuppliers->keyBy('supplier_id');
+
+        return $project->projectImages
             ->whereNotNull('supplier_id')
             ->sortByDesc('created_at')
             ->groupBy('supplier_id')
-            ->map(function (Collection $images, int|string $supplierId): array {
+            ->map(function (Collection $images, int|string $supplierId) use ($proposalsBySupplier): array {
                 /** @var \App\Models\ProjectImage $first */
                 $first = $images->first();
                 $supplier = $first?->supplier;
+                $defaultSubtitle = $supplier?->category?->label_it ?? ($supplier?->category?->label ?? 'Supplier references');
+                $subtitle = $proposalsBySupplier->get($supplierId)?->categoryLabel($defaultSubtitle) ?? $defaultSubtitle;
 
                 return [
                     'key' => 'supplier-' . $supplierId,
                     'type' => 'supplier',
                     'id' => (int) $supplierId,
                     'title' => $supplier?->name ?? 'Supplier board',
-                    'subtitle' => $supplier?->category?->label_it ?? ($supplier?->category?->label ?? 'Supplier references'),
+                    'subtitle' => $subtitle,
                     'accent' => '#9d8451',
                     'images' => $images->values(),
                 ];

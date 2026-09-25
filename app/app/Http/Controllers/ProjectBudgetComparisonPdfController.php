@@ -83,7 +83,7 @@ class ProjectBudgetComparisonPdfController extends Controller
     {
         $parts = collect([
             $project->name,
-            $budget->category?->label_it ?? 'budget',
+            $budget->displayLabel($budget->category?->label_it ?? 'budget'),
             'comparison',
         ])->filter()->implode(' ');
 

@@ -139,7 +139,7 @@ class ProjectBudgetProposalPdfController extends Controller
     {
         $parts = collect([
             $project->name,
-            $budget->category?->label_it ?? 'proposals',
+            $budget->displayLabel($budget->category?->label_it ?? 'proposals'),
             'presentation',
         ])->filter()->implode(' ');
 

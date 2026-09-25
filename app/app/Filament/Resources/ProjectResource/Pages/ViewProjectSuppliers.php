@@ -74,7 +74,7 @@ class ViewProjectSuppliers extends Page
             ->categoryBudgetSuppliers()
             ->with([
                 'category',
-                'categoryBudget',
+                'categoryBudget.category',
                 'supplier',
                 'communications',
                 'payments.paymentReceiptDocument',
@@ -85,7 +85,7 @@ class ViewProjectSuppliers extends Page
             ->sortBy(fn (CategoryBudgetSupplier $proposal): string => sprintf(
                 '%05d-%s-%s',
                 (int) ($proposal->category?->order ?? 99999),
-                mb_strtolower((string) ($proposal->category?->label ?? 'zzz')),
+                mb_strtolower($proposal->categoryLabel()),
                 mb_strtolower((string) ($proposal->supplier?->name ?? 'zzz'))
             ))
             ->values();
@@ -112,7 +112,7 @@ class ViewProjectSuppliers extends Page
     {
         return $this->getRecord()
             ->payments()
-            ->with(['supplier', 'categoryBudgetSupplier.category', 'paymentReceiptDocument'])
+            ->with(['supplier', 'categoryBudgetSupplier.category', 'categoryBudgetSupplier.categoryBudget.category', 'paymentReceiptDocument'])
             ->get()
             ->when(
                 $this->hidePaidPayments,

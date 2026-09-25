@@ -12,7 +12,7 @@ class ProjectPaymentsPdfController extends Controller
     {
         $payments = $project
             ->payments()
-            ->with(['supplier', 'categoryBudgetSupplier.category'])
+            ->with(['supplier', 'categoryBudgetSupplier.category', 'categoryBudgetSupplier.categoryBudget.category'])
             ->get()
             ->sortBy(fn (Payment $payment): string => sprintf(
                 '%s-%05d',

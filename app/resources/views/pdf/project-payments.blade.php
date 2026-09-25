@@ -52,8 +52,8 @@
                     <td>{{ $payment->due_date?->format('d/m/Y') ?? '-' }}</td>
                     <td>
                         {{ $payment->supplier?->name ?? '-' }}
-                        @if ($payment->categoryBudgetSupplier?->category)
-                            <br><span class="meta">{{ $payment->categoryBudgetSupplier->category->label }}</span>
+                        @if ($payment->categoryBudgetSupplier)
+                            <br><span class="meta">{{ $payment->categoryBudgetSupplier->categoryLabel() }}</span>
                         @endif
                     </td>
                     <td>{{ $payment->reason ?: 'Payment' }}</td>

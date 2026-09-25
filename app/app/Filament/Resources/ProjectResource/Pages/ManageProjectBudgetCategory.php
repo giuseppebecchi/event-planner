@@ -88,7 +88,9 @@ class ManageProjectBudgetCategory extends Page
 
     public function getTitle(): string|Htmlable
     {
-        return (string) ($this->categoryBudgetRecord->category?->label_it ?: $this->getRecordTitle());
+        return $this->categoryBudgetRecord->displayLabel(
+            $this->categoryBudgetRecord->category?->label_it ?: (string) $this->getRecordTitle(),
+        );
     }
 
     public function getHeading(): string|Htmlable|null
@@ -507,7 +509,7 @@ class ManageProjectBudgetCategory extends Page
         $responsesCount = $budget->supplierProposals->filter(fn (CategoryBudgetSupplier $proposal): bool => $proposal->hasResponse())->count();
 
         return [
-            'label' => $budget->category?->label_it ?? 'Category',
+            'label' => $budget->displayLabel($budget->category?->label_it ?? 'Category'),
             'couple_budget' => $budget->project?->budget_amount !== null ? (float) $budget->project->budget_amount : null,
             'estimated_amount' => (float) ($budget->initial_estimated_amount ?? 0),
             'comparison_amount' => $budget->comparison_amount !== null ? (float) $budget->comparison_amount : null,
@@ -818,7 +820,9 @@ class ManageProjectBudgetCategory extends Page
             ->form([
                 Placeholder::make('category_label')
                     ->label('Service category')
-                    ->content(fn (): string => (string) ($this->categoryBudgetRecord->category?->label_it ?? '')),
+                    ->content(fn (): string => $this->categoryBudgetRecord->displayLabel(
+                        $this->categoryBudgetRecord->category?->label_it ?? '',
+                    )),
                 ...SupplierResourceSupport::mainAndAddressSections(includeCategoryField: false),
             ])
             ->action(function (array $data): void {

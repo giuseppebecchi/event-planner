@@ -750,7 +750,7 @@
                             <article class="wm-event-card wm-supplier-card">
                                 <div class="wm-supplier-head">
                                     <div>
-                                        <p class="wm-supplier-label">{{ $proposal->category?->label ?? 'Category' }}</p>
+                                        <p class="wm-supplier-label">{{ $proposal->categoryLabel() }}</p>
                                         <h3 class="wm-supplier-title">{{ $proposal->supplier?->name ?? 'Supplier' }}</h3>
                                         <p class="wm-supplier-copy">
                                             {{ collect([$proposal->supplier?->service_area, $proposal->supplier?->city])->filter()->implode(' • ') ?: 'No area specified' }}
@@ -860,8 +860,8 @@
                                     @if ($payment->supplier?->name)
                                         {{ $payment->supplier->name }}
                                     @endif
-                                    @if ($proposal?->category)
-                                        {{ $payment->supplier?->name ? ' • ' : '' }}{{ $proposal->category->label }}
+                                    @if ($proposal)
+                                        {{ $payment->supplier?->name ? ' • ' : '' }}{{ $proposal->categoryLabel() }}
                                     @endif
                                 </p>
                                 <span class="wm-payment-status {{ $isPaid ? 'is-paid' : '' }} {{ $isOverdue ? 'is-overdue' : '' }}">{{ $statusLabel }}</span>
