@@ -481,6 +481,36 @@
             font-size: 1rem;
         }
 
+        .wm-scout-title-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        .wm-scout-edit-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.28rem 0.55rem;
+            border: 1px solid rgba(46, 74, 98, 0.24);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.78);
+            color: #2e4a62;
+            font-size: 0.66rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            line-height: 1;
+            text-decoration: none;
+            transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+        }
+
+        .wm-scout-edit-link:hover {
+            border-color: #2e4a62;
+            background: #2e4a62;
+            color: #fff;
+        }
+
         .wm-scout-request-header .wm-scout-card-title {
             font-size: clamp(1.2rem, 1.6vw, 1.55rem);
             font-weight: 800;
@@ -987,7 +1017,20 @@
                                     </span>
                                     <div>
                                         <p class="wm-scout-supplier-eyebrow">Supplier</p>
-                                        <h4 class="wm-scout-card-title">{{ $supplierName }}</h4>
+                                        <div class="wm-scout-title-row">
+                                            <h4 class="wm-scout-card-title">{{ $supplierName }}</h4>
+                                            @if ($isLocationCategory && ! $isCustomer && $proposal->supplier)
+                                                <a
+                                                    href="{{ \App\Filament\Resources\LocationResource::getUrl('edit', ['record' => $proposal->supplier]) }}"
+                                                    class="wm-scout-edit-link"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    aria-label="Edit {{ $supplierName }} in a new window"
+                                                >
+                                                    EDIT
+                                                </a>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
 

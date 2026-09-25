@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\LocationResource;
 use App\Filament\Resources\ProjectResource\Pages\ManageProjectBudgetCategory;
 use App\Models\Category;
 use App\Models\CategoryBudget;
@@ -14,6 +15,7 @@ use App\Models\Template;
 use App\Models\User;
 use App\Notifications\SupplierCourtesyMessageNotification;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -21,6 +23,54 @@ use Tests\TestCase;
 class ManageProjectBudgetCategoryTest extends TestCase
 {
     use DatabaseTransactions;
+
+    public function test_location_proposal_shows_edit_link_in_a_new_window(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => Role::ADMIN]);
+        $this->actingAs(User::factory()->create(['role_id' => $adminRole->id]));
+
+        DB::table('categories')->updateOrInsert(
+            ['id' => Supplier::LOCATION_CATEGORY_ID],
+            [
+                'label' => 'Venue',
+                'label_it' => 'Location',
+                'main' => true,
+                'order' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+                'deleted_at' => null,
+            ],
+        );
+        $project = Project::query()->create([
+            'name' => 'Location scouting',
+            'last_name' => 'Client',
+        ]);
+        $budget = CategoryBudget::query()->create([
+            'project_id' => $project->id,
+            'category_id' => Supplier::LOCATION_CATEGORY_ID,
+        ]);
+        $location = Supplier::query()->create([
+            'name' => 'Villa Test',
+            'category_id' => Supplier::LOCATION_CATEGORY_ID,
+        ]);
+        CategoryBudgetSupplier::query()->create([
+            'category_budget_id' => $budget->id,
+            'supplier_id' => $location->id,
+            'availability_status' => 'available',
+            'scouting_status' => 'shortlist',
+            'proposal_status' => CategoryBudgetSupplier::STATUS_RECEIVED,
+        ]);
+        $editUrl = LocationResource::getUrl('edit', ['record' => $location]);
+
+        Livewire::test(ManageProjectBudgetCategory::class, [
+            'record' => $project->id,
+            'categoryBudget' => $budget->id,
+        ])
+            ->assertSee('EDIT')
+            ->assertSeeHtml('href="'.$editUrl.'"')
+            ->assertSeeHtml('target="_blank"')
+            ->assertSeeHtml('rel="noopener noreferrer"');
+    }
 
     public function test_chosen_quote_can_be_moved_back_to_another_scouting_status(): void
     {
