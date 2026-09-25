@@ -392,20 +392,80 @@ class LeadProposalPdfController extends Controller
             'table_film' => 'images/proposal/table-film.png',
             'table_rustic' => 'images/proposal/table-rustic.png',
         ];
+        $photoRatios = [
+            'cover_bride' => 82 / 200.5,
+            'cover_venue' => 82 / 171,
+            'table_cypress' => 82 / 118.5,
+            'ceremony_hills' => 82 / 119,
+            'ceremony_view' => 75 / 104,
+            'dinner_garden' => 75 / 84,
+            'ceremony_altar' => 82 / 90,
+            'table_white' => 82 / 91,
+            'table_strip' => 90 / 66.15,
+            'wedding_ceremony' => 85 / 75,
+            'olive_ceremony' => 85 / 115,
+            'table_film' => 87 / 94,
+            'table_rustic' => 87 / 93,
+        ];
 
         $config = is_array($lead->proposal_images_json_config) ? $lead->proposal_images_json_config : [];
 
         return collect($defaults)
-            ->map(function (string $defaultPath, string $key) use ($config, $lead): string {
+            ->map(function (string $defaultPath, string $key) use ($config, $lead, $photoRatios): string {
                 if (in_array($key, ['logo', 'social_block'], true)) {
                     return public_path($defaultPath);
                 }
 
                 $customPath = $this->customProposalImagePath($config[$key] ?? null);
+                $path = $customPath ?: public_path($this->defaultProposalImagePath($lead, basename($defaultPath)));
 
-                return $customPath ?: public_path($this->defaultProposalImagePath($lead, basename($defaultPath)));
+                return $this->centerCroppedImageDataUri($path, $photoRatios[$key]);
             })
             ->all();
+    }
+
+    protected function centerCroppedImageDataUri(string $path, float $targetRatio): string
+    {
+        if (! extension_loaded('gd') || ! is_file($path)) {
+            return $path;
+        }
+
+        $contents = file_get_contents($path);
+        $source = $contents !== false ? @imagecreatefromstring($contents) : false;
+
+        if (! $source) {
+            return $path;
+        }
+
+        $sourceWidth = imagesx($source);
+        $sourceHeight = imagesy($source);
+        $sourceRatio = $sourceWidth / max(1, $sourceHeight);
+
+        if ($sourceRatio > $targetRatio) {
+            $cropHeight = $sourceHeight;
+            $cropWidth = max(1, (int) round($sourceHeight * $targetRatio));
+            $cropX = max(0, (int) round(($sourceWidth - $cropWidth) / 2));
+            $cropY = 0;
+        } else {
+            $cropWidth = $sourceWidth;
+            $cropHeight = max(1, (int) round($sourceWidth / $targetRatio));
+            $cropX = 0;
+            $cropY = max(0, (int) round(($sourceHeight - $cropHeight) / 2));
+        }
+
+        $cropped = imagecreatetruecolor($cropWidth, $cropHeight);
+        imagecopy($cropped, $source, 0, 0, $cropX, $cropY, $cropWidth, $cropHeight);
+
+        ob_start();
+        imagejpeg($cropped, null, 90);
+        $jpeg = ob_get_clean();
+
+        imagedestroy($source);
+        imagedestroy($cropped);
+
+        return is_string($jpeg) && $jpeg !== ''
+            ? 'data:image/jpeg;base64,'.base64_encode($jpeg)
+            : $path;
     }
 
     protected function proposalTemplate(Lead $lead): string

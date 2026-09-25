@@ -95,7 +95,7 @@
             white-space: pre-line;
         }
         .extras p {
-            margin: 0 0 4.9mm;
+            margin: 0 0 3.2mm;
             text-transform: uppercase;
         }
         .fine-print {
@@ -156,10 +156,10 @@
         <img class="photo" src="{{ $images['dinner_garden'] }}" style="left: 10.5mm; top: 121mm; width: 75mm; height: 84mm;">
         <img class="photo" src="{{ $images['ceremony_altar'] }}" style="left: 108mm; top: 4.6mm; width: 82mm; height: 90mm;">
         <img class="photo" src="{{ $images['table_white'] }}" style="left: 108mm; top: 113.5mm; width: 82mm; height: 91mm;">
-        <img class="photo" src="{{ $images['table_strip'] }}" style="left: 202mm; top: 4.6mm; width: 90mm; height: 31.5mm;">
+        <img class="photo" src="{{ $images['table_strip'] }}" style="left: 202mm; top: 4.6mm; width: 90mm; height: 66.15mm;">
 
-        <div class="heading-box box-blue title" style="left: 210mm; top: 42mm; width: 75mm;">Extra services:</div>
-        <div class="body-copy extras small-copy" style="left: 206mm; top: 70mm; width: 82mm;">
+        <div class="heading-box box-blue title" style="left: 210mm; top: 75mm; width: 75mm; height: 16mm; padding-top: 4.2mm; font-size: 15px;">Extra services:</div>
+        <div class="body-copy extras" style="left: 206mm; top: 97.5mm; width: 82mm; font-size: 8.8px; line-height: 1.08;">
             @foreach ($data['extra_rows'] as $row)
                 <p>{{ $row['label'] }}: {{ $row['amount'] ? '€ ' . number_format((float) $row['amount'], 0, ',', '.') : '' }}</p>
             @endforeach

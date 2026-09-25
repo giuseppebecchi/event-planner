@@ -167,6 +167,38 @@ class LeadBudgetAddToBudgetTest extends TestCase
         ], $data['offer_validity_rows']);
     }
 
+    public function test_proposal_photos_are_center_cropped_to_their_frame_ratio(): void
+    {
+        $lead = new Lead([
+            'proposal_images_json_config' => ['template' => 'lake_como'],
+        ]);
+
+        $images = $this->callProtected(new LeadProposalPdfController(), 'proposalImages', $lead);
+        $expectedRatios = [
+            'cover_bride' => 82 / 200.5,
+            'cover_venue' => 82 / 171,
+            'table_cypress' => 82 / 118.5,
+            'ceremony_hills' => 82 / 119,
+            'ceremony_view' => 75 / 104,
+            'dinner_garden' => 75 / 84,
+            'ceremony_altar' => 82 / 90,
+            'table_white' => 82 / 91,
+            'table_strip' => 90 / 66.15,
+            'wedding_ceremony' => 85 / 75,
+            'olive_ceremony' => 85 / 115,
+            'table_film' => 87 / 94,
+            'table_rustic' => 87 / 93,
+        ];
+
+        foreach ($expectedRatios as $key => $expectedRatio) {
+            $this->assertStringStartsWith('data:image/jpeg;base64,', $images[$key]);
+            $size = getimagesizefromstring(base64_decode(substr($images[$key], strlen('data:image/jpeg;base64,'))));
+
+            $this->assertNotFalse($size);
+            $this->assertEqualsWithDelta($expectedRatio, $size[0] / $size[1], 0.01, $key);
+        }
+    }
+
     protected function callProtected(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new ReflectionMethod($object, $method);
