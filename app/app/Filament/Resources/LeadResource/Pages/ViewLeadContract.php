@@ -222,11 +222,13 @@ class ViewLeadContract extends BaseLeadPhasePage
 
     protected function projectPayloadFromLead(Lead $lead): array
     {
-        $lead->loadMissing('venueRecord');
+        $lead->loadMissing(['eventType', 'venueRecord']);
+        $eventTypeName = $lead->eventType?->name ?: 'Wedding';
 
         $payload = [
             'lead_id' => $lead->id,
-            'name' => $lead->couple_name ? ('Wedding - '.$lead->couple_name) : 'Wedding project',
+            'event_type_id' => $lead->event_type_id,
+            'name' => $lead->couple_name ? ($eventTypeName.' - '.$lead->couple_name) : ($eventTypeName.' project'),
             'first_name' => $lead->first_name,
             'last_name' => $lead->last_name ?: (trim((string) $lead->couple_name) ?: 'Client'),
             'email' => $lead->email,

@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -65,6 +65,7 @@ class Lead extends Model
     protected $fillable = [
         'requested_at',
         'source',
+        'event_type_id',
         'couple_name',
         'first_name',
         'last_name',
@@ -123,6 +124,7 @@ class Lead extends Model
 
     protected $casts = [
         'requested_at' => 'date',
+        'event_type_id' => 'integer',
         'venue_id' => 'integer',
         'budget_amount' => 'decimal:2',
         'venue_included_in_budget' => 'boolean',
@@ -147,6 +149,10 @@ class Lead extends Model
     protected static function booted(): void
     {
         static::saving(function (Lead $lead): void {
+            if (! $lead->event_type_id) {
+                $lead->event_type_id = EventType::weddingId();
+            }
+
             if (blank($lead->public_form_hash)) {
                 $lead->public_form_hash = Str::lower(Str::random(32));
             }
@@ -156,6 +162,11 @@ class Lead extends Model
     public function project(): HasOne
     {
         return $this->hasOne(Project::class);
+    }
+
+    public function eventType(): BelongsTo
+    {
+        return $this->belongsTo(EventType::class)->withTrashed();
     }
 
     public function venueRecord(): BelongsTo

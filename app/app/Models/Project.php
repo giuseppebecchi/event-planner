@@ -51,6 +51,7 @@ class Project extends Model
 
     protected $fillable = [
         'lead_id',
+        'event_type_id',
         'name',
         'alias',
         'first_name',
@@ -100,6 +101,7 @@ class Project extends Model
     ];
 
     protected $casts = [
+        'event_type_id' => 'integer',
         'event_date' => 'date',
         'event_start_date' => 'date',
         'event_end_date' => 'date',
@@ -119,6 +121,10 @@ class Project extends Model
     protected static function booted(): void
     {
         static::creating(function (Project $project): void {
+            if (! $project->event_type_id) {
+                $project->event_type_id = EventType::weddingId();
+            }
+
             if (blank($project->alias)) {
                 $project->alias = static::generateUniqueAlias($project->name);
             }
@@ -300,6 +306,11 @@ class Project extends Model
     public function lead(): BelongsTo
     {
         return $this->belongsTo(Lead::class);
+    }
+
+    public function eventType(): BelongsTo
+    {
+        return $this->belongsTo(EventType::class)->withTrashed();
     }
 
     public function venueRecord(): BelongsTo

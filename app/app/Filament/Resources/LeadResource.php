@@ -2,8 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\LeadResource\Pages;
 use App\Filament\Resources\Concerns\HasVenueFormFields;
+use App\Filament\Resources\LeadResource\Pages;
+use App\Models\EventType;
 use App\Models\Lead;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -14,11 +15,11 @@ use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Forms\Components;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Navigation\NavigationItem;
-use Filament\Resources\Resource;
 use Filament\Resources\Pages\Page;
+use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
@@ -36,6 +37,7 @@ class LeadResource extends Resource
     use HasVenueFormFields;
 
     protected static ?string $model = Lead::class;
+
     protected static ?string $recordTitleAttribute = 'couple_name';
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-inbox-stack';
@@ -45,6 +47,7 @@ class LeadResource extends Resource
     protected static ?string $pluralModelLabel = 'Leads';
 
     protected static ?string $modelLabel = 'Lead';
+
     protected static ?int $navigationSort = 1;
 
     public static function canViewAny(): bool
@@ -85,6 +88,13 @@ class LeadResource extends Resource
                                 ->label('Source')
                                 ->options(Lead::SOURCE_OPTIONS)
                                 ->searchable(),
+                            Components\Select::make('event_type_id')
+                                ->label('Event type')
+                                ->relationship('eventType', 'name', fn (Builder $query): Builder => $query->orderBy('order'))
+                                ->default(fn (): ?int => EventType::weddingId())
+                                ->searchable()
+                                ->preload()
+                                ->required(),
                             Components\TextInput::make('couple_name')
                                 ->label('Couple name')
                                 ->required()
@@ -119,7 +129,7 @@ class LeadResource extends Resource
                                 ->label('Dates, period or month')
                                 ->maxLength(255),
                             Components\DatePicker::make('wedding_date')
-                                ->label('Wedding date')
+                                ->label('Date')
                                 ->native(false)
                                 ->format('Y-m-d')
                                 ->displayFormat('M d, Y'),
@@ -288,11 +298,15 @@ class LeadResource extends Resource
                 TextColumn::make('source')
                     ->label('Source')
                     ->badge(),
+                TextColumn::make('eventType.name')
+                    ->label('Event type')
+                    ->badge()
+                    ->sortable(),
                 TextColumn::make('desired_region')
                     ->label('Region')
                     ->searchable(),
                 TextColumn::make('wedding_date')
-                    ->label('Wedding date')
+                    ->label('Date')
                     ->date('M d, Y')
                     ->searchable()
                     ->sortable()
@@ -312,9 +326,9 @@ class LeadResource extends Resource
                             $sentAt = $record->follow_up_sent_at?->format('d M Y H:i');
 
                             return new HtmlString(
-                                '<div style="display:flex;flex-direction:column;gap:4px;">' .
-                                '<span style="font-weight:700;color:' . ($sentAt ? '#617563' : '#8f6a2a') . ';">Automatic ' . ($sentAt ? 'sent' : 'enabled') . '</span>' .
-                                '<span style="font-size:12px;color:#8c857e;">' . ($sentAt ? 'Sent ' . e($sentAt) : 'After ' . (int) $record->follow_up_days . ' days') . '</span>' .
+                                '<div style="display:flex;flex-direction:column;gap:4px;">'.
+                                '<span style="font-weight:700;color:'.($sentAt ? '#617563' : '#8f6a2a').';">Automatic '.($sentAt ? 'sent' : 'enabled').'</span>'.
+                                '<span style="font-size:12px;color:#8c857e;">'.($sentAt ? 'Sent '.e($sentAt) : 'After '.(int) $record->follow_up_days.' days').'</span>'.
                                 '</div>'
                             );
                         }
@@ -325,16 +339,16 @@ class LeadResource extends Resource
 
                         if ($total === 0) {
                             return new HtmlString(
-                                '<div style="display:flex;flex-direction:column;gap:4px;">' .
-                                '<span style="font-weight:700;color:#8c857e;">No follow up</span>' .
-                                '<span style="font-size:12px;color:#a8a29e;">Nothing scheduled yet</span>' .
+                                '<div style="display:flex;flex-direction:column;gap:4px;">'.
+                                '<span style="font-weight:700;color:#8c857e;">No follow up</span>'.
+                                '<span style="font-size:12px;color:#a8a29e;">Nothing scheduled yet</span>'.
                                 '</div>'
                             );
                         }
 
                         $chips = [];
-                        $chips[] = '<span style="display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;background:rgba(46,74,98,.10);color:#2E4A62;">' . $total . ' total</span>';
-                        $chips[] = '<span style="display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;background:' . ($pending > 0 ? 'rgba(122,143,123,.16);color:#617563;' : 'rgba(168,162,158,.16);color:#7b7570;') . '">' . $pending . ' pending</span>';
+                        $chips[] = '<span style="display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;background:rgba(46,74,98,.10);color:#2E4A62;">'.$total.' total</span>';
+                        $chips[] = '<span style="display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;background:'.($pending > 0 ? 'rgba(122,143,123,.16);color:#617563;' : 'rgba(168,162,158,.16);color:#7b7570;').'">'.$pending.' pending</span>';
 
                         $meta = '<span style="font-size:12px;color:#8c857e;">No due date planned</span>';
 
@@ -344,25 +358,25 @@ class LeadResource extends Resource
 
                             if ($days < 0) {
                                 $tone = 'background:rgba(227,183,178,.28);color:#8f5954;';
-                                $label = 'Overdue by ' . abs($days) . 'd';
+                                $label = 'Overdue by '.abs($days).'d';
                             } elseif ($days === 0) {
                                 $tone = 'background:rgba(201,169,106,.20);color:#8f6a2a;';
                                 $label = 'Due today';
                             } elseif ($days <= 3) {
                                 $tone = 'background:rgba(201,169,106,.18);color:#9a7a39;';
-                                $label = 'Due in ' . $days . 'd';
+                                $label = 'Due in '.$days.'d';
                             } else {
                                 $tone = 'background:rgba(46,74,98,.10);color:#2E4A62;';
-                                $label = 'Next ' . $nextDue->format('d M');
+                                $label = 'Next '.$nextDue->format('d M');
                             }
 
-                            $meta = '<span style="display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;' . $tone . '">' . $label . '</span>';
+                            $meta = '<span style="display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;'.$tone.'">'.$label.'</span>';
                         }
 
                         return new HtmlString(
-                            '<div style="display:flex;flex-direction:column;gap:6px;min-width:180px;">' .
-                            '<div style="display:flex;flex-wrap:wrap;gap:6px;">' . implode('', $chips) . '</div>' .
-                            '<div>' . $meta . '</div>' .
+                            '<div style="display:flex;flex-direction:column;gap:6px;min-width:180px;">'.
+                            '<div style="display:flex;flex-wrap:wrap;gap:6px;">'.implode('', $chips).'</div>'.
+                            '<div>'.$meta.'</div>'.
                             '</div>'
                         );
                     })
@@ -382,6 +396,9 @@ class LeadResource extends Resource
                 SelectFilter::make('source')
                     ->label('Source')
                     ->options(Lead::SOURCE_OPTIONS),
+                SelectFilter::make('event_type_id')
+                    ->label('Event type')
+                    ->relationship('eventType', 'name'),
                 SelectFilter::make('evaluation_outcome')
                     ->label('Match')
                     ->options(Lead::EVALUATION_OUTCOME_OPTIONS),
@@ -414,6 +431,9 @@ class LeadResource extends Resource
                         ->date('d/m/Y'),
                     TextEntry::make('source')
                         ->formatStateUsing(fn (?string $state): ?string => $state ? (Lead::SOURCE_OPTIONS[$state] ?? $state) : null)
+                        ->badge(),
+                    TextEntry::make('eventType.name')
+                        ->label('Event type')
                         ->badge(),
                     TextEntry::make('couple_name')
                         ->label('Couple'),
@@ -468,7 +488,7 @@ class LeadResource extends Resource
                     TextEntry::make('wedding_period')
                         ->label('Wedding period'),
                     TextEntry::make('wedding_date')
-                        ->label('Wedding date')
+                        ->label('Date')
                         ->date('M d, Y'),
                 ]),
             Section::make('Partner Contact')
@@ -552,31 +572,31 @@ class LeadResource extends Resource
         return [
             NavigationItem::make('Details')
                 ->icon('heroicon-o-pencil-square')
-                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName() . '.edit'))
+                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName().'.edit'))
                 ->url(static::getUrl('edit', ['record' => $page->getRecord()])),
             NavigationItem::make('Documents')
                 ->icon('heroicon-o-paper-clip')
-                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName() . '.documents'))
+                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName().'.documents'))
                 ->url(static::getUrl('documents', ['record' => $page->getRecord()])),
             NavigationItem::make('Follow up')
                 ->icon('heroicon-o-clock')
-                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName() . '.follow-ups'))
+                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName().'.follow-ups'))
                 ->url(static::getUrl('follow-ups', ['record' => $page->getRecord()])),
             NavigationItem::make('Questionnaire')
                 ->icon('heroicon-o-document-text')
-                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName() . '.form-data'))
+                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName().'.form-data'))
                 ->url(static::getUrl('form-data', ['record' => $page->getRecord()])),
             NavigationItem::make('Budget composition')
                 ->icon('heroicon-o-banknotes')
-                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName() . '.budget-composition'))
+                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName().'.budget-composition'))
                 ->url(static::getUrl('budget-composition', ['record' => $page->getRecord()])),
             NavigationItem::make('Proposal')
                 ->icon('heroicon-o-document-check')
-                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName() . '.proposal'))
+                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName().'.proposal'))
                 ->url(static::getUrl('proposal', ['record' => $page->getRecord()])),
             NavigationItem::make('Contract')
                 ->icon('heroicon-o-document-text')
-                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName() . '.contract'))
+                ->isActiveWhen(fn (): bool => request()->routeIs(static::getRouteBaseName().'.contract'))
                 ->url(static::getUrl('contract', ['record' => $page->getRecord()])),
         ];
     }

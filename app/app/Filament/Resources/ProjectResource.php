@@ -2,8 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\Concerns\HasVenueFormFields;
+use App\Filament\Resources\ProjectResource\Pages;
+use App\Models\EventType;
 use App\Models\Lead;
 use App\Models\Project;
 use BackedEnum;
@@ -37,6 +38,7 @@ class ProjectResource extends Resource
     use HasVenueFormFields;
 
     protected static ?string $model = Project::class;
+
     protected static ?string $recordTitleAttribute = 'name';
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-heart';
@@ -46,6 +48,7 @@ class ProjectResource extends Resource
     protected static ?string $pluralModelLabel = 'Projects';
 
     protected static ?string $modelLabel = 'Project';
+
     protected static ?int $navigationSort = 2;
 
     public static function shouldRegisterNavigation(): bool
@@ -139,6 +142,13 @@ class ProjectResource extends Resource
                                         ->label('Event status')
                                         ->options(Project::STATUS_OPTIONS)
                                         ->default('proposal')
+                                        ->required(),
+                                    Components\Select::make('event_type_id')
+                                        ->label('Event type')
+                                        ->relationship('eventType', 'name', fn (Builder $query): Builder => $query->orderBy('order'))
+                                        ->default(fn (): ?int => EventType::weddingId())
+                                        ->searchable()
+                                        ->preload()
                                         ->required(),
                                     Components\Select::make('preferred_language')
                                         ->label('Language')
@@ -334,6 +344,10 @@ class ProjectResource extends Resource
                     ->label('Event')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('eventType.name')
+                    ->label('Event type')
+                    ->badge()
+                    ->sortable(),
                 TextColumn::make('lead.couple_name')
                     ->label('Lead')
                     ->searchable(),
@@ -364,6 +378,9 @@ class ProjectResource extends Resource
                 SelectFilter::make('status')
                     ->label('Status')
                     ->options(Project::STATUS_OPTIONS),
+                SelectFilter::make('event_type_id')
+                    ->label('Event type')
+                    ->relationship('eventType', 'name'),
                 SelectFilter::make('lead_id')
                     ->label('Lead')
                     ->options(fn (): array => Lead::query()->orderBy('couple_name')->pluck('couple_name', 'id')->all()),
