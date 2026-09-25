@@ -33,8 +33,8 @@ use Throwable;
 class ViewProjectGuests extends Page implements HasForms
 {
     use InteractsWithForms;
-    use InteractsWithRecord;
     use InteractsWithProjectDateEditor;
+    use InteractsWithRecord;
     use WithFileUploads;
 
     protected static string $resource = ProjectResource::class;
@@ -199,7 +199,7 @@ class ViewProjectGuests extends Page implements HasForms
         $this->showGuestEditor = true;
         $this->guestForm = [
             'rsvp_number' => $guest->rsvp_number,
-            'guest_list' => $guest->guest_list ?? 'A List',
+            'guest_list' => $guest->guest_list ?? '',
             'group_name' => $guest->group_name ?? '',
             'primary_title' => $guest->primary_title ?? '',
             'primary_first_name' => $guest->primary_first_name ?? '',
@@ -454,7 +454,7 @@ class ViewProjectGuests extends Page implements HasForms
     public function downloadGuestTemplate(): StreamedResponse
     {
         return response()->streamDownload(function (): void {
-            $writer = new Writer();
+            $writer = new Writer;
             $writer->openToFile('php://output');
             $writer->addRow(Row::fromValues([
                 'Last Name',
@@ -471,13 +471,18 @@ class ViewProjectGuests extends Page implements HasForms
                 'Email',
                 'Group',
                 'Guest List',
+                'Child',
             ]));
-            $writer->addRow(Row::fromValues(['Smith', 'John', 'Mr.', '', '2111 12th Avenue', '', 'San Diego', 'CA', '92006', 'USA', '760-933-0222', 'john@example.com', 'Family', 'A List']));
-            $writer->addRow(Row::fromValues(['Smith', 'Jane', 'Mrs.', '', '', '', '', '', '', '', '', '', '', '']));
-            $writer->addRow(Row::fromValues(['Smith', 'Leslie-Anne', '', '', '', '', '', '', '', '', '', '', '', '']));
+            $writer->addRow(Row::fromValues(['Smith', 'John', 'Mr.', '', '2111 12th Avenue', '', 'San Diego', 'CA', '92006', 'USA', '760-933-0222', 'john@example.com', 'Family', 'A List', 'NO']));
+            $writer->addRow(Row::fromValues(['Smith', 'Jane', 'Mrs.', '', '', '', '', '', '', '', '', '', '', '', 'NO']));
+            $writer->addRow(Row::fromValues(['Smith', 'Leslie-Anne', '', '', '', '', '', '', '', '', '', '', '', '', 'NO']));
             $writer->addRow(Row::fromValues([]));
-            $writer->addRow(Row::fromValues(['Doe', 'Richard', 'Mr.', '', '8776 Dutton Drive', '', 'San Clemente', 'CA', '92066', 'USA', '760-988-3332', 'richard@example.com', 'Friends', 'A List']));
-            $writer->addRow(Row::fromValues(['Doe', 'Cindy', 'Mrs.', '', '', '', '', '', '', '', '', '', '', '']));
+            $writer->addRow(Row::fromValues(['Doe', 'Richard', 'Mr.', '', '8776 Dutton Drive', '', 'San Clemente', 'CA', '92066', 'USA', '760-988-3332', 'richard@example.com', 'Friends', 'A List', 'NO']));
+            $writer->addRow(Row::fromValues(['Doe', 'Cindy', 'Mrs.', '', '', '', '', '', '', '', '', '', '', '', 'NO']));
+            $writer->addRow(Row::fromValues([]));
+            $writer->addRow(Row::fromValues(['Brown', 'Michael', 'Mr.', '', '54 Garden Street', '', 'Boston', 'MA', '02108', 'USA', '617-555-0142', 'michael@example.com', 'Family', 'A List', 'NO']));
+            $writer->addRow(Row::fromValues(['Brown', 'Emily', 'Mrs.', '', '', '', '', '', '', '', '', '', '', '', 'NO']));
+            $writer->addRow(Row::fromValues(['Brown', 'Sophie', '', '', '', '', '', '', '', '', '', '', '', '', 'YES']));
             $writer->close();
         }, 'guests-template-by-individual.xlsx', [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -491,7 +496,7 @@ class ViewProjectGuests extends Page implements HasForms
         $filename = sprintf('%s-rsvp-responses.xlsx', str($project->name)->slug()->value() ?: 'rsvp');
 
         return response()->streamDownload(function () use ($project, $fields): void {
-            $writer = new Writer();
+            $writer = new Writer;
             $writer->openToFile('php://output');
             $writer->addRow(Row::fromValues(array_merge([
                 'RSVP #',
@@ -531,7 +536,7 @@ class ViewProjectGuests extends Page implements HasForms
                                     $entryValue = $entryValue ? 'Yes' : 'No';
                                 }
 
-                                return trim((string) ($entry['label'] ?? 'Guest')) . ': ' . (string) $entryValue;
+                                return trim((string) ($entry['label'] ?? 'Guest')).': '.(string) $entryValue;
                             })
                             ->filter(fn (string $entry): bool => trim($entry) !== ':')
                             ->implode(' | ');
@@ -833,7 +838,7 @@ HTML;
             'couple_name' => $project->coupleNames() ?: $project->name,
             'couple_names' => $project->coupleNames() ?: $project->name,
             'event_date' => $project->event_start_date
-                ? $project->event_start_date->format('F j, Y') . ($project->event_end_date && ! $project->event_start_date->isSameDay($project->event_end_date) ? ' - ' . $project->event_end_date->format('F j, Y') : '')
+                ? $project->event_start_date->format('F j, Y').($project->event_end_date && ! $project->event_start_date->isSameDay($project->event_end_date) ? ' - '.$project->event_end_date->format('F j, Y') : '')
                 : 'Date to be confirmed',
             'rsvp_deadline_date' => $this->rsvpDeadlineDate(),
             'event_location' => $project->displayLocationLabel(),
@@ -846,8 +851,8 @@ HTML;
             $value = $escapeValues ? e($value) : $value;
 
             $content = str_replace([
-                '{{ ' . $key . ' }}',
-                '{{' . $key . '}}',
+                '{{ '.$key.' }}',
+                '{{'.$key.'}}',
             ], $value, $content);
         }
 
@@ -881,7 +886,7 @@ HTML;
     {
         $this->guestForm = [
             'rsvp_number' => null,
-            'guest_list' => 'A List',
+            'guest_list' => '',
             'group_name' => '',
             'primary_title' => '',
             'primary_first_name' => '',
@@ -944,6 +949,7 @@ HTML;
             ->all();
 
         $formalAddressing = trim((string) ($data['formal_addressing'] ?? ''));
+        $unspecifiedPlusOne = (bool) ($data['unspecified_plus_one'] ?? false);
 
         return [
             'rsvp_number' => $data['rsvp_number'] ?: null,
@@ -955,15 +961,22 @@ HTML;
             'primary_suffix' => $this->nullableString($data['primary_suffix'] ?? null),
             'primary_role' => $this->nullableString($data['primary_role'] ?? null),
             'primary_gender' => $this->nullableString($data['primary_gender'] ?? null),
-            'partner_title' => $this->nullableString($data['partner_title'] ?? null),
-            'partner_first_name' => $this->nullableString($data['partner_first_name'] ?? null),
-            'partner_last_name' => $this->nullableString($data['partner_last_name'] ?? null),
-            'partner_suffix' => $this->nullableString($data['partner_suffix'] ?? null),
-            'partner_role' => $this->nullableString($data['partner_role'] ?? null),
-            'partner_gender' => $this->nullableString($data['partner_gender'] ?? null),
-            'unspecified_plus_one' => (bool) ($data['unspecified_plus_one'] ?? false),
+            'partner_title' => $unspecifiedPlusOne ? null : $this->nullableString($data['partner_title'] ?? null),
+            'partner_first_name' => $unspecifiedPlusOne ? null : $this->nullableString($data['partner_first_name'] ?? null),
+            'partner_last_name' => $unspecifiedPlusOne ? null : $this->nullableString($data['partner_last_name'] ?? null),
+            'partner_suffix' => $unspecifiedPlusOne ? null : $this->nullableString($data['partner_suffix'] ?? null),
+            'partner_role' => $unspecifiedPlusOne ? null : $this->nullableString($data['partner_role'] ?? null),
+            'partner_gender' => $unspecifiedPlusOne ? null : $this->nullableString($data['partner_gender'] ?? null),
+            'unspecified_plus_one' => $unspecifiedPlusOne,
             'additional_guests' => $additionalGuests,
-            'formal_addressing' => $formalAddressing !== '' ? $formalAddressing : $this->buildFormalAddressing($data),
+            'formal_addressing' => $formalAddressing !== ''
+                ? $formalAddressing
+                : $this->buildFormalAddressing($unspecifiedPlusOne ? [
+                    ...$data,
+                    'partner_title' => null,
+                    'partner_first_name' => null,
+                    'partner_last_name' => null,
+                ] : $data),
             'address_line_1' => $this->nullableString($data['address_line_1'] ?? null),
             'address_line_2' => $this->nullableString($data['address_line_2'] ?? null),
             'city' => $this->nullableString($data['city'] ?? null),
@@ -984,7 +997,7 @@ HTML;
 
     protected function readGuestPartiesFromSpreadsheet(string $path): array
     {
-        $options = new XlsxReaderOptions();
+        $options = new XlsxReaderOptions;
         $options->SHOULD_PRESERVE_EMPTY_ROWS = true;
 
         $reader = new Reader($options);
@@ -992,6 +1005,7 @@ HTML;
         $parties = [];
         $currentParty = [];
         $headerChecked = false;
+        $childColumnIndex = null;
 
         foreach ($reader->getSheetIterator() as $sheet) {
             foreach ($sheet->getRowIterator() as $row) {
@@ -1001,11 +1015,15 @@ HTML;
                     $headerChecked = true;
 
                     if ($this->looksLikeImportHeader($values)) {
+                        $childColumnIndex = $this->findSpreadsheetChildColumnIndex($values);
+
                         continue;
                     }
                 }
 
                 if ($this->looksLikeImportHeader($values)) {
+                    $childColumnIndex = $this->findSpreadsheetChildColumnIndex($values);
+
                     continue;
                 }
 
@@ -1018,7 +1036,7 @@ HTML;
                     continue;
                 }
 
-                $currentParty[] = $values;
+                $currentParty[] = $this->canonicalizeSpreadsheetRow($values, $childColumnIndex);
             }
 
             break;
@@ -1039,15 +1057,35 @@ HTML;
         $second = $this->spreadsheetRowToGuestPerson($rows[1] ?? []);
         $hasPartner = filled($second['first_name'] ?? null);
 
-        $additionalRows = array_slice($rows, $hasPartner ? 2 : 1);
-        $additionalGuests = collect($additionalRows)
-            ->map(fn (array $row): array => $this->spreadsheetRowToGuestPerson($row))
+        $people = collect($rows)
+            ->map(fn (array $row, int $index): array => [
+                ...$this->spreadsheetRowToGuestPerson($row),
+                'row_index' => $index,
+            ]);
+
+        if ($people->contains(fn (array $person): bool => $person['is_child'])) {
+            $adults = $people
+                ->reject(fn (array $person): bool => $person['is_child'])
+                ->values();
+            $primary = $adults->get(0, $this->spreadsheetRowToGuestPerson([]));
+            $second = $adults->get(1, $this->spreadsheetRowToGuestPerson([]));
+            $hasPartner = filled($second['first_name'] ?? null);
+            $excludedRows = collect([$primary['row_index'] ?? null, $second['row_index'] ?? null])
+                ->filter(fn (?int $index): bool => $index !== null);
+            $additionalPeople = $people->reject(
+                fn (array $person): bool => $excludedRows->contains($person['row_index'])
+            );
+        } else {
+            $additionalPeople = $people->slice($hasPartner ? 2 : 1);
+        }
+
+        $additionalGuests = $additionalPeople
             ->filter(fn (array $person): bool => filled($person['first_name'] ?? null))
             ->map(fn (array $person): array => [
                 'first_name' => $person['first_name'],
                 'last_name' => $person['last_name'],
                 'role' => $person['role'] ?: $person['title'],
-                'type' => 'Guest',
+                'type' => $person['is_child'] ? 'Child' : 'Guest',
                 'gender' => '',
             ])
             ->values()
@@ -1055,7 +1093,7 @@ HTML;
 
         $payload = [
             'rsvp_number' => $this->nextRsvpNumber(),
-            'guest_list' => $this->nullableString($primary['guest_list']) ?: 'A List',
+            'guest_list' => $this->nullableString($primary['guest_list']),
             'group_name' => $this->nullableString($primary['group_name']),
             'primary_title' => $this->nullableString($primary['title']),
             'primary_first_name' => $primary['first_name'] ?: 'Guest',
@@ -1112,7 +1150,32 @@ HTML;
             'group_name' => $row[12] ?? '',
             'guest_list' => $row[13] ?? '',
             'role' => '',
+            'is_child' => $this->isChildSpreadsheetValue($row[14] ?? ''),
         ];
+    }
+
+    protected function findSpreadsheetChildColumnIndex(array $header): ?int
+    {
+        foreach ($header as $index => $value) {
+            if (strcasecmp(trim((string) $value), 'Child') === 0) {
+                return $index;
+            }
+        }
+
+        return null;
+    }
+
+    protected function canonicalizeSpreadsheetRow(array $row, ?int $childColumnIndex): array
+    {
+        $canonicalRow = array_pad(array_slice(array_values($row), 0, 14), 14, '');
+        $canonicalRow[] = $childColumnIndex !== null ? ($row[$childColumnIndex] ?? '') : '';
+
+        return $canonicalRow;
+    }
+
+    protected function isChildSpreadsheetValue(mixed $value): bool
+    {
+        return in_array(strtolower(trim((string) $value)), ['yes', 'y', 'child'], true);
     }
 
     protected function looksLikeImportHeader(array $values): bool

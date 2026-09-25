@@ -685,6 +685,24 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
+        .wm-guests-grid.is-three {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .wm-guests-grid.is-five {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
+        .wm-guests-grid.is-disabled {
+            opacity: 0.48;
+        }
+
+        .wm-guests-grid.is-disabled .wm-guests-input {
+            background: #f4f1ed;
+            color: #9b948c;
+            cursor: not-allowed;
+        }
+
         .wm-guests-field label,
         .wm-guests-check-field span {
             display: block;
@@ -790,6 +808,8 @@
 
             .wm-guests-grid,
             .wm-guests-grid.is-two,
+            .wm-guests-grid.is-three,
+            .wm-guests-grid.is-five,
             .wm-guests-checks,
             .wm-guests-additional-row {
                 grid-template-columns: minmax(0, 1fr);
@@ -1058,7 +1078,7 @@
 
                 <div class="wm-guests-section">
                     <p class="wm-guests-section-title">Guest names</p>
-                    <div class="wm-guests-grid">
+                    <div class="wm-guests-grid is-five">
                         <div class="wm-guests-field">
                             <label>Title</label>
                             <input type="text" class="wm-guests-input" wire:model="guestForm.primary_title" placeholder="Mr.">
@@ -1075,43 +1095,47 @@
                             <label>Suffix</label>
                             <input type="text" class="wm-guests-input" wire:model="guestForm.primary_suffix">
                         </div>
+                        <div class="wm-guests-field">
+                            <label>Role</label>
+                            <input type="text" class="wm-guests-input" wire:model="guestForm.primary_role" placeholder="Best Man">
+                        </div>
                     </div>
 
-                    <div class="wm-guests-grid">
+                    <div @class([
+                        'wm-guests-grid',
+                        'is-five',
+                        'is-disabled' => (bool) ($guestForm['unspecified_plus_one'] ?? false),
+                    ])>
                         <div class="wm-guests-field">
                             <label>Partner title</label>
-                            <input type="text" class="wm-guests-input" wire:model="guestForm.partner_title" placeholder="Mrs.">
+                            <input type="text" class="wm-guests-input" wire:model="guestForm.partner_title" placeholder="Mrs." @disabled((bool) ($guestForm['unspecified_plus_one'] ?? false))>
                         </div>
                         <div class="wm-guests-field">
                             <label>Partner first</label>
-                            <input type="text" class="wm-guests-input" wire:model="guestForm.partner_first_name">
+                            <input type="text" class="wm-guests-input" wire:model="guestForm.partner_first_name" @disabled((bool) ($guestForm['unspecified_plus_one'] ?? false))>
                         </div>
                         <div class="wm-guests-field">
                             <label>Partner last</label>
-                            <input type="text" class="wm-guests-input" wire:model="guestForm.partner_last_name">
+                            <input type="text" class="wm-guests-input" wire:model="guestForm.partner_last_name" @disabled((bool) ($guestForm['unspecified_plus_one'] ?? false))>
                         </div>
                         <div class="wm-guests-field">
                             <label>Partner suffix</label>
-                            <input type="text" class="wm-guests-input" wire:model="guestForm.partner_suffix">
+                            <input type="text" class="wm-guests-input" wire:model="guestForm.partner_suffix" @disabled((bool) ($guestForm['unspecified_plus_one'] ?? false))>
+                        </div>
+                        <div class="wm-guests-field">
+                            <label>Role</label>
+                            <input type="text" class="wm-guests-input" wire:model="guestForm.partner_role" placeholder="Role" @disabled((bool) ($guestForm['unspecified_plus_one'] ?? false))>
                         </div>
                     </div>
 
-                    <div class="wm-guests-checks">
+                    <div class="wm-guests-grid is-five">
                         <label class="wm-guests-check-field">
                             <span>Unspecified plus-one</span>
-                            <input type="checkbox" wire:model="guestForm.unspecified_plus_one">
+                            <input type="checkbox" wire:model.live="guestForm.unspecified_plus_one">
                         </label>
-                        <div class="wm-guests-field">
-                            <label>Primary role</label>
-                            <input type="text" class="wm-guests-input" wire:model="guestForm.primary_role" placeholder="Best Man">
-                        </div>
-                        <div class="wm-guests-field">
-                            <label>Partner role</label>
-                            <input type="text" class="wm-guests-input" wire:model="guestForm.partner_role" placeholder="Role">
-                        </div>
                     </div>
 
-                    <p class="wm-guests-section-title">Additional guests</p>
+                    <p class="wm-guests-section-title">Additional guests / childs</p>
                     @forelse (($guestForm['additional_guests'] ?? []) as $index => $additionalGuest)
                         <div class="wm-guests-additional-row" wire:key="additional-guest-{{ $index }}">
                             <input type="text" class="wm-guests-input" wire:model="guestForm.additional_guests.{{ $index }}.first_name" placeholder="First name">
@@ -1147,6 +1171,16 @@
                     <p class="wm-guests-section-title">Contact information</p>
                     <div class="wm-guests-grid is-two">
                         <div class="wm-guests-field">
+                            <label>Phone</label>
+                            <input type="text" class="wm-guests-input" wire:model="guestForm.phone">
+                        </div>
+                        <div class="wm-guests-field">
+                            <label>Email</label>
+                            <input type="email" class="wm-guests-input" wire:model="guestForm.email">
+                        </div>
+                    </div>
+                    <div class="wm-guests-grid is-two">
+                        <div class="wm-guests-field">
                             <label>Address line 1</label>
                             <input type="text" class="wm-guests-input" wire:model="guestForm.address_line_1">
                         </div>
@@ -1173,32 +1207,18 @@
                             <input type="text" class="wm-guests-input" wire:model="guestForm.country">
                         </div>
                     </div>
-                    <div class="wm-guests-grid">
-                        <div class="wm-guests-field">
-                            <label>Phone</label>
-                            <input type="text" class="wm-guests-input" wire:model="guestForm.phone">
-                        </div>
-                        <div class="wm-guests-field">
-                            <label>Email</label>
-                            <input type="email" class="wm-guests-input" wire:model="guestForm.email">
-                        </div>
-                        <div class="wm-guests-field">
-                            <label>RSVP #</label>
-                            <input type="number" class="wm-guests-input" wire:model="guestForm.rsvp_number">
-                        </div>
-                        <div class="wm-guests-field">
-                            <label>Guest list</label>
-                            <input type="text" class="wm-guests-input" wire:model="guestForm.guest_list" placeholder="A List">
-                        </div>
-                    </div>
-                    <div class="wm-guests-grid is-two">
-                        <div class="wm-guests-field">
-                            <label>Group</label>
-                            <input type="text" class="wm-guests-input" wire:model="guestForm.group_name">
-                        </div>
+                    <div class="wm-guests-grid is-three">
                         <div class="wm-guests-field">
                             <label>Formal addressing</label>
                             <input type="text" class="wm-guests-input" wire:model="guestForm.formal_addressing">
+                        </div>
+                        <div class="wm-guests-field">
+                            <label>Guest list</label>
+                            <input type="text" class="wm-guests-input" wire:model="guestForm.guest_list">
+                        </div>
+                        <div class="wm-guests-field">
+                            <label>Group</label>
+                            <input type="text" class="wm-guests-input" wire:model="guestForm.group_name">
                         </div>
                     </div>
                     <div class="wm-guests-checks">
