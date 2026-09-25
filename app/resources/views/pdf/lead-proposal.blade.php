@@ -180,8 +180,9 @@
             @endforeach
         </div>
         <div class="body-copy" style="left: 211mm; top: 175mm; width: 75mm;">
-            <p>This offer is valid 30 days from today (until {{ $data['valid_until'] }}). After that limit, a new quote might apply.</p>
-            <p>No reservation has been made at this stage.</p>
+            @foreach ($data['offer_validity_rows'] as $row)
+                <p>{{ $row }}</p>
+            @endforeach
         </div>
     </section>
 </body>

@@ -119,6 +119,54 @@ class LeadBudgetAddToBudgetTest extends TestCase
         $this->assertSame("WEDDING IN TUSCANY\nSEPTEMBER 18, 2027", $data['proposal_title']);
     }
 
+    public function test_proposal_uses_the_edited_confirmation_and_offer_validity_sections(): void
+    {
+        $lead = new Lead([
+            'proposal_wedding_planning_service' => '<p>Planning support</p>',
+            'proposal_content' => <<<'HTML'
+                <h1>Proposal</h1>
+                <h2>Conditions</h2>
+                <p>To proceed with the confirmation:</p>
+                <ul>
+                    <li><p>Custom deposit condition.</p></li>
+                    <li><p>Custom balance condition.</p></li>
+                </ul>
+                <h2>Offer validity</h2>
+                <p>This offer is valid 10 days from today<br><strong>(until October 5th 2026)</strong>. After that limit, a new quote might apply.</p>
+                <p><strong>No reservation has been made at this stage.</strong></p>
+                HTML,
+        ]);
+
+        $data = $this->callProtected(new LeadProposalPdfController(), 'buildData', $lead);
+
+        $this->assertSame([
+            'Custom deposit condition.',
+            'Custom balance condition.',
+        ], $data['confirmation_rows']);
+        $this->assertSame([
+            'This offer is valid 10 days from today (until October 5th 2026). After that limit, a new quote might apply.',
+            'No reservation has been made at this stage.',
+        ], $data['offer_validity_rows']);
+    }
+
+    public function test_proposal_uses_default_offer_validity_for_legacy_condition_content(): void
+    {
+        $this->travelTo('2026-09-25');
+
+        $lead = new Lead([
+            'proposal_wedding_planning_service' => '<p>Planning support</p>',
+            'proposal_content' => '<ul><li>Custom condition.</li></ul>',
+        ]);
+
+        $data = $this->callProtected(new LeadProposalPdfController(), 'buildData', $lead);
+
+        $this->assertSame(['Custom condition.'], $data['confirmation_rows']);
+        $this->assertSame([
+            'This offer is valid 30 days from today (until October 25th 2026). After that limit, a new quote might apply.',
+            'No reservation has been made at this stage.',
+        ], $data['offer_validity_rows']);
+    }
+
     protected function callProtected(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new ReflectionMethod($object, $method);

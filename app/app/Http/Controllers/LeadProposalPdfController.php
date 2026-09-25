@@ -46,6 +46,7 @@ class LeadProposalPdfController extends Controller
         $mainOffer = $plannerRows[0] ?? null;
         $mainFee = $this->money($mainOffer['amount'] ?? null);
         $planningRows = $this->planningRows($lead);
+        $proposalConditions = $this->proposalConditionSections($lead);
 
         return [
             'couple_name' => $lead->couple_name ?: ($project?->coupleNames() ?: ''),
@@ -55,8 +56,8 @@ class LeadProposalPdfController extends Controller
             'planning_rows_left' => $planningRows->get(0, []),
             'planning_rows_right' => $planningRows->get(1, []),
             'extra_rows' => $extraRows ?: $this->defaultExtraRows(),
-            'valid_until' => now()->addDays(30)->format('F jS Y'),
-            'confirmation_rows' => $this->confirmationRows($lead),
+            'confirmation_rows' => $proposalConditions['confirmation'] ?: $this->defaultConfirmationRows(),
+            'offer_validity_rows' => $proposalConditions['offer_validity'] ?: $this->defaultOfferValidityRows(),
         ];
     }
 
@@ -145,7 +146,7 @@ class LeadProposalPdfController extends Controller
 
     protected function confirmationRows(Lead $lead): array
     {
-        $configuredRows = $this->proposalConditionRows($lead);
+        $configuredRows = $this->proposalConditionSections($lead)['confirmation'];
 
         if ($configuredRows !== []) {
             return $configuredRows;
@@ -156,16 +157,58 @@ class LeadProposalPdfController extends Controller
 
     protected function proposalConditionRows(Lead $lead): array
     {
+        return $this->proposalConditionSections($lead)['confirmation'];
+    }
+
+    /**
+     * @return array{confirmation: array<int, string>, offer_validity: array<int, string>}
+     */
+    protected function proposalConditionSections(Lead $lead): array
+    {
         $content = trim((string) $lead->proposal_content);
 
         if ($content === '') {
-            return [];
+            return [
+                'confirmation' => [],
+                'offer_validity' => [],
+            ];
         }
 
-        preg_match_all('/<li[^>]*>(.*?)<\/li>/is', $content, $matches);
+        $sections = preg_split(
+            '/<h[1-6][^>]*>\s*Offer\s+validity\s*<\/h[1-6]>/is',
+            $content,
+            2,
+        ) ?: [$content];
+
+        return [
+            'confirmation' => $this->proposalHtmlRows($sections[0], preferListItems: true),
+            'offer_validity' => isset($sections[1])
+                ? $this->proposalHtmlRows($sections[1])
+                : [],
+        ];
+    }
+
+    /** @return array<int, string> */
+    protected function proposalHtmlRows(string $content, bool $preferListItems = false): array
+    {
+        if ($preferListItems) {
+            preg_match_all('/<li[^>]*>(.*?)<\/li>/is', $content, $listMatches);
+
+            $listRows = collect($listMatches[1] ?? [])
+                ->map(fn (string $row): string => $this->proposalPlainText($row))
+                ->filter()
+                ->values()
+                ->all();
+
+            if ($listRows !== []) {
+                return $listRows;
+            }
+        }
+
+        preg_match_all('/<(?:p|li)[^>]*>(.*?)<\/(?:p|li)>/is', $content, $matches);
 
         $rows = collect($matches[1] ?? [])
-            ->map(fn (string $row): string => trim(html_entity_decode(strip_tags($row))))
+            ->map(fn (string $row): string => $this->proposalPlainText($row))
             ->filter()
             ->values()
             ->all();
@@ -175,10 +218,17 @@ class LeadProposalPdfController extends Controller
         }
 
         return collect(preg_split('/\r\n|\r|\n/', strip_tags($content)) ?: [])
-            ->map(fn (string $row): string => trim(html_entity_decode($row)))
+            ->map(fn (string $row): string => $this->proposalPlainText($row))
             ->filter()
             ->values()
             ->all();
+    }
+
+    protected function proposalPlainText(string $content): string
+    {
+        $content = preg_replace('/<br\s*\/?\s*>/i', ' ', $content) ?? $content;
+
+        return trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($content))) ?? '');
     }
 
     protected function defaultConfirmationRows(): array
@@ -191,6 +241,17 @@ class LeadProposalPdfController extends Controller
             'In case of postponements due to Covid-19 or force majeur, deposits paid will be used as credit to reschedule the event.',
             'Our travel fees are included on us for maximum 2 trips to the designated region/venue (usually for site inspections, meetings with the couple/suppliers and for the wedding day). For additional trips, extra travel fees apply.',
             'During the event(s), Staff meals and water are required for the planner and assistant(s).',
+        ];
+    }
+
+    protected function defaultOfferValidityRows(): array
+    {
+        return [
+            sprintf(
+                'This offer is valid 30 days from today (until %s). After that limit, a new quote might apply.',
+                now()->addDays(30)->format('F jS Y'),
+            ),
+            'No reservation has been made at this stage.',
         ];
     }
 
