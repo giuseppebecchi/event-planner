@@ -9,11 +9,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class CategoryBudgetSupplier extends Model
 {
     public const STATUS_REQUESTED = 'requested';
+
     public const STATUS_RECEIVED = 'received';
+
     public const STATUS_CONFIRMED = 'confirmed';
 
     public const COMMISSION_MODE_NONE = 'NONE';
+
     public const COMMISSION_MODE_FIXED = 'FIXED';
+
     public const COMMISSION_MODE_PERCENTAGE = 'PERCENTAGE';
 
     public const COMMISSION_MODE_OPTIONS = [
@@ -253,6 +257,42 @@ class CategoryBudgetSupplier extends Model
         return round(collect($payments ?? [])
             ->filter(fn (array $payment): bool => filled($payment['paid_at'] ?? null))
             ->sum(fn (array $payment): float => (float) ($payment['amount'] ?? 0)), 2);
+    }
+
+    public function commissionOutstandingAmount(): float
+    {
+        return round(max(
+            0,
+            (float) ($this->commission_amount ?? 0) - (float) ($this->commission_total_amount_payed ?? 0),
+        ), 2);
+    }
+
+    public function isCommissionPaid(): bool
+    {
+        return (float) ($this->commission_amount ?? 0) > 0
+            && $this->commissionOutstandingAmount() <= 0;
+    }
+
+    public function markCommissionAsPaid(): void
+    {
+        $outstandingAmount = $this->commissionOutstandingAmount();
+
+        if ($outstandingAmount <= 0) {
+            return;
+        }
+
+        $payments = $this->normalizedCommissionPayments();
+        $payments[] = [
+            'invoice_date' => null,
+            'due_date' => null,
+            'amount' => $outstandingAmount,
+            'paid_at' => today()->toDateString(),
+        ];
+
+        $this->forceFill([
+            'commission_payments_json' => $payments,
+            'commission_total_amount_payed' => self::calculateCommissionPaidTotal($payments),
+        ])->save();
     }
 
     protected function applyDefaultCommissionIfNeeded(): void
