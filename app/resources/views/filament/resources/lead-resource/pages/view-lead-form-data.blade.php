@@ -274,6 +274,27 @@
             color: #5f5147;
         }
 
+        .lead-form-data-image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+        }
+
+        .lead-form-data-image-link {
+            display: block;
+            overflow: hidden;
+            border-radius: 12px;
+            background: #f4ece4;
+            aspect-ratio: 4 / 3;
+        }
+
+        .lead-form-data-image-link img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
         .lead-form-data-answer-empty-text {
             font-size: 14px;
             color: #b3a295;
@@ -383,7 +404,7 @@
                                     <div class="lead-form-data-question-help">{{ $question['help'] }}</div>
                                 @endif
 
-                                {!! $this->getFormattedAnswer($answer) !!}
+                                {!! $this->getFormattedAnswer($answer, $question) !!}
                             </article>
                         @endforeach
                     </div>

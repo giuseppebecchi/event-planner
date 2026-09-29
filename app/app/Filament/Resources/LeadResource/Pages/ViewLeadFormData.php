@@ -15,6 +15,7 @@ use Filament\Support\Enums\Width;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Throwable;
@@ -204,6 +205,7 @@ class ViewLeadFormData extends Page
                     'ceremony_type',
                     'wedding_vision',
                     'pinterest_board',
+                    'visual_inspirations',
                     'venue_types',
                     'booking_plan',
                     'wedding_end_time',
@@ -269,10 +271,27 @@ class ViewLeadFormData extends Page
             ->count();
     }
 
-    public function getFormattedAnswer(mixed $value): HtmlString
+    public function getFormattedAnswer(mixed $value, ?array $question = null): HtmlString
     {
         if (blank($value)) {
             return new HtmlString('<div class="lead-form-data-answer-empty"><span class="lead-form-data-answer-empty-text">No answer yet</span></div>');
+        }
+
+        if (is_array($value) && ($question['type'] ?? null) === 'images') {
+            $images = collect(Arr::flatten($value))
+                ->filter(fn (mixed $path): bool => is_string($path) && filled($path))
+                ->map(function (string $path): string {
+                    $url = e(Storage::disk('public')->url($path));
+
+                    return sprintf(
+                        '<a class="lead-form-data-image-link" href="%s" target="_blank" rel="noopener noreferrer"><img src="%s" alt="Visual inspiration"></a>',
+                        $url,
+                        $url,
+                    );
+                })
+                ->implode('');
+
+            return new HtmlString('<div class="lead-form-data-answer"><div class="lead-form-data-image-grid">'.$images.'</div></div>');
         }
 
         if (is_array($value)) {

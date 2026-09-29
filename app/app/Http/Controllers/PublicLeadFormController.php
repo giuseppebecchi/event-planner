@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Notifications\SurveyFilledNotification;
 use App\Support\LeadQuestionnaire;
+use App\Support\LeadQuestionnaireImageProcessor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -31,7 +32,11 @@ class PublicLeadFormController extends Controller
         ]);
     }
 
-    public function submit(Request $request, string $hashId): RedirectResponse
+    public function submit(
+        Request $request,
+        string $hashId,
+        LeadQuestionnaireImageProcessor $imageProcessor,
+    ): RedirectResponse
     {
         $lead = $this->resolveLead($hashId);
 
@@ -43,6 +48,15 @@ class PublicLeadFormController extends Controller
 
         foreach (LeadQuestionnaire::definition() as $question) {
             $value = $validated[$question['key']] ?? null;
+
+            if (($question['type'] ?? null) === 'images') {
+                $payload[$question['key']] = collect($value ?? [])
+                    ->map(fn ($file): string => $imageProcessor->store($lead, $file))
+                    ->values()
+                    ->all();
+
+                continue;
+            }
 
             if (is_array($value)) {
                 $value = array_values($value);
@@ -116,6 +130,21 @@ class PublicLeadFormController extends Controller
                 continue;
             }
 
+            if (($question['type'] ?? null) === 'images') {
+                $rules[$question['key']] = [
+                    ...$fieldRules,
+                    'array',
+                    'max:'.($question['max'] ?? 5),
+                ];
+                $rules[$question['key'].'.*'] = [
+                    'image',
+                    'mimes:jpg,jpeg,png,webp',
+                    'max:10240',
+                ];
+
+                continue;
+            }
+
             $fieldRules[] = 'string';
             $fieldRules[] = 'max:5000';
 
@@ -131,9 +160,13 @@ class PublicLeadFormController extends Controller
 
     protected function attributes(): array
     {
-        return collect(LeadQuestionnaire::definition())
+        $attributes = collect(LeadQuestionnaire::definition())
             ->mapWithKeys(fn (array $question): array => [$question['key'] => $question['label']])
             ->all();
+
+        $attributes['visual_inspirations.*'] = 'visual inspiration image';
+
+        return $attributes;
     }
 
     protected function extractInteger(mixed $value): ?int

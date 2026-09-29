@@ -261,6 +261,14 @@ class LeadQuestionnaire
                 'type' => 'textarea',
                 'required' => false,
             ],
+            [
+                'key' => 'visual_inspirations',
+                'label' => 'Do you already have any visual inspiration for your wedding?',
+                'help' => 'Upload up to 5 images that represent the atmosphere, details or style you have in mind.',
+                'type' => 'images',
+                'required' => false,
+                'max' => 5,
+            ],
         ];
     }
 

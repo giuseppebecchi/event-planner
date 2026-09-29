@@ -246,6 +246,7 @@
         }
 
         input[type="text"],
+        input[type="file"],
         textarea {
             width: 100%;
             border: 1px solid #dfcdbc;
@@ -263,11 +264,37 @@
         }
 
         input[type="text"]:focus,
+        input[type="file"]:focus,
         textarea:focus {
             outline: none;
             border-color: var(--accent);
             box-shadow: 0 0 0 4px rgba(181, 139, 98, 0.12);
             transform: translateY(-1px);
+        }
+
+        input[type="file"] {
+            border-style: dashed;
+            cursor: pointer;
+        }
+
+        input[type="file"]::file-selector-button {
+            margin-right: 14px;
+            border: 0;
+            border-radius: 999px;
+            padding: 10px 16px;
+            background: var(--accent-soft);
+            color: var(--accent-strong);
+            font: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .image-upload-note {
+            margin: 9px 2px 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.6;
         }
 
         .choice-grid {
@@ -484,7 +511,7 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('public.lead-form.submit', $lead->public_form_hash) }}">
+            <form method="POST" action="{{ route('public.lead-form.submit', $lead->public_form_hash) }}" enctype="multipart/form-data">
                 @csrf
 
                 @foreach ($questions as $index => $question)
@@ -541,6 +568,17 @@
                                         </div>
                                     @endforeach
                                 </div>
+                            @elseif (($question['type'] ?? null) === 'images')
+                                <input
+                                    type="file"
+                                    name="{{ $question['key'] }}[]"
+                                    id="{{ $question['key'] }}"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    multiple
+                                >
+                                <p class="image-upload-note">
+                                    Maximum {{ $question['max'] ?? 5 }} images. JPG, PNG or WebP, up to 10 MB each.
+                                </p>
                             @else
                                 <input
                                     type="text"
