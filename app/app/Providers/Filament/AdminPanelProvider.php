@@ -5,10 +5,10 @@ namespace App\Providers\Filament;
 use App\Filament\Auth\Login;
 use App\Filament\Auth\RequestPasswordReset;
 use App\Filament\Auth\ResetPassword;
-use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\CustomerEventDashboard;
 use App\Filament\Pages\CustomerHelp;
 use App\Filament\Pages\CustomerWelcome;
+use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\EditProfile;
 use App\Filament\Resources\LeadResource;
 use App\Filament\Resources\ProjectResource;
@@ -17,13 +17,14 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationGroup;
 use Filament\Pages\Enums\SubNavigationPosition;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
-use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -57,6 +58,12 @@ class AdminPanelProvider extends PanelProvider
                 'success' => '#7A8F7B',
                 'warning' => '#C9A96A',
                 'danger' => '#E3B7B2',
+            ])
+            ->navigationGroups([
+                NavigationGroup::make('Leads')
+                    ->extraTopbarAttributes(['class' => 'wm-leads-navigation-group']),
+                NavigationGroup::make('Manage'),
+                NavigationGroup::make('Setup'),
             ])
             ->renderHook(
                 PanelsRenderHook::SIMPLE_PAGE_START,

@@ -44,11 +44,18 @@ class LeadResource extends Resource
 
     protected static ?string $navigationLabel = 'Leads';
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Leads';
+
     protected static ?string $pluralModelLabel = 'Leads';
 
     protected static ?string $modelLabel = 'Lead';
 
     protected static ?int $navigationSort = 1;
+
+    public static function getNavigationLabel(): string
+    {
+        return 'List';
+    }
 
     public static function canViewAny(): bool
     {

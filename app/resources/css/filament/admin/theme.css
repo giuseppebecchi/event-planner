@@ -499,6 +499,15 @@
     filter: drop-shadow(0 3px 10px rgba(45, 42, 38, 0.85));
 }
 
+/* Keep the Leads dropdown immediately after Dashboard in the top navigation. */
+.fi-topbar-nav-groups > :first-child {
+    order: -2;
+}
+
+.fi-topbar-nav-groups > .wm-leads-navigation-group {
+    order: -1;
+}
+
 @media (max-height: 760px) {
     .fi-simple-layout {
         overflow-y: auto;
