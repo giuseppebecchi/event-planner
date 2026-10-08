@@ -280,9 +280,29 @@
 
         .wm-strategic-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 0.85rem;
-            align-self: stretch;
+        }
+
+        .wm-strategic-panel {
+            padding: 1rem 1.25rem 1.2rem;
+        }
+
+        .wm-strategic-panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .wm-strategic-panel-title {
+            margin: 0;
+            color: #756d66;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
         }
 
         .wm-strategic-card {
@@ -356,19 +376,54 @@
             background: #fff;
         }
 
+        .wm-strategic-actions {
+            display: flex;
+            align-items: center;
+            align-self: flex-end;
+            gap: 0.5rem;
+            flex: 0 0 auto;
+        }
+
+        .wm-strategic-button.is-preview {
+            background: transparent;
+            color: #2e4a62;
+        }
+
         .wm-panel {
             padding: 1.2rem 1.25rem;
         }
 
         .wm-head {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-columns: minmax(18rem, 1fr) minmax(20rem, 1.15fr) auto;
             align-items: stretch;
             gap: 1rem;
         }
 
-        .wm-head.has-strategic-info {
-            grid-template-columns: minmax(18rem, 1.25fr) minmax(26rem, 1.35fr) auto;
+        .wm-head-event-days {
+            display: grid;
+            align-content: center;
+            gap: 0.55rem;
+            padding: 0.75rem 0.85rem;
+            border: 1px solid #e5d9c8;
+            border-radius: 1rem;
+            background: rgba(249, 246, 241, 0.68);
+        }
+
+        .wm-head-event-days-title {
+            margin: 0;
+            color: #756c63;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.13em;
+            text-transform: uppercase;
+        }
+
+        .wm-head-event-days-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
         }
 
         .wm-link {
@@ -1353,7 +1408,6 @@
 
         @media (max-width: 1100px) {
             .wm-head,
-            .wm-head.has-strategic-info,
             .wm-top-kpis,
             .wm-dashboard-grid,
             .wm-two-col,
@@ -1377,6 +1431,124 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .wm-event-day-form-section {
+            display: grid;
+            gap: 0.7rem;
+            margin-top: 0.9rem;
+            padding: 0.85rem;
+            border: 1px solid #e5d9c8;
+            border-radius: 0.9rem;
+            background: rgba(249, 246, 241, 0.72);
+        }
+
+        .wm-event-day-help,
+        .wm-event-days-empty {
+            margin: 0.2rem 0 0;
+            color: #7b736b;
+            font-size: 0.76rem;
+            line-height: 1.4;
+        }
+
+        .wm-event-days {
+            display: grid;
+            gap: 0.45rem;
+        }
+
+        .wm-event-day-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(8rem, 10rem);
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.5rem 0.6rem;
+            border: 1px solid rgba(216, 204, 185, 0.75);
+            border-radius: 0.75rem;
+            background: rgba(255, 255, 255, 0.82);
+        }
+
+        .wm-event-day-choice {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            min-width: 0;
+            cursor: pointer;
+        }
+
+        .wm-event-day-choice input {
+            width: 1rem;
+            height: 1rem;
+            accent-color: #2e4a62;
+            flex: 0 0 auto;
+        }
+
+        .wm-event-day-choice span {
+            display: grid;
+            min-width: 0;
+        }
+
+        .wm-event-day-choice strong {
+            color: #3f3934;
+            font-size: 0.78rem;
+            line-height: 1.25;
+        }
+
+        .wm-event-day-choice small {
+            color: #8b8279;
+            font-size: 0.66rem;
+        }
+
+        .wm-event-day-amount {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: center;
+            gap: 0.35rem;
+            color: #82786e;
+            font-size: 0.68rem;
+            font-weight: 800;
+        }
+
+        .wm-event-day-amount input {
+            width: 100%;
+            min-width: 0;
+            padding: 0.45rem 0.5rem;
+            border: 1px solid #d8ccb9;
+            border-radius: 0.55rem;
+            background: #fff;
+            color: #342f2b;
+            font-size: 0.76rem;
+        }
+
+        .wm-event-day-amount input:disabled {
+            background: #eee9e2;
+            color: #aaa198;
+            cursor: not-allowed;
+        }
+
+        .wm-event-day-readonly-amount {
+            justify-self: end;
+            color: #2e4a62;
+            font-size: 0.74rem;
+            font-weight: 800;
+        }
+
+        .wm-event-day-error {
+            margin: 0;
+            color: #b33a32;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        @media (max-width: 600px) {
+            .wm-event-day-row {
+                grid-template-columns: 1fr;
+            }
+
+            .wm-event-day-readonly-amount {
+                justify-self: start;
+                padding-left: 1.55rem;
+            }
+        }
+
     </style>
 
     <div class="wm-supplier-manage-page">
@@ -1386,34 +1558,30 @@
         ])
 
         <section class="wm-card wm-panel">
-            <div class="wm-head {{ $strategicInfos->isNotEmpty() ? 'has-strategic-info' : '' }}">
+            <div class="wm-head">
                 <div>
                     <a href="{{ \App\Filament\Resources\ProjectResource::getUrl('suppliers', ['record' => $record]) }}" class="wm-link">← Back to suppliers</a>
                     <h2 class="wm-title" style="margin-top:.45rem;">{{ $summary['supplier'] }}</h2>
                     <p class="wm-copy">{{ $summary['category'] }} · confirmed supplier workspace for this project.</p>
                 </div>
-                @if ($strategicInfos->isNotEmpty())
-                    <div class="wm-strategic-grid" aria-label="Strategic information">
-                        @foreach ($strategicInfos as $strategicInfo)
-                            @php
-                                $strategicState = str_replace('_', '-', $strategicInfo->displayState());
-                            @endphp
-                            <article class="wm-strategic-card is-{{ $strategicState }}" wire:key="strategic-info-{{ $strategicInfo->id }}">
-                                <div class="wm-strategic-copy">
-                                    <h3 class="wm-strategic-title">{{ $strategicInfo->title }}</h3>
-                                    <p class="wm-strategic-status">{{ $strategicInfo->displayStateLabel() }}</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    class="wm-strategic-button"
-                                    wire:click="mountAction('{{ $canManageStrategicInfos ? 'manageStrategicInfo' : 'viewStrategicInfo' }}', { info: {{ $strategicInfo->id }} })"
-                                >
-                                    {{ $canManageStrategicInfos ? 'Manage' : 'View' }}
-                                </button>
-                            </article>
-                        @endforeach
+                <div class="wm-head-event-days">
+                    <div class="wm-head-event-days-actions">
+                        <p class="wm-head-event-days-title">Event days</p>
+                        @if (! $isCustomer && count($this->getAvailableEventDays()))
+                            <x-filament::button size="sm" icon="heroicon-m-check" wire:click="saveEventDayAllocations">
+                                Save
+                            </x-filament::button>
+                        @endif
                     </div>
-                @endif
+                    @include('filament.resources.project-resource.pages.partials.supplier-event-days', [
+                        'rows' => $eventDayForm,
+                        'wirePrefix' => 'eventDayForm',
+                        'editable' => ! $isCustomer,
+                    ])
+                    @error('eventDayForm')
+                        <p class="wm-event-day-error">{{ $message }}</p>
+                    @enderror
+                </div>
                 <div class="wm-quote-badge">
                     <p class="wm-quote-badge-label">Confirmed quote</p>
                     <p class="wm-quote-badge-value">{{ $summary['confirmed_amount'] !== null ? 'EUR ' . number_format($summary['confirmed_amount'], 2, ',', '.') : '—' }}</p>
@@ -1428,6 +1596,45 @@
                 </div>
             </div>
         </section>
+
+        @if ($strategicInfos->isNotEmpty())
+            <section class="wm-card wm-strategic-panel" aria-label="Strategic information">
+                <div class="wm-strategic-panel-head">
+                    <h3 class="wm-strategic-panel-title">Strategic information</h3>
+                </div>
+                <div class="wm-strategic-grid">
+                    @foreach ($strategicInfos as $strategicInfo)
+                        @php
+                            $strategicState = str_replace('_', '-', $strategicInfo->displayState());
+                        @endphp
+                        <article class="wm-strategic-card is-{{ $strategicState }}" wire:key="strategic-info-{{ $strategicInfo->id }}">
+                            <div class="wm-strategic-copy">
+                                <h3 class="wm-strategic-title">{{ $strategicInfo->title }}</h3>
+                                <p class="wm-strategic-status">{{ $strategicInfo->displayStateLabel() }}</p>
+                            </div>
+                            <div class="wm-strategic-actions">
+                                <button
+                                    type="button"
+                                    class="wm-strategic-button is-preview"
+                                    wire:click="mountAction('previewStrategicInfo', { info: {{ $strategicInfo->id }} })"
+                                >
+                                    Show
+                                </button>
+                                @if ($canManageStrategicInfos)
+                                    <button
+                                        type="button"
+                                        class="wm-strategic-button"
+                                        wire:click="mountAction('manageStrategicInfo', { info: {{ $strategicInfo->id }} })"
+                                    >
+                                        Manage
+                                    </button>
+                                @endif
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
+            </section>
+        @endif
 
         <section class="wm-dashboard-grid">
             @foreach ($dashboardCards as $card)

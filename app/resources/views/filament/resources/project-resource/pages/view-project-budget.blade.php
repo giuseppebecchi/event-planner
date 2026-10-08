@@ -3,6 +3,11 @@
         $record = $this->getRecord();
         $budgetSummary = $this->getBudgetSummary();
         $budgetRows = $this->getBudgetRows();
+        $budgetDayBreakdown = $this->getBudgetDayBreakdown();
+        $wholeEventCost = max(0, (float) $budgetSummary['final_total'] - (float) $budgetDayBreakdown->sum('total'));
+        $isMultiDayEvent = $record->event_start_date
+            && $record->event_end_date
+            && ! $record->event_start_date->isSameDay($record->event_end_date);
         $isCustomer = auth()->user()?->isCustomer();
     @endphp
 
@@ -266,8 +271,9 @@
 
         .wm-budget-summary {
             display: grid;
-            grid-template-columns: minmax(0, 1.6fr) minmax(20rem, 0.9fr);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 1rem;
+            align-items: start;
         }
 
         .wm-budget-hero,
@@ -300,12 +306,27 @@
             line-height: 1.7;
         }
 
-        .wm-budget-hero-grid,
-        .wm-budget-sidebar-grid {
+        .wm-budget-hero-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 0.8rem;
             margin-top: 1rem;
+        }
+
+        .wm-budget-sidebar-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.8rem;
+            margin-top: 1rem;
+        }
+
+        .wm-budget-sidebar-grid .wm-budget-mini {
+            padding: 0.8rem;
+        }
+
+        .wm-budget-sidebar-grid .wm-budget-mini-value {
+            font-size: clamp(0.85rem, 1vw, 1.05rem);
+            line-height: 1.25;
         }
 
         .wm-budget-mini {
@@ -353,6 +374,60 @@
             margin-top: 0.28rem;
             font-size: 0.84rem;
             line-height: 1.5;
+        }
+
+        .wm-budget-days {
+            display: grid;
+            gap: 0.7rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ece5dd;
+        }
+
+        .wm-budget-days-heading,
+        .wm-budget-day-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .wm-budget-days-title {
+            margin: 0;
+            color: #2d2a26;
+            font-size: 0.82rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .wm-budget-day {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.72rem 0.8rem;
+            border: 1px solid #e8e0d6;
+            border-radius: 0.9rem;
+            background: #fbf8f4;
+        }
+
+        .wm-budget-day.is-whole-event {
+            border-color: rgba(46, 74, 98, 0.22);
+            background: rgba(46, 74, 98, 0.07);
+        }
+
+        .wm-budget-day-label,
+        .wm-budget-day-total {
+            margin: 0;
+            color: #2d2a26;
+            font-size: 0.8rem;
+            font-weight: 800;
+        }
+
+        .wm-budget-day.is-whole-event .wm-budget-day-label,
+        .wm-budget-day.is-whole-event .wm-budget-day-total {
+            color: #2e4a62;
         }
 
         .wm-budget-layout {
@@ -633,13 +708,18 @@
         }
 
         @media (max-width: 1280px) {
-            .wm-budget-summary,
             .wm-budget-layout {
                 grid-template-columns: 1fr;
             }
 
             .wm-event-top-head,
             .wm-event-date-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 1050px) {
+            .wm-budget-summary {
                 grid-template-columns: 1fr;
             }
         }
@@ -719,6 +799,27 @@
                         <p class="wm-budget-mini-value">EUR {{ number_format($budgetSummary['comparison_total'], 2, ',', '.') }}</p>
                     </div>
                 </div>
+
+                @if ($isMultiDayEvent && ($budgetDayBreakdown->isNotEmpty() || $wholeEventCost > 0))
+                    <div class="wm-budget-days">
+                        <div class="wm-budget-days-heading">
+                            <h4 class="wm-budget-days-title">Budget by event day</h4>
+                            <span class="wm-budget-table-note">Allocated quotes</span>
+                        </div>
+
+                        @foreach ($budgetDayBreakdown as $day)
+                            <article class="wm-budget-day">
+                                <p class="wm-budget-day-label">{{ $day['label'] }}</p>
+                                <p class="wm-budget-day-total">EUR {{ number_format($day['total'], 2, ',', '.') }}</p>
+                            </article>
+                        @endforeach
+
+                        <article class="wm-budget-day is-whole-event">
+                            <p class="wm-budget-day-label">Whole-event cost (not allocated)</p>
+                            <p class="wm-budget-day-total">EUR {{ number_format($wholeEventCost, 2, ',', '.') }}</p>
+                        </article>
+                    </div>
+                @endif
 
                 @if ($budgetSummary['venue_excluded'])
                     <div class="wm-budget-venue-note">

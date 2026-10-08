@@ -902,6 +902,124 @@
                 justify-content: flex-start;
             }
         }
++
+        .wm-event-day-form-section {
+            display: grid;
+            gap: 0.7rem;
+            margin-top: 1.5rem;
+            padding: 0.85rem;
+            border: 1px solid #e5d9c8;
+            border-radius: 0.9rem;
+            background: rgba(249, 246, 241, 0.72);
+        }
+
+        .wm-event-day-help,
+        .wm-event-days-empty {
+            margin: 0.2rem 0 0;
+            color: #7b736b;
+            font-size: 0.76rem;
+            line-height: 1.4;
+        }
+
+        .wm-event-days {
+            display: grid;
+            gap: 0.45rem;
+        }
+
+        .wm-event-day-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(8rem, 10rem);
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.5rem 0.6rem;
+            border: 1px solid rgba(216, 204, 185, 0.75);
+            border-radius: 0.75rem;
+            background: rgba(255, 255, 255, 0.82);
+        }
+
+        .wm-event-day-choice {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            min-width: 0;
+            cursor: pointer;
+        }
+
+        .wm-event-day-choice input {
+            width: 1rem;
+            height: 1rem;
+            accent-color: #2e4a62;
+            flex: 0 0 auto;
+        }
+
+        .wm-event-day-choice span {
+            display: grid;
+            min-width: 0;
+        }
+
+        .wm-event-day-choice strong {
+            color: #3f3934;
+            font-size: 0.78rem;
+            line-height: 1.25;
+        }
+
+        .wm-event-day-choice small {
+            color: #8b8279;
+            font-size: 0.66rem;
+        }
+
+        .wm-event-day-amount {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: center;
+            gap: 0.35rem;
+            color: #82786e;
+            font-size: 0.68rem;
+            font-weight: 800;
+        }
+
+        .wm-event-day-amount input {
+            width: 100%;
+            min-width: 0;
+            padding: 0.45rem 0.5rem;
+            border: 1px solid #d8ccb9;
+            border-radius: 0.55rem;
+            background: #fff;
+            color: #342f2b;
+            font-size: 0.76rem;
+        }
+
+        .wm-event-day-amount input:disabled {
+            background: #eee9e2;
+            color: #aaa198;
+            cursor: not-allowed;
+        }
+
+        .wm-event-day-readonly-amount {
+            justify-self: end;
+            color: #2e4a62;
+            font-size: 0.74rem;
+            font-weight: 800;
+        }
+
+        .wm-event-day-error {
+            margin: 0;
+            color: #b33a32;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        @media (max-width: 600px) {
+            .wm-event-day-row {
+                grid-template-columns: 1fr;
+            }
+
+            .wm-event-day-readonly-amount {
+                justify-self: start;
+                padding-left: 1.55rem;
+            }
+        }
+
     </style>
 
     <div class="wm-scout-page">

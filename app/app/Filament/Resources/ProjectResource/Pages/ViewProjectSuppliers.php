@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ProjectResource\Pages;
 
 use App\Filament\Resources\ProjectResource;
 use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDateEditor;
+use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithSupplierEventDays;
 use App\Models\CategoryBudgetSupplier;
 use App\Models\Payment;
 use App\Models\ProjectDocument;
@@ -12,14 +13,16 @@ use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
 
 class ViewProjectSuppliers extends Page
 {
-    use InteractsWithRecord;
     use InteractsWithProjectDateEditor;
+    use InteractsWithRecord;
+    use InteractsWithSupplierEventDays;
     use WithFileUploads;
 
     protected static string $resource = ProjectResource::class;
@@ -31,6 +34,8 @@ class ViewProjectSuppliers extends Page
     protected Width|string|null $maxContentWidth = Width::Full;
 
     public bool $hidePaidPayments = false;
+
+    public string $supplierDayFilter = 'all';
 
     public array $paymentCompletionForms = [];
 
@@ -68,9 +73,9 @@ class ViewProjectSuppliers extends Page
         return [];
     }
 
-    public function getSupplierProposals(): Collection
+    public function getSupplierProposals(bool $applyDayFilter = true): Collection
     {
-        return $this->getRecord()
+        $proposals = $this->getRecord()
             ->categoryBudgetSuppliers()
             ->with([
                 'category',
@@ -81,7 +86,21 @@ class ViewProjectSuppliers extends Page
                 'projectDocuments',
             ])
             ->where('proposal_status', CategoryBudgetSupplier::STATUS_CONFIRMED)
-            ->get()
+            ->get();
+
+        if ($applyDayFilter && $this->supplierDayFilter !== 'all') {
+            $selectedDate = $this->supplierDayFilter;
+
+            $proposals = $proposals
+                ->filter(function (CategoryBudgetSupplier $proposal) use ($selectedDate): bool {
+                    $allocations = collect($proposal->event_day_allocations ?? []);
+
+                    return $allocations->isEmpty()
+                        || $allocations->contains(fn (array $allocation): bool => ($allocation['date'] ?? null) === $selectedDate);
+                });
+        }
+
+        return $proposals
             ->sortBy(fn (CategoryBudgetSupplier $proposal): string => sprintf(
                 '%05d-%s-%s',
                 (int) ($proposal->category?->order ?? 99999),
@@ -91,9 +110,24 @@ class ViewProjectSuppliers extends Page
             ->values();
     }
 
+    public function getSupplierDayFilterOptions(): array
+    {
+        return collect($this->getAvailableEventDays())
+            ->mapWithKeys(fn (array $day): array => [
+                $day['date'] => Carbon::parse($day['date'])->translatedFormat('d F'),
+            ])
+            ->prepend('All suppliers', 'all')
+            ->all();
+    }
+
+    public function hasMultipleEventDays(): bool
+    {
+        return count($this->getAvailableEventDays()) > 1;
+    }
+
     public function getSuppliersSummary(): array
     {
-        $proposals = $this->getSupplierProposals();
+        $proposals = $this->getSupplierProposals(false);
         $payments = $proposals->flatMap(fn (CategoryBudgetSupplier $proposal): Collection => $proposal->payments);
         $paidPayments = $payments->where('payment_status', Payment::STATUS_PAID);
         $unpaidPayments = $payments->where('payment_status', '!=', Payment::STATUS_PAID);
@@ -205,7 +239,7 @@ class ViewProjectSuppliers extends Page
                 'project_id' => $this->getRecord()->getKey(),
                 'supplier_id' => $payment->supplier_id,
                 'category_budget_supplier_id' => $payment->category_budget_supplier_id,
-                'title' => 'Payment receipt - ' . ($payment->reason ?: 'Payment'),
+                'title' => 'Payment receipt - '.($payment->reason ?: 'Payment'),
                 'document_type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
                 'type' => ProjectDocument::TYPE_PAYMENT_RECEIPT,
                 'file_path' => $storedPath,

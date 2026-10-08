@@ -4,11 +4,11 @@ namespace App\Filament\Resources\ProjectResource\Pages;
 
 use App\Filament\Resources\ProjectResource;
 use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDateEditor;
+use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithSupplierEventDays;
 use App\Filament\Resources\SupplierResourceSupport;
 use App\Models\CategoryBudget;
 use App\Models\CategoryBudgetSupplier;
 use App\Models\ProjectDocument;
-use App\Models\ProjectSupplierCommunication;
 use App\Models\Supplier;
 use App\Notifications\SupplierCourtesyMessageNotification;
 use Filament\Actions\Action;
@@ -27,8 +27,9 @@ use Livewire\WithFileUploads;
 
 class ManageProjectBudgetCategory extends Page
 {
-    use InteractsWithRecord;
     use InteractsWithProjectDateEditor;
+    use InteractsWithRecord;
+    use InteractsWithSupplierEventDays;
     use WithFileUploads;
 
     protected static string $resource = ProjectResource::class;
@@ -49,8 +50,11 @@ class ManageProjectBudgetCategory extends Page
     ];
 
     public ?int $requestSupplierId = null;
+
     public ?int $responseProposalId = null;
+
     public ?int $responseSupplierId = null;
+
     public ?string $responseFormContext = null;
 
     public array $requestForm = [
@@ -64,6 +68,7 @@ class ManageProjectBudgetCategory extends Page
         'responded_at' => '',
         'availability_status' => 'available',
         'proposed_amount' => '',
+        'event_day_allocations' => [],
         'cost_items_json' => [],
         'proposal_summary' => '',
         'response_text' => '',
@@ -271,6 +276,7 @@ class ManageProjectBudgetCategory extends Page
             'responded_at' => now()->format('Y-m-d\TH:i'),
             'availability_status' => 'available',
             'proposed_amount' => '',
+            'event_day_allocations' => $this->eventDayFormData(null),
             'cost_items_json' => $costItems,
             'proposal_summary' => '',
             'response_text' => '',
@@ -301,6 +307,7 @@ class ManageProjectBudgetCategory extends Page
             'responded_at' => ($proposal->responded_at ?? now())->format('Y-m-d\TH:i'),
             'availability_status' => (string) ($proposal->availability_status ?? 'available'),
             'proposed_amount' => $proposal->proposed_amount !== null ? (string) $proposal->proposed_amount : '',
+            'event_day_allocations' => $this->eventDayFormData($proposal->event_day_allocations),
             'cost_items_json' => $this->normalizeCostItems($proposal->cost_items_json ?? []),
             'proposal_summary' => (string) ($proposal->proposal_summary ?? ''),
             'response_text' => (string) ($proposal->response_text ?? ''),
@@ -326,6 +333,7 @@ class ManageProjectBudgetCategory extends Page
             'responded_at' => '',
             'availability_status' => 'available',
             'proposed_amount' => '',
+            'event_day_allocations' => [],
             'cost_items_json' => [],
             'proposal_summary' => '',
             'response_text' => '',
@@ -378,6 +386,10 @@ class ManageProjectBudgetCategory extends Page
                 'form.responded_at' => ['required', 'date'],
                 'form.availability_status' => ['required', 'string'],
                 'form.proposed_amount' => ['nullable', 'numeric'],
+                'form.event_day_allocations' => ['array'],
+                'form.event_day_allocations.*.date' => ['required', 'date_format:Y-m-d'],
+                'form.event_day_allocations.*.selected' => ['boolean'],
+                'form.event_day_allocations.*.amount' => ['nullable', 'numeric', 'min:0'],
                 'form.cost_items_json' => ['array'],
                 'form.cost_items_json.*.label' => ['nullable', 'string', 'max:180'],
                 'form.cost_items_json.*.amount' => ['nullable', 'numeric'],
@@ -403,12 +415,18 @@ class ManageProjectBudgetCategory extends Page
             $data['form']['proposal_status'],
             $proposal
         );
+        $eventDayAllocations = $this->validatedEventDayAllocations(
+            $data['form']['event_day_allocations'] ?? [],
+            $data['form']['proposed_amount'],
+            'responseForm.event_day_allocations',
+        );
 
         $proposal->fill([
             'responded_at' => Carbon::parse($data['form']['responded_at']),
             'availability_status' => $data['form']['availability_status'],
             'response_text' => $data['form']['response_text'],
             'proposed_amount' => $data['form']['proposed_amount'] !== '' ? $data['form']['proposed_amount'] : null,
+            'event_day_allocations' => $eventDayAllocations ?: null,
             'cost_items_json' => $this->normalizeCostItems($data['form']['cost_items_json'] ?? []),
             'proposal_summary' => $data['form']['proposal_summary'],
             'costs_and_conditions' => $data['form']['costs_and_conditions'],
@@ -755,7 +773,7 @@ class ManageProjectBudgetCategory extends Page
                 fn ($query) => $query->whereNotIn('id', $trackedSupplierIds)
             )
             ->when(filled($filters['search'] ?? null), function ($query) use ($filters): void {
-                $search = '%' . trim((string) $filters['search']) . '%';
+                $search = '%'.trim((string) $filters['search']).'%';
 
                 $query->where(function ($nestedQuery) use ($search): void {
                     $nestedQuery
@@ -914,7 +932,7 @@ class ManageProjectBudgetCategory extends Page
 
                 Notification::make()
                     ->title($sentCount === 1 ? 'Courtesy message sent' : 'Courtesy messages sent')
-                    ->body($sentCount . ' supplier' . ($sentCount === 1 ? '' : 's') . ' notified.')
+                    ->body($sentCount.' supplier'.($sentCount === 1 ? '' : 's').' notified.')
                     ->success()
                     ->send();
             });

@@ -24,6 +24,106 @@ class ManageProjectBudgetCategoryTest extends TestCase
 {
     use DatabaseTransactions;
 
+    public function test_quote_can_be_assigned_and_allocated_to_event_days(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => Role::ADMIN]);
+        $this->actingAs(User::factory()->create(['role_id' => $adminRole->id]));
+
+        $category = Category::query()->firstOrCreate(
+            ['label' => 'Event day category'],
+            ['label_it' => 'Categoria giorni evento'],
+        );
+        $project = Project::query()->create([
+            'name' => 'Multi-day event',
+            'last_name' => 'Client',
+            'event_date' => '2027-06-10',
+            'event_start_date' => '2027-06-10',
+            'event_end_date' => '2027-06-12',
+        ]);
+        $budget = CategoryBudget::query()->create([
+            'project_id' => $project->id,
+            'category_id' => $category->id,
+        ]);
+        $supplier = Supplier::query()->create([
+            'name' => 'Multi-day supplier',
+            'category_id' => $category->id,
+        ]);
+        $proposal = CategoryBudgetSupplier::query()->create([
+            'category_budget_id' => $budget->id,
+            'supplier_id' => $supplier->id,
+            'responded_at' => now(),
+            'availability_status' => 'available',
+            'scouting_status' => 'shortlist',
+            'proposal_status' => CategoryBudgetSupplier::STATUS_RECEIVED,
+            'proposed_amount' => 900,
+        ]);
+
+        Livewire::test(ManageProjectBudgetCategory::class, [
+            'record' => $project->id,
+            'categoryBudget' => $budget->id,
+        ])
+            ->call('openRecordResponseModal', $proposal->id)
+            ->assertSeeInOrder(['Cost breakdown', 'Supplier event days'])
+            ->set('responseForm.event_day_allocations.0.selected', true)
+            ->set('responseForm.event_day_allocations.0.amount', '300')
+            ->set('responseForm.event_day_allocations.1.selected', true)
+            ->set('responseForm.event_day_allocations.1.amount', '600')
+            ->call('saveRecordResponse')
+            ->assertHasNoErrors();
+
+        $this->assertSame([
+            ['date' => '2027-06-10', 'amount' => 300],
+            ['date' => '2027-06-11', 'amount' => 600],
+        ], $proposal->refresh()->event_day_allocations);
+    }
+
+    public function test_daily_allocation_must_equal_quote_total_when_used(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => Role::ADMIN]);
+        $this->actingAs(User::factory()->create(['role_id' => $adminRole->id]));
+
+        $category = Category::query()->firstOrCreate(
+            ['label' => 'Allocation validation category'],
+            ['label_it' => 'Categoria validazione ripartizione'],
+        );
+        $project = Project::query()->create([
+            'name' => 'Allocation validation event',
+            'last_name' => 'Client',
+            'event_date' => '2027-07-01',
+            'event_start_date' => '2027-07-01',
+            'event_end_date' => '2027-07-02',
+        ]);
+        $budget = CategoryBudget::query()->create([
+            'project_id' => $project->id,
+            'category_id' => $category->id,
+        ]);
+        $supplier = Supplier::query()->create([
+            'name' => 'Allocation validation supplier',
+            'category_id' => $category->id,
+        ]);
+        $proposal = CategoryBudgetSupplier::query()->create([
+            'category_budget_id' => $budget->id,
+            'supplier_id' => $supplier->id,
+            'responded_at' => now(),
+            'availability_status' => 'available',
+            'scouting_status' => 'shortlist',
+            'proposal_status' => CategoryBudgetSupplier::STATUS_RECEIVED,
+            'proposed_amount' => 900,
+        ]);
+
+        Livewire::test(ManageProjectBudgetCategory::class, [
+            'record' => $project->id,
+            'categoryBudget' => $budget->id,
+        ])
+            ->call('openRecordResponseModal', $proposal->id)
+            ->set('responseForm.event_day_allocations.0.selected', true)
+            ->set('responseForm.event_day_allocations.0.amount', '100')
+            ->call('saveRecordResponse')
+            ->assertHasErrors(['responseForm.event_day_allocations']);
+
+        $this->assertNull($proposal->refresh()->event_day_allocations);
+    }
+
     public function test_location_proposal_shows_edit_link_in_a_new_window(): void
     {
         $adminRole = Role::query()->firstOrCreate(['name' => Role::ADMIN]);

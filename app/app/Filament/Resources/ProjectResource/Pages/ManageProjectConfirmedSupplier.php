@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ProjectResource\Pages;
 
 use App\Filament\Resources\ProjectResource;
 use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithProjectDateEditor;
+use App\Filament\Resources\ProjectResource\Pages\Concerns\InteractsWithSupplierEventDays;
 use App\Models\CategoryBudget;
 use App\Models\CategoryBudgetSupplier;
 use App\Models\Checklist;
@@ -36,6 +37,7 @@ class ManageProjectConfirmedSupplier extends Page
 {
     use InteractsWithProjectDateEditor;
     use InteractsWithRecord;
+    use InteractsWithSupplierEventDays;
     use WithFileUploads;
 
     protected static string $resource = ProjectResource::class;
@@ -49,6 +51,8 @@ class ManageProjectConfirmedSupplier extends Page
     public CategoryBudget $categoryBudgetRecord;
 
     public CategoryBudgetSupplier $proposalRecord;
+
+    public array $eventDayForm = [];
 
     public array $documentForm = [
         'type' => ProjectDocument::TYPE_CONTRACT,
@@ -180,6 +184,7 @@ class ManageProjectConfirmedSupplier extends Page
 
         $this->getRecord()->syncStrategicInfosFromTemplates();
 
+        $this->eventDayForm = $this->eventDayFormData($this->proposalRecord->event_day_allocations);
         $this->loadCommissionForm();
         $this->loadChecklistForms();
 
@@ -249,6 +254,35 @@ class ManageProjectConfirmedSupplier extends Page
         ];
     }
 
+    public function saveEventDayAllocations(): void
+    {
+        abort_if(auth()->user()?->isCustomer(), 403);
+
+        validator(['days' => $this->eventDayForm], [
+            'days' => ['array'],
+            'days.*.date' => ['required', 'date_format:Y-m-d'],
+            'days.*.selected' => ['boolean'],
+            'days.*.amount' => ['nullable', 'numeric', 'min:0'],
+        ])->validate();
+
+        $allocations = $this->validatedEventDayAllocations(
+            $this->eventDayForm,
+            $this->proposalRecord->proposed_amount,
+            'eventDayForm',
+        );
+
+        $this->proposalRecord->update([
+            'event_day_allocations' => $allocations ?: null,
+        ]);
+        $this->proposalRecord->refresh();
+        $this->eventDayForm = $this->eventDayFormData($this->proposalRecord->event_day_allocations);
+
+        Notification::make()
+            ->title('Supplier event days saved')
+            ->success()
+            ->send();
+    }
+
     public function canManageStrategicInfos(): bool
     {
         $user = auth()->user();
@@ -316,20 +350,19 @@ class ManageProjectConfirmedSupplier extends Page
             });
     }
 
-    public function viewStrategicInfoAction(): Action
+    public function previewStrategicInfoAction(): Action
     {
-        return Action::make('viewStrategicInfo')
-            ->label('View')
+        return Action::make('previewStrategicInfo')
+            ->label('Show')
             ->modalHeading(fn (array $arguments): string => $this->findStrategicInfo((int) ($arguments['info'] ?? 0))->title)
             ->modalDescription(fn (array $arguments): string => 'Status: '.$this->findStrategicInfo((int) ($arguments['info'] ?? 0))->displayStateLabel())
             ->modalWidth(Width::FiveExtraLarge)
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Close')
-            ->visible(fn (): bool => ! $this->canManageStrategicInfos())
-            ->fillForm(fn (array $arguments): array => $this->strategicInfoFormData(
-                $this->findStrategicInfo((int) ($arguments['info'] ?? 0))
-            ))
-            ->form($this->strategicInfoFormSchema(disabled: true));
+            ->modalContent(fn (array $arguments) => view(
+                'filament.resources.project-resource.pages.partials.strategic-info-preview',
+                ['info' => $this->findStrategicInfo((int) ($arguments['info'] ?? 0))],
+            ));
     }
 
     protected function strategicInfoFormSchema(bool $disabled = false): array

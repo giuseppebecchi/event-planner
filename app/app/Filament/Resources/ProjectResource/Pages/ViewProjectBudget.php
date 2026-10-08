@@ -15,12 +15,13 @@ use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class ViewProjectBudget extends Page
 {
-    use InteractsWithRecord;
     use InteractsWithProjectDateEditor;
+    use InteractsWithRecord;
 
     protected static string $resource = ProjectResource::class;
 
@@ -328,6 +329,37 @@ class ViewProjectBudget extends Page
 
         return strcasecmp((string) ($category?->label ?? ''), 'Venue') === 0
             || strcasecmp((string) ($category?->label_it ?? ''), 'Location') === 0;
+    }
+
+    public function getBudgetDayBreakdown(): Collection
+    {
+        $project = $this->getRecord();
+        $excludeVenue = ! (bool) $project->venue_included_in_budget;
+
+        return $project
+            ->categoryBudgetSuppliers()
+            ->with(['categoryBudget.category'])
+            ->where('proposal_status', \App\Models\CategoryBudgetSupplier::STATUS_CONFIRMED)
+            ->get()
+            ->reject(fn ($proposal): bool => $excludeVenue && $proposal->categoryBudget && $this->isVenueBudget($proposal->categoryBudget))
+            ->flatMap(function ($proposal): Collection {
+                return collect($proposal->event_day_allocations ?? [])
+                    ->filter(fn (array $allocation): bool => filled($allocation['date'] ?? null) && is_numeric($allocation['amount'] ?? null))
+                    ->map(fn (array $allocation): array => [
+                        'date' => (string) $allocation['date'],
+                        'amount' => (float) $allocation['amount'],
+                    ]);
+            })
+            ->groupBy('date')
+            ->sortKeys()
+            ->map(function (Collection $items, string $date): array {
+                return [
+                    'date' => $date,
+                    'label' => Carbon::parse($date)->translatedFormat('l d F Y'),
+                    'total' => (float) $items->sum('amount'),
+                ];
+            })
+            ->values();
     }
 
     public function getBudgetRows(): Collection

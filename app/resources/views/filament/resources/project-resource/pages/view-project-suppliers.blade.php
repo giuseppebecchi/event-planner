@@ -2,6 +2,9 @@
     @php
         $record = $this->getRecord();
         $supplierProposals = $this->getSupplierProposals();
+        $allSupplierProposals = $this->getSupplierProposals(false);
+        $hasMultipleEventDays = $this->hasMultipleEventDays();
+        $supplierDayFilterOptions = $this->getSupplierDayFilterOptions();
         $summary = $this->getSuppliersSummary();
         $payments = $this->getProjectPayments();
         $paymentsSummary = $this->getPaymentsSummary();
@@ -319,6 +322,30 @@
             gap: 0.75rem;
         }
 
+        .wm-supplier-list-tools {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            padding: 0.75rem 0.85rem;
+            border: 1px solid #e8e3dc;
+            border-radius: 1rem;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .wm-supplier-day-filter {
+            width: min(100%, 15rem);
+            min-height: 2.55rem;
+            border: 1px solid #ddd2c5;
+            border-radius: 0.8rem;
+            background: #fff;
+            padding: 0 0.75rem;
+            color: #3f3934;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
         .wm-supplier-card {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 5.5rem;
@@ -366,6 +393,10 @@
             padding: 0.8rem 1.15rem 1.1rem;
         }
 
+        .wm-supplier-meta.is-multi-day {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
         .wm-supplier-mini {
             padding: 0.62rem 0.7rem;
             border-radius: 0.75rem;
@@ -378,6 +409,12 @@
             margin-top: 0.25rem;
             color: #2d2a26;
             font-size: 1rem;
+        }
+
+        .wm-supplier-days {
+            min-height: 1.25rem;
+            font-size: 0.78rem !important;
+            line-height: 1.35;
         }
 
         .wm-supplier-action {
@@ -700,6 +737,21 @@
             .wm-event-countdown {
                 width: 100%;
             }
+
+            .wm-supplier-meta.is-multi-day {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 560px) {
+            .wm-supplier-list-tools {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .wm-supplier-day-filter {
+                width: 100%;
+            }
         }
     </style>
 
@@ -740,9 +792,24 @@
 
         <section class="wm-suppliers-workspace">
             <div>
-                @if ($supplierProposals->isEmpty())
+                @if ($hasMultipleEventDays)
+                    <div class="wm-supplier-list-tools">
+                        <p class="wm-supplier-label">Filter suppliers by event day</p>
+                        <select class="wm-supplier-day-filter" wire:model.live="supplierDayFilter" aria-label="Filter suppliers by event day">
+                            @foreach ($supplierDayFilterOptions as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+
+                @if ($allSupplierProposals->isEmpty())
                     <section class="wm-event-card wm-supplier-empty">
                         No confirmed suppliers yet. Confirm a quote from Budget to move it into this operational area.
+                    </section>
+                @elseif ($supplierProposals->isEmpty())
+                    <section class="wm-event-card wm-supplier-empty">
+                        No suppliers match the selected event day.
                     </section>
                 @else
                     <section class="wm-supplier-list">
@@ -769,7 +836,7 @@
                                     <x-heroicon-o-arrow-right />
                                 </a>
 
-                                <div class="wm-supplier-meta">
+                                <div class="wm-supplier-meta {{ $hasMultipleEventDays ? 'is-multi-day' : '' }}">
                                     <div class="wm-supplier-mini">
                                         <p class="wm-supplier-label">Docs</p>
                                         <strong>{{ $proposal->projectDocuments->count() }}</strong>
@@ -782,6 +849,14 @@
                                         <p class="wm-supplier-label">Messages</p>
                                         <strong>{{ $proposal->communications->count() }}</strong>
                                     </div>
+                                    @if ($hasMultipleEventDays)
+                                        <div class="wm-supplier-mini">
+                                            <p class="wm-supplier-label">Days</p>
+                                            <strong class="wm-supplier-days">
+                                                {{ collect($proposal->event_day_allocations ?? [])->pluck('date')->filter()->map(fn ($date) => \Illuminate\Support\Carbon::parse($date)->translatedFormat('d M'))->implode(' · ') }}
+                                            </strong>
+                                        </div>
+                                    @endif
                                 </div>
                             </article>
                         @endforeach

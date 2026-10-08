@@ -115,6 +115,13 @@ class StrategicInfoTest extends TestCase
         ])
             ->assertSee('Menu')
             ->assertSee('To fill')
+            ->assertSee('Show')
+            ->assertSee('Manage')
+            ->assertSeeInOrder([
+                'Confirmed quote',
+                'Strategic information',
+                'Menu',
+            ])
             ->callAction('manageStrategicInfo', [
                 'content' => '<p>Vegetarian menu</p>',
                 'image_paths' => [],
@@ -137,7 +144,13 @@ class StrategicInfoTest extends TestCase
         ]);
 
         $this->assertFalse($component->instance()->canManageStrategicInfos());
-        $component->assertSee('Menu')->assertSee('View');
+        $component
+            ->assertSee('Menu')
+            ->assertSee('Show')
+            ->assertSeeHtml("mountAction('previewStrategicInfo'")
+            ->assertDontSeeHtml("mountAction('manageStrategicInfo'")
+            ->mountAction('previewStrategicInfo', ['info' => $instance->id])
+            ->assertActionMounted('previewStrategicInfo');
     }
 
     public function test_recap_contains_only_completed_strategic_infos(): void

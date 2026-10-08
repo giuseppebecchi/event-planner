@@ -108,6 +108,21 @@
             @endif
         </div>
 
+        <div class="wm-event-day-form-section" style="margin-top: 2.25rem;">
+            <div>
+                <p class="wm-scout-label">Supplier event days</p>
+                <p class="wm-event-day-help">Select every day involving this supplier. Daily amounts are optional; if entered, their total must match the proposed amount.</p>
+            </div>
+            @include('filament.resources.project-resource.pages.partials.supplier-event-days', [
+                'rows' => $responseForm['event_day_allocations'] ?? [],
+                'wirePrefix' => 'responseForm.event_day_allocations',
+                'editable' => true,
+            ])
+            @error('responseForm.event_day_allocations')
+                <p class="wm-event-day-error">{{ $message }}</p>
+            @enderror
+        </div>
+
         <input type="hidden" wire:model="responseForm.proposal_status">
 
         <div style="margin-top: 0.75rem;">
