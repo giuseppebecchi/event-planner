@@ -18,9 +18,10 @@
         'registry' => 'Registry',
         'wedding_party' => 'Wedding Party',
         'gallery' => 'Gallery',
+        'attire' => 'Attire',
         'things_to_do' => 'Things To Do',
         'faqs' => 'FAQs',
-        'events' => 'Welcome Party & Wedding Event',
+        'events' => 'Events',
         'rsvp' => 'RSVP',
     ];
     $imageUrl = function (?string $value): ?string {
@@ -219,6 +220,20 @@
                 <p>{{ $website['gallery']['intro'] }}</p>
                 <div class="gallery">
                     @foreach (($website['gallery']['images'] ?? []) as $image)
+                        @if ($imageUrl($image['url'] ?? null))
+                            <img src="{{ $imageUrl($image['url']) }}" alt="{{ $image['caption'] ?? '' }}">
+                        @endif
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        @if ($website['attire']['enabled'] ?? false)
+            <section id="attire" class="section wide">
+                <h2>{{ $website['attire']['title'] }}</h2>
+                <p>{{ $website['attire']['intro'] }}</p>
+                <div class="gallery">
+                    @foreach (($website['attire']['images'] ?? []) as $image)
                         @if ($imageUrl($image['url'] ?? null))
                             <img src="{{ $imageUrl($image['url']) }}" alt="{{ $image['caption'] ?? '' }}">
                         @endif

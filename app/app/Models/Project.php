@@ -928,9 +928,10 @@ class Project extends Model
             'registry' => ['enabled' => false, 'title' => 'Registry', 'intro' => '', 'button_label' => 'View registry', 'url' => ''],
             'wedding_party' => ['enabled' => false, 'title' => 'Wedding Party', 'intro' => '', 'people' => []],
             'gallery' => ['enabled' => false, 'title' => 'Gallery', 'intro' => '', 'images' => []],
+            'attire' => ['enabled' => false, 'title' => 'Attire', 'intro' => '', 'images' => []],
             'things_to_do' => ['enabled' => false, 'title' => 'Things To Do', 'intro' => '', 'items' => []],
             'faqs' => ['enabled' => false, 'title' => 'FAQs', 'items' => []],
-            'events' => ['enabled' => false, 'title' => 'Welcome Party & Wedding Event', 'intro' => '', 'items' => []],
+            'events' => ['enabled' => false, 'title' => 'Events', 'intro' => '', 'items' => []],
             'rsvp' => ['enabled' => true, 'title' => 'RSVP', 'intro' => 'Please use the personal RSVP link you received with your invitation.'],
         ];
     }

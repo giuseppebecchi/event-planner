@@ -5,6 +5,7 @@
         $activeTab = $this->activeTab;
         $tabs = $this->tabs();
         $warnings = $this->sectionWarnings();
+        $sectionGuidance = $this->sectionGuidance();
         $publicUrl = $this->publicWebsiteUrl();
         $rsvpUrl = $this->firstRsvpUrl();
         $palettes = $this->colorPalettes();
@@ -61,9 +62,15 @@
         .wm-website-tab.is-active { background: #fff; color: #2d7a39; box-shadow: 0 8px 18px rgba(45,42,38,.08); }
         .wm-website-tab.has-warning { color: #a05a2c; }
         .wm-website-editor { display: grid; grid-template-columns: 15rem minmax(0,1fr); gap: 1rem; }
+        .wm-website-sidebar { display: grid; gap: 1rem; align-self: start; }
         .wm-website-warning-list { padding: 1rem; align-self: start; }
         .wm-website-warning-list h3 { margin: 0 0 .7rem; color: #2d2a26; font-size: .8rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
         .wm-website-warning { margin: .45rem 0 0; color: #9a4f29; font-size: .82rem; line-height: 1.45; }
+        .wm-website-help { padding: 1rem; border-color: rgba(46,74,98,.18); background: rgba(243,247,249,.96); }
+        .wm-website-help-head { display: flex; align-items: center; gap: .5rem; margin-bottom: .65rem; color: #2e4a62; }
+        .wm-website-help-head svg { width: 1.15rem; height: 1.15rem; flex: 0 0 auto; }
+        .wm-website-help-head h3 { margin: 0; font-size: .75rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+        .wm-website-help p { margin: 0; color: #5f6d77; font-size: .82rem; line-height: 1.55; }
         .wm-website-form { padding: 1rem; display: grid; gap: 1rem; }
         .wm-website-section-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-bottom: .75rem; border-bottom: 1px solid #eee5dc; }
         .wm-website-toggle { display: inline-flex; align-items: center; gap: .55rem; color: #5d554f; font-weight: 800; }
@@ -180,19 +187,29 @@
             <nav class="wm-website-tabs" aria-label="Website sections">
                 @foreach ($tabs as $key => $label)
                     <button type="button" wire:click="$set('activeTab', '{{ $key }}')" class="wm-website-tab {{ $activeTab === $key ? 'is-active' : '' }} {{ count($warnings[$key] ?? []) ? 'has-warning' : '' }}">
-                        {{ $label }}{{ count($warnings[$key] ?? []) ? ' !' : '' }}
+                        {{ $label }}{{ count($warnings[$key] ?? []) && ! in_array($key, ['home', 'rsvp'], true) ? ' !' : '' }}
                     </button>
                 @endforeach
             </nav>
 
             <section class="wm-website-editor">
-                <aside class="wm-website-card wm-website-warning-list">
-                    <h3>Section warnings</h3>
-                    @forelse (($warnings[$activeTab] ?? []) as $warning)
-                        <p class="wm-website-warning">{{ $warning }}</p>
-                    @empty
-                        <p class="wm-website-copy">Minimum content is ready.</p>
-                    @endforelse
+                <aside class="wm-website-sidebar">
+                    <div class="wm-website-card wm-website-warning-list">
+                        <h3>Section warnings</h3>
+                        @forelse (($warnings[$activeTab] ?? []) as $warning)
+                            <p class="wm-website-warning">{{ $warning }}</p>
+                        @empty
+                            <p class="wm-website-copy">Minimum content is ready.</p>
+                        @endforelse
+                    </div>
+
+                    <div class="wm-website-card wm-website-help">
+                        <div class="wm-website-help-head">
+                            <x-filament::icon icon="heroicon-o-information-circle" />
+                            <h3>How to complete it</h3>
+                        </div>
+                        <p>{{ $sectionGuidance[$activeTab] ?? '' }}</p>
+                    </div>
                 </aside>
 
                 <article class="wm-website-card wm-website-form">
@@ -263,6 +280,8 @@
                             @include('filament.resources.project-resource.pages.partials.website-list', ['section' => 'wedding_party', 'list' => 'people', 'title' => 'People'])
                         @elseif ($activeTab === 'gallery')
                             @include('filament.resources.project-resource.pages.partials.website-list', ['section' => 'gallery', 'list' => 'images', 'title' => 'Images'])
+                        @elseif ($activeTab === 'attire')
+                            @include('filament.resources.project-resource.pages.partials.website-list', ['section' => 'attire', 'list' => 'images', 'title' => 'Images'])
                         @elseif ($activeTab === 'things_to_do')
                             @include('filament.resources.project-resource.pages.partials.website-list', ['section' => 'things_to_do', 'list' => 'items', 'title' => 'Recommendations'])
                         @elseif ($activeTab === 'faqs')

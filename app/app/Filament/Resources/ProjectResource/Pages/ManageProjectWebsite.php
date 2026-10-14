@@ -14,8 +14,8 @@ use Livewire\WithFileUploads;
 
 class ManageProjectWebsite extends Page
 {
-    use InteractsWithRecord;
     use InteractsWithProjectDateEditor;
+    use InteractsWithRecord;
     use WithFileUploads;
 
     protected static string $resource = ProjectResource::class;
@@ -80,10 +80,28 @@ class ManageProjectWebsite extends Page
             'registry' => 'Registry',
             'wedding_party' => 'Wedding Party',
             'gallery' => 'Gallery',
+            'attire' => 'Attire',
             'things_to_do' => 'Things To Do',
             'faqs' => 'FAQs',
-            'events' => 'Welcome Party & Wedding Event',
+            'events' => 'Events',
             'rsvp' => 'RSVP',
+        ];
+    }
+
+    public function sectionGuidance(): array
+    {
+        return [
+            'home' => 'Introduce your event at a glance. Add your names, date, venue, a short welcome message and your best opening photos.',
+            'schedule' => 'Help guests follow the day. Add the main moments in chronological order with their date, time and location.',
+            'travel' => 'Give guests practical travel guidance. Include recommended accommodation, transport options, addresses and useful booking links.',
+            'registry' => 'Share gift preferences clearly. Add a short message and the link guests should use for your registry or chosen alternative.',
+            'wedding_party' => 'Introduce the people closest to you. Add each person’s name, role, photo and a short personal description.',
+            'gallery' => 'Set the visual mood of your website. Choose a small selection of meaningful, high-quality photos and add captions when useful.',
+            'attire' => 'Explain the dress code and help guests choose what to wear. Add guidance about style, colors, footwear or weather, plus inspiration photos.',
+            'things_to_do' => 'Suggest places and experiences for free time. Add your favorite restaurants, attractions or activities with practical links.',
+            'faqs' => 'Answer the questions guests are most likely to ask. Keep each answer short and focused on one practical topic.',
+            'events' => 'Present the celebrations around the main event. Create one entry for each welcome party, wedding event or farewell gathering.',
+            'rsvp' => 'Tell guests how to respond. Add a brief instruction here; RSVP questions and options can be configured from the dedicated settings.',
         ];
     }
 
@@ -179,7 +197,7 @@ class ManageProjectWebsite extends Page
 
         foreach ($this->heroImageUploads as $upload) {
             $this->website['home']['hero_images'][] = [
-                'url' => '/storage/' . $upload->store('projects/website/hero', 'public'),
+                'url' => '/storage/'.$upload->store('projects/website/hero', 'public'),
                 'caption' => '',
             ];
         }
@@ -209,6 +227,7 @@ class ManageProjectWebsite extends Page
             'registry' => ['Registry text or link' => $this->filled('registry.intro') || $this->filled('registry.url')],
             'wedding_party' => ['At least one person' => count($this->website['wedding_party']['people'] ?? []) > 0],
             'gallery' => ['At least three images' => count(array_filter($this->website['gallery']['images'] ?? [], fn ($item) => filled($item['url'] ?? null))) >= 3],
+            'attire' => ['At least one image' => count(array_filter($this->website['attire']['images'] ?? [], fn ($item) => filled($item['url'] ?? null))) >= 1],
             'things_to_do' => ['At least one recommendation' => count($this->website['things_to_do']['items'] ?? []) > 0],
             'faqs' => ['At least one question' => count($this->website['faqs']['items'] ?? []) > 0],
             'events' => ['At least one event' => count($this->website['events']['items'] ?? []) > 0],
@@ -311,7 +330,7 @@ class ManageProjectWebsite extends Page
             }
         }
 
-        foreach (['home.hero_images', 'schedule.items', 'travel.hotels', 'travel.transportation', 'wedding_party.people', 'gallery.images', 'things_to_do.items', 'faqs.items', 'events.items'] as $path) {
+        foreach (['home.hero_images', 'schedule.items', 'travel.hotels', 'travel.transportation', 'wedding_party.people', 'gallery.images', 'attire.images', 'things_to_do.items', 'faqs.items', 'events.items'] as $path) {
             [$section, $list] = explode('.', $path);
             $website[$section][$list] = array_values(array_filter($website[$section][$list] ?? [], fn ($item): bool => is_array($item) && collect($item)->filter(fn ($value) => filled($value))->isNotEmpty()));
         }
