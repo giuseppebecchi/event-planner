@@ -201,6 +201,55 @@ make test
 
 ## Aggiornamento Sul Server
 
+### Aggiornamenti Di Sicurezza PHP
+
+L'immagine applicativa usa PHP **8.2.35 FPM**, versione corretta per
+[CVE-2026-109618](https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w) e
+[CVE-2026-109619](https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp).
+`docker/php/security.ini` disabilita `session.upload_progress.enabled` e abilita
+`session.use_only_cookies`. Sono misure aggiuntive: non sostituiscono la patch PHP.
+Gli upload applicativi e di Filament/Livewire restano abilitati; non usano il
+monitoraggio degli upload tramite sessioni native PHP.
+
+**Il normale `make deploy-update` non ricostruisce l'immagine PHP.** Dopo il pull
+di questa modifica eseguire sul server:
+
+```sh
+docker compose build --pull app
+docker compose up -d --no-deps --force-recreate app
+docker compose restart webserver
+docker compose exec -T app php -v
+docker compose exec -T app sh -c 'php-fpm -i | grep -E "PHP Version|session.upload_progress.enabled|session.use_only_cookies"'
+```
+
+Proseguire con la ricreazione solo se la build è riuscita. Verificare PHP 8.2.35
+(o una successiva patch 8.2 esplicitamente adottata), upload progress `Off` e
+only cookies `On`. La ricreazione sostituisce tutti i worker FPM; il restart di
+Nginx aggiorna la risoluzione del container applicativo. Prevedere una breve
+interruzione e verificare login e caricamento immagini dopo l'aggiornamento.
+Se si distribuisce l'immagine precompilata `ciuster/wedding-manager-app`, occorre
+anche pubblicare l'immagine ricostruita e ricreare i container su ogni server.
+Un semplice restart o aggiornamento Composer non aggiorna PHP.
+
+Adminer è un runtime PHP separato, esposto da Nginx su
+`/adminer_aurily_2026/`: la patch di `app` non lo aggiorna. Limitare l'accesso a
+VPN/rete amministrativa o rimuovere il proxy pubblico se non necessario;
+aggiornare l'immagine e verificare anche il suo PHP prima di considerarlo corretto:
+
+```sh
+docker compose pull adminer
+docker compose up -d --no-deps --force-recreate adminer
+docker compose restart webserver
+docker compose exec -T adminer php -v
+```
+
+Per Adminer verificare la soglia della relativa serie: 8.2.35, 8.3.36, 8.4.27
+o 8.5.12. Il tag mobile `adminer` da solo non garantisce una versione corretta.
+PHP 8.2 termina il supporto di sicurezza il 31 dicembre 2026: pianificare
+separatamente la migrazione a una serie supportata.
+
+### Aggiornamento Applicativo
+
 Per aggiornare il server dopo modifiche al codice puoi usare un comando unico.
 
 Se hai già fatto `git pull`:

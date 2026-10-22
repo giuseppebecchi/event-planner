@@ -1,4 +1,5 @@
-FROM php:8.2-fpm
+# Minimum patched release for GHSA-w8hw-w9fx-j79w / GHSA-6wmf-4rv5-p3rp.
+FROM php:8.2.35-fpm
 
 # -------------------------------------------------
 # System deps + MongoDB extension
@@ -48,3 +49,6 @@ RUN { \
     echo 'post_max_size=50M'; \
     echo 'memory_limit=256M'; \
 } > /usr/local/etc/php/conf.d/uploads.ini
+
+# Native PHP upload progress is independent of Laravel sessions and Livewire.
+COPY security.ini /usr/local/etc/php/conf.d/zz-security.ini
