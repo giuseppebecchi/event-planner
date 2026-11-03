@@ -12,8 +12,7 @@
         p { margin: 0 0 8px; }
         .header { padding-bottom: 16px; border-bottom: 2px solid #2e4a62; }
         .meta { margin-top: 6px; color: #746d66; }
-        .event { page-break-before: always; }
-        .event.first { page-break-before: auto; margin-top: 24px; }
+        .event { margin-top: 24px; }
         .event-heading { page-break-inside: avoid; }
         .timing { margin: 12px 0; padding: 10px; background: #fbf8f4; border: 1px solid #e4ddd5; }
         .program { padding: 14px 16px; border: 1px solid #e4ddd5; background: #fffdfa; }
@@ -32,7 +31,7 @@
     </header>
 
     @foreach ($events as $event)
-        <section class="event {{ $loop->first ? 'first' : '' }}">
+        <section class="event">
             <div class="event-heading">
                 <h2>{{ $event->title }}</h2>
                 <div class="timing">
