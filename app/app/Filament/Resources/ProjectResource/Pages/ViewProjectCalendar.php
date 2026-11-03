@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\ProjectEvent;
 use App\Models\ProjectChecklistOption;
 use App\Support\RichEditorHtmlNormalizer;
+use App\Support\ConsecutiveProjectEvents;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -447,6 +448,28 @@ class ViewProjectCalendar extends Page implements HasForms
         return $this->visibleMonthDate()->translatedFormat('F Y');
     }
 
+    public function getSelectedEventGroup(): ?array
+    {
+        if ($this->selectedCalendarItemKind !== 'event' || ! $this->selectedCalendarItemId) {
+            return null;
+        }
+
+        $event = $this->getRecord()->projectEvents()->find($this->selectedCalendarItemId);
+        if (! $event) {
+            return null;
+        }
+
+        $events = app(ConsecutiveProjectEvents::class)->forEvent($event);
+        if ($events->isEmpty()) {
+            return null;
+        }
+
+        return [
+            'starts_at' => $events->first()->starts_at,
+            'ends_at' => $events->max(fn (ProjectEvent $item) => $item->ends_at ?: $item->starts_at),
+        ];
+    }
+
     public function getMonthPickerOptions(): array
     {
         return collect(range(1, 12))
@@ -609,7 +632,6 @@ class ViewProjectCalendar extends Page implements HasForms
             ]);
 
         $eventItems = $project->projectEvents
-            ->filter(fn (ProjectEvent $event): bool => ! $limitDate || $event->starts_at->lte($limitDate->copy()->endOfDay()))
             ->map(fn (ProjectEvent $event): array => [
                 'kind' => 'event',
                 'kind_order' => '3',

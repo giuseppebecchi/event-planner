@@ -64,6 +64,37 @@ class ViewProjectCalendarTest extends TestCase
         ]);
     }
 
+    public function test_created_project_event_after_project_end_remains_visible(): void
+    {
+        $adminRole = Role::query()->firstOrCreate(['name' => Role::ADMIN]);
+        $this->actingAs(User::factory()->create(['role_id' => $adminRole->id]));
+
+        $project = Project::query()->create([
+            'name' => 'Past wedding',
+            'last_name' => 'Client',
+            'event_start_date' => '2026-10-24',
+            'event_end_date' => '2026-10-26',
+        ]);
+
+        $component = Livewire::test(ViewProjectCalendar::class, [
+            'record' => $project->id,
+        ])
+            ->set('eventForm.title', 'Post-wedding appointment')
+            ->set('eventForm.start_date', '2026-11-13')
+            ->call('saveProjectEvent')
+            ->assertHasNoErrors()
+            ->assertSet('visibleMonth', '2026-11')
+            ->assertSee('Post-wedding appointment');
+
+        $day = $component->instance()->getCalendarCells()->firstWhere('date_key', '2026-11-13');
+        $this->assertContains('Post-wedding appointment', $day['items']->pluck('title')->all());
+
+        // It must also remain visible after reloading the page and in list view.
+        Livewire::test(ViewProjectCalendar::class, ['record' => $project->id])
+            ->call('setCalendarView', 'list')
+            ->assertSee('Post-wedding appointment');
+    }
+
     public function test_single_day_project_event_can_be_created_after_today(): void
     {
         $adminRole = Role::query()->firstOrCreate(['name' => Role::ADMIN]);
