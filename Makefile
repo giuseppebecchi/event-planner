@@ -6,6 +6,7 @@ WEB_SERVICE := webserver
 DB_SERVICE := db
 ADMINER_SERVICE := adminer
 ARTISAN := $(DOCKER_COMPOSE) exec $(APP_SERVICE) php artisan
+CACHE_ARTISAN := $(DOCKER_COMPOSE) exec -T --user www-data $(APP_SERVICE) php artisan
 COMPOSER := $(DOCKER_COMPOSE) exec $(APP_SERVICE) composer
 NODE_RUN := $(DOCKER_COMPOSE) run --rm --entrypoint sh $(NODE_SERVICE) -c
 
@@ -114,9 +115,10 @@ key-generate:
 
 optimize:
 	$(COMPOSER) dump-autoload -o
-	$(ARTISAN) optimize
-	$(ARTISAN) event:cache
-	$(ARTISAN) view:cache
+	$(DOCKER_COMPOSE) exec -T $(APP_SERVICE) chown -R www-data:www-data storage bootstrap/cache
+	$(CACHE_ARTISAN) optimize
+	$(CACHE_ARTISAN) event:cache
+	$(CACHE_ARTISAN) view:cache
 
 optimize-clear:
 	$(ARTISAN) optimize:clear

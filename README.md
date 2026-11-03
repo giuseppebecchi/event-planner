@@ -278,6 +278,18 @@ make deploy-pull
 - pulizia e rigenerazione cache Laravel;
 - restart di `app` e `webserver`.
 
+La generazione delle cache in `make optimize` usa `www-data`, lo stesso utente
+dei processi PHP-FPM, e ripristina prima la proprietà di `storage` e
+`bootstrap/cache`. Eseguire `optimize` o `view:cache` come root può creare file
+che il processo web non riesce ad aggiornare, causando errori 500.
+Per rigenerare manualmente le viste sul server:
+
+```sh
+docker compose exec -T app chown -R www-data:www-data storage bootstrap/cache
+docker compose exec -T --user www-data app php artisan view:clear
+docker compose exec -T --user www-data app php artisan view:cache
+```
+
 Comandi manuali equivalenti:
 
 ```sh
