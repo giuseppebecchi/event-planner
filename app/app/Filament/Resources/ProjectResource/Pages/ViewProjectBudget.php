@@ -17,6 +17,7 @@ use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class ViewProjectBudget extends Page
 {
@@ -173,6 +174,55 @@ class ViewProjectBudget extends Page
 
                 Notification::make()
                     ->title('Budget updated')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    public function deleteBudgetCategoryAction(): Action
+    {
+        return Action::make('deleteBudgetCategory')
+            ->label('Delete budget item')
+            ->color('danger')
+            ->icon('heroicon-o-trash')
+            ->visible(fn (): bool => ! auth()->user()?->isCustomer())
+            ->requiresConfirmation()
+            ->modalHeading(fn (array $arguments): string => 'Delete '.$this->findBudget((int) ($arguments['budget'] ?? 0))->displayLabel().' from this budget?')
+            ->modalDescription('This removes the budget item from this project only. The service category and existing checklist tasks are kept. Items with supplier requests or quotes cannot be deleted.')
+            ->modalSubmitActionLabel('Delete budget item')
+            ->action(function (array $arguments): void {
+                abort_if(auth()->user()?->isCustomer(), 403);
+                $budgetId = (int) ($arguments['budget'] ?? 0);
+
+                $deleted = DB::transaction(function () use ($budgetId): bool {
+                    $budget = $this->getRecord()->categoryBudgets()->whereKey($budgetId)->lockForUpdate()->firstOrFail();
+
+                    if ($budget->supplierProposals()->exists()) {
+                        return false;
+                    }
+
+                    $budget->delete();
+
+                    return true;
+                });
+
+                if (! $deleted) {
+                    Notification::make()
+                        ->title('Budget item cannot be deleted')
+                        ->body('This item has supplier requests or quotes. Remove or reassign those links before deleting it.')
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                if ($this->editingCategoryLabelBudgetId === $budgetId) {
+                    $this->cancelEditingCategoryLabel();
+                }
+                $this->record = $this->getRecord()->fresh();
+
+                Notification::make()
+                    ->title('Budget item deleted')
                     ->success()
                     ->send();
             });

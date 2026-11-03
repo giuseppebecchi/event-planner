@@ -674,6 +674,10 @@
             stroke-width: 2.2;
         }
 
+        .wm-budget-action-icon.is-delete { color: #b42318; border-color: #f1c5bf; background: #fff4f2; }
+        .wm-budget-action-icon.is-delete:hover { color: #fff; border-color: #b42318; background: #b42318; }
+        .wm-budget-action-icon.is-delete:disabled { opacity: .45; cursor: not-allowed; }
+
         .wm-budget-actions {
             display: flex;
             flex-wrap: wrap;
@@ -966,6 +970,18 @@
                                                     Open details
                                                     <x-heroicon-o-arrow-right class="wm-budget-action-inline-icon" />
                                                 </a>
+                                                @if (! $isCustomer)
+                                                    <button
+                                                        type="button"
+                                                        class="wm-budget-action-icon is-delete"
+                                                        wire:click="mountAction('deleteBudgetCategory', { budget: {{ $budget->id }} })"
+                                                        title="{{ $budget->supplierProposals->isNotEmpty() ? 'Cannot delete an item with supplier requests or quotes' : 'Delete budget item' }}"
+                                                        aria-label="Delete {{ $budget->displayLabel() }} budget item"
+                                                        @disabled($budget->supplierProposals->isNotEmpty())
+                                                    >
+                                                        <x-heroicon-o-trash />
+                                                    </button>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
