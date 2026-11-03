@@ -215,7 +215,7 @@ class ViewProjectCalendar extends Page implements HasForms
 
     public function openCalendarItem(string $kind, int $id): void
     {
-        if (! in_array($kind, ['checklist', 'payment', 'event'], true)) {
+        if (! in_array($kind, ['checklist', 'payment', 'event', 'other_event'], true)) {
             return;
         }
 
@@ -439,7 +439,11 @@ class ViewProjectCalendar extends Page implements HasForms
             return null;
         }
 
-        return $this->getTimelineItems()
+        $items = $this->selectedCalendarItemKind === 'other_event'
+            ? $this->getOtherProjectEventItems()
+            : $this->getTimelineItems();
+
+        return $items
             ->first(fn (array $item): bool => $item['kind'] === $this->selectedCalendarItemKind && $item['id'] === $this->selectedCalendarItemId);
     }
 
@@ -519,6 +523,7 @@ class ViewProjectCalendar extends Page implements HasForms
     public function getListItems(): Collection
     {
         return $this->getTimelineItems()
+            ->concat($this->getOtherProjectEventItems())
             ->sortBy(fn (array $item): string => sprintf(
                 '%s-%s-%s',
                 $item['start_date']->format('YmdHis'),
@@ -552,6 +557,7 @@ class ViewProjectCalendar extends Page implements HasForms
         $monthEnd = $this->visibleMonthDate()->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
 
         return $this->getTimelineItems()
+            ->concat($this->getOtherProjectEventItems())
             ->flatMap(function (array $item) use ($monthStart, $monthEnd): array {
                 $start = $item['start_date']->copy()->startOfDay();
                 $end = $item['end_date']->copy()->startOfDay();
@@ -577,6 +583,50 @@ class ViewProjectCalendar extends Page implements HasForms
                 return $occurrences;
             })
             ->values();
+    }
+
+    protected function getOtherProjectEventItems(): Collection
+    {
+        $gridStart = $this->visibleMonthDate()->startOfMonth()->startOfWeek(Carbon::MONDAY);
+        $gridEnd = $this->visibleMonthDate()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
+
+        $projects = ProjectResource::getEloquentQuery()
+            ->withoutTrashed()
+            ->whereKeyNot($this->getRecord()->id)
+            ->select('projects.id');
+
+        return ProjectEvent::query()
+            ->whereIn('project_id', $projects)
+            ->where('starts_at', '<=', $gridEnd)
+            ->where(function ($query) use ($gridStart): void {
+                $query->where('ends_at', '>=', $gridStart)
+                    ->orWhere(function ($query) use ($gridStart): void {
+                        $query->whereNull('ends_at')->where('starts_at', '>=', $gridStart);
+                    });
+            })
+            ->with('project')
+            ->orderBy('starts_at')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (ProjectEvent $event): array => [
+                'kind' => 'other_event',
+                'kind_order' => '4',
+                'id' => $event->id,
+                'title' => $event->title,
+                'subtitle' => $event->description,
+                'project_name' => $event->project->name,
+                'project_url' => ProjectResource::getUrl('calendar', ['record' => $event->project_id]),
+                'start_date' => $event->starts_at->copy()->startOfDay(),
+                'end_date' => ($event->ends_at ?: $event->starts_at)->copy()->startOfDay(),
+                'time_sort' => $event->is_all_day ? '000000' : $event->starts_at->format('His'),
+                'color' => 'gray',
+                'completed' => false,
+                'payment_status' => null,
+                'is_all_day' => (bool) $event->is_all_day,
+                'starts_at' => $event->starts_at,
+                'ends_at' => $event->ends_at ?: $event->starts_at,
+                'program_html' => null,
+            ]);
     }
 
     protected function getTimelineItems(): Collection

@@ -487,6 +487,7 @@
         .wm-dot-olive { background: #87985e; }
         .wm-dot-sky { background: #5d8fb7; }
         .wm-dot-rose { background: #c57f88; }
+        .wm-dot-gray { background: #e5e7eb; }
 
         .wm-calendar-grid {
             display: grid;
@@ -564,6 +565,19 @@
         .wm-calendar-item.is-olive { background: #87985e; }
         .wm-calendar-item.is-sky { background: #5d8fb7; }
         .wm-calendar-item.is-rose { background: #c57f88; }
+        .wm-calendar-item.is-gray { background: #e5e7eb; color: #374151; }
+        .wm-calendar-list-item.is-other-project { background: #f3f4f6; }
+        .wm-calendar-other-projects-recap {
+            padding: 0.4rem 0.55rem;
+            border: 0;
+            border-radius: 0.65rem;
+            background: #e5e7eb;
+            color: #374151;
+            text-align: left;
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
         .wm-calendar-item.is-dimmed { opacity: 0.58; }
 
         .wm-calendar-overdue-recap {
@@ -1045,6 +1059,7 @@
                         <span class="wm-calendar-legend-chip"><span class="wm-calendar-legend-dot wm-dot-olive"></span>Checklist</span>
                         <span class="wm-calendar-legend-chip"><span class="wm-calendar-legend-dot wm-dot-rose"></span>Payments</span>
                         <span class="wm-calendar-legend-chip"><span class="wm-calendar-legend-dot wm-dot-sky"></span>Events</span>
+                        <span class="wm-calendar-legend-chip"><span class="wm-calendar-legend-dot wm-dot-gray"></span>Other projects</span>
                     </div>
 
                     <div class="wm-calendar-nav">
@@ -1066,6 +1081,16 @@
                                 </div>
 
                                 <div class="wm-calendar-items">
+                                    @if ($cell['items']->slice(4)->where('kind', 'other_event')->isNotEmpty())
+                                        <button
+                                            type="button"
+                                            class="wm-calendar-other-projects-recap"
+                                            x-show="! expanded"
+                                            x-on:click.stop="expanded = true"
+                                        >
+                                            Other projects: {{ $cell['items']->where('kind', 'other_event')->count() }} {{ \Illuminate\Support\Str::plural('event', $cell['items']->where('kind', 'other_event')->count()) }}
+                                        </button>
+                                    @endif
                                     @if ($cell['date_key'] === $todayKey && $overdueChecklistItems->isNotEmpty())
                                         <button
                                             type="button"
@@ -1101,10 +1126,13 @@
 
                                             <div>
                                                 <span class="wm-calendar-item-title">{{ $item['title'] }}</span>
+                                                @if ($item['kind'] === 'other_event')
+                                                    <span class="wm-calendar-item-subtitle">{{ $item['project_name'] }}</span>
+                                                @endif
                                                 @if (filled($item['subtitle']))
                                                     <span class="wm-calendar-item-subtitle">{{ $item['subtitle'] }}</span>
                                                 @endif
-                                                @if ($item['kind'] === 'event' && ! $item['is_all_day'])
+                                                @if (in_array($item['kind'], ['event', 'other_event'], true) && ! $item['is_all_day'])
                                                     <span class="wm-calendar-item-time">{{ $record->formatTimeForDisplay($item['starts_at']) }}{{ $item['ends_at'] ? ' - ' . $record->formatTimeForDisplay($item['ends_at']) : '' }}</span>
                                                 @endif
                                             </div>
@@ -1144,10 +1172,13 @@
 
                                                     <div>
                                                         <span class="wm-calendar-item-title">{{ $item['title'] }}</span>
+                                                        @if ($item['kind'] === 'other_event')
+                                                            <span class="wm-calendar-item-subtitle">{{ $item['project_name'] }}</span>
+                                                        @endif
                                                         @if (filled($item['subtitle']))
                                                             <span class="wm-calendar-item-subtitle">{{ $item['subtitle'] }}</span>
                                                         @endif
-                                                        @if ($item['kind'] === 'event' && ! $item['is_all_day'])
+                                                        @if (in_array($item['kind'], ['event', 'other_event'], true) && ! $item['is_all_day'])
                                                             <span class="wm-calendar-item-time">{{ $record->formatTimeForDisplay($item['starts_at']) }}{{ $item['ends_at'] ? ' - ' . $record->formatTimeForDisplay($item['ends_at']) : '' }}</span>
                                                         @endif
                                                     </div>
@@ -1162,7 +1193,7 @@
                 @else
                     <div class="wm-calendar-list">
                         @forelse ($listItems as $item)
-                            <article class="wm-calendar-list-item">
+                            <article class="wm-calendar-list-item {{ $item['kind'] === 'other_event' ? 'is-other-project' : '' }}">
                                 <span class="wm-calendar-list-marker wm-dot-{{ $item['color'] }}"></span>
 
                                 <div class="wm-calendar-list-copy">
@@ -1178,11 +1209,14 @@
                                     </p>
 
                                     <p class="wm-calendar-list-meta">
+                                        @if ($item['kind'] === 'other_event')
+                                            {{ $item['project_name'] }} ·
+                                        @endif
                                         {{ $item['start_date']->format('M j, Y') }}
-                                        @if ($item['kind'] === 'event' && $item['end_date']->ne($item['start_date']))
+                                        @if (in_array($item['kind'], ['event', 'other_event'], true) && $item['end_date']->ne($item['start_date']))
                                             - {{ $item['end_date']->format('M j, Y') }}
                                         @endif
-                                        @if ($item['kind'] === 'event' && ! $item['is_all_day'])
+                                        @if (in_array($item['kind'], ['event', 'other_event'], true) && ! $item['is_all_day'])
                                             · {{ $record->formatTimeForDisplay($item['starts_at']) }}{{ $item['ends_at'] ? ' - ' . $record->formatTimeForDisplay($item['ends_at']) : '' }}
                                         @endif
                                     </p>
@@ -1299,15 +1333,16 @@
                             {{ match($selectedItem['kind']) {
                                 'checklist' => 'Checklist item',
                                 'payment' => 'Payment deadline',
+                                'other_event' => 'Other project event',
                                 default => 'Project event',
                             } }}
                             · {{ $selectedItem['start_date']->format('F j, Y') }}
-                            @if ($selectedItem['kind'] === 'event' && $selectedItem['end_date']->ne($selectedItem['start_date']))
+                            @if (in_array($selectedItem['kind'], ['event', 'other_event'], true) && $selectedItem['end_date']->ne($selectedItem['start_date']))
                                 - {{ $selectedItem['end_date']->format('F j, Y') }}
                             @endif
-                            @if ($selectedItem['kind'] === 'event' && ! $selectedItem['is_all_day'])
+                            @if (in_array($selectedItem['kind'], ['event', 'other_event'], true) && ! $selectedItem['is_all_day'])
                                 · {{ $record->formatTimeForDisplay($selectedItem['starts_at']) }}{{ $selectedItem['ends_at'] ? ' - ' . $record->formatTimeForDisplay($selectedItem['ends_at']) : '' }}
-                            @elseif ($selectedItem['kind'] === 'event')
+                            @elseif (in_array($selectedItem['kind'], ['event', 'other_event'], true))
                                 · All day
                             @endif
                         </p>
@@ -1318,12 +1353,24 @@
                     </button>
                 </div>
 
+                @if ($selectedItem['kind'] === 'other_event')
+                    <p class="wm-calendar-detail-text">{{ $selectedItem['project_name'] }}</p>
+                @endif
+
                 @if (filled($selectedItem['subtitle']))
                     <p class="wm-calendar-detail-text">{{ $selectedItem['subtitle'] }}</p>
                 @endif
 
                 @if (filled($selectedItem['program_html']))
                     <div class="wm-calendar-detail-program">{!! $selectedItem['program_html'] !!}</div>
+                @endif
+
+                @if ($selectedItem['kind'] === 'other_event')
+                    <div class="wm-calendar-detail-actions">
+                        <x-filament::button tag="a" href="{{ $selectedItem['project_url'] }}" color="gray">
+                            Open project calendar
+                        </x-filament::button>
+                    </div>
                 @endif
 
                 @if ($selectedItem['kind'] === 'event' && (filled($selectedItem['program_html']) || ! auth()->user()?->isCustomer()))
