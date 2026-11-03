@@ -77,7 +77,7 @@ class ConsecutiveProjectEventsTest extends TestCase
             ->call('openCalendarItem', 'event', $anchor->id)
             ->assertSee('Export program PDF')
             ->assertSee(route('admin.projects.calendar.events.program.pdf', ['project' => $project, 'event' => $anchor]))
-            ->assertSee('dal 12/11/2026 al 14/11/2026')
+            ->assertSee('Click here to download the program for events from 12/11/2026 to 14/11/2026.')
             ->assertSee(route('admin.projects.calendar.events.group-program.pdf', ['project' => $project, 'event' => $anchor]));
     }
 
@@ -94,7 +94,7 @@ class ConsecutiveProjectEventsTest extends TestCase
             Livewire::test(ViewProjectCalendar::class, ['record' => $project->id])
                 ->call('openCalendarItem', 'event', $event->id)
                 ->assertSee('Export program PDF')
-                ->assertDontSee('Scarica programma completo PDF');
+                ->assertDontSee('Download full program PDF');
             $this->get(route('admin.projects.calendar.events.group-program.pdf', ['project' => $project, 'event' => $event]))
                 ->assertNotFound();
         }

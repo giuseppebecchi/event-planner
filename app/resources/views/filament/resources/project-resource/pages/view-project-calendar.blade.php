@@ -1352,14 +1352,14 @@
                 @if ($selectedItem['kind'] === 'event' && ($eventGroup = $this->getSelectedEventGroup()))
                     <div class="wm-calendar-detail-actions" style="flex-wrap: wrap;">
                         <p class="wm-calendar-detail-text" style="flex: 1 1 16rem; margin: 0;">
-                            Clicca qui per scaricare il programma degli eventi dal {{ $eventGroup['starts_at']->format('d/m/Y') }} al {{ $eventGroup['ends_at']->format('d/m/Y') }}.
+                            Click here to download the program for events from {{ $eventGroup['starts_at']->format('d/m/Y') }} to {{ $eventGroup['ends_at']->format('d/m/Y') }}.
                         </p>
                         <x-filament::button
                             tag="a"
                             href="{{ route('admin.projects.calendar.events.group-program.pdf', ['project' => $record, 'event' => $selectedItem['id']]) }}"
                             icon="heroicon-o-arrow-down-tray"
                         >
-                            Scarica programma completo PDF
+                            Download full program PDF
                         </x-filament::button>
                     </div>
                 @endif
