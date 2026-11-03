@@ -62,6 +62,9 @@ class Supplier extends Model
 
     protected $fillable = [
         'name',
+        'website',
+        'company_name',
+        'additional_contacts',
         'category_id',
         'service_area',
         'location',
@@ -146,6 +149,7 @@ class Supplier extends Model
     ];
 
     protected $casts = [
+        'additional_contacts' => 'array',
         'loc_latitude' => 'decimal:7',
         'loc_longitude' => 'decimal:7',
         'loc_airport_distance_km' => 'decimal:2',

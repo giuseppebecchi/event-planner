@@ -7,6 +7,7 @@ use App\Filament\RelationManagers\SupplierImagesRelationManager;
 use App\Models\Category;
 use App\Models\PaymentMode;
 use App\Models\Supplier;
+use Filament\Actions\Action;
 use Filament\Forms\Components;
 use Filament\Schemas\Components\Section;
 
@@ -28,6 +29,11 @@ class SupplierResourceSupport
             Section::make('Billing')
                 ->columns(3)
                 ->schema([
+                    Components\TextInput::make('company_name')
+                        ->label('Company name (billing)')
+                        ->helperText('Legal company name, if different from the supplier denomination.')
+                        ->maxLength(255)
+                        ->columnSpanFull(),
                     Components\TextInput::make('vat_number')
                         ->label('VAT number')
                         ->maxLength(50),
@@ -133,14 +139,14 @@ class SupplierResourceSupport
             Components\TextInput::make('location')
                 ->label('Location')
                 ->maxLength(255),
-            Components\TextInput::make('contact_person')
-                ->label('Contact person')
+            Components\TextInput::make('website')
+                ->label('Website')
+                ->url()
+                ->rules(['url:http,https'])
+                ->placeholder('https://www.example.com')
                 ->maxLength(255),
             Components\TextInput::make('price_range')
                 ->label('Price range')
-                ->maxLength(255),
-            Components\TextInput::make('email')
-                ->email()
                 ->maxLength(255),
             Components\Select::make('lang_comunication')
                 ->label('Communication language')
@@ -150,9 +156,6 @@ class SupplierResourceSupport
                 ])
                 ->default('it')
                 ->required(),
-            Components\TextInput::make('phone')
-                ->tel()
-                ->maxLength(50),
             Components\TextInput::make('style_description')
                 ->label('Description / style')
                 ->maxLength(255)
@@ -163,6 +166,50 @@ class SupplierResourceSupport
             Section::make('Main information')
                 ->columns(3)
                 ->schema($mainInformationFields),
+
+            Section::make('Contacts')
+                ->schema([
+                    Section::make('Contact 1 (default)')
+                        ->description('Main contact for supplier communications.')
+                        ->columns(3)
+                        ->schema([
+                            Components\TextInput::make('contact_person')
+                                ->label('Contact person')
+                                ->maxLength(255),
+                            Components\TextInput::make('phone')
+                                ->label('Phone / mobile')
+                                ->tel()
+                                ->maxLength(50),
+                            Components\TextInput::make('email')
+                                ->label('Email')
+                                ->email()
+                                ->maxLength(255),
+                        ]),
+                    Components\Repeater::make('additional_contacts')
+                        ->label('Additional contacts')
+                        ->defaultItems(0)
+                        ->reorderable(false)
+                        ->columns(3)
+                        ->schema([
+                            Components\TextInput::make('name')
+                                ->label('Contact person')
+                                ->required()
+                                ->maxLength(255),
+                            Components\TextInput::make('phone')
+                                ->label('Phone / mobile')
+                                ->tel()
+                                ->maxLength(50),
+                            Components\TextInput::make('email')
+                                ->label('Email')
+                                ->email()
+                                ->maxLength(255),
+                        ])
+                        ->itemLabel(fn (string $key, Components\Repeater $component): string => 'Contact ' . (
+                            array_search($key, array_map('strval', array_keys($component->getRawState() ?? [])), true) + 2
+                        ))
+                        ->addActionLabel('Add contact')
+                        ->addAction(fn (Action $action): Action => $action->icon('heroicon-o-plus')),
+                ]),
 
             Section::make('Social')
                 ->columns(2)
