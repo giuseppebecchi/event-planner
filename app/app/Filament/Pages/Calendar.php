@@ -412,8 +412,9 @@ class Calendar extends Page
                     return [];
                 }
 
-                $cursor = $start->copy()->max($monthStart);
-                $last = $end->copy()->min($monthEnd);
+                // max() may return the shared grid boundary; never advance that instance.
+                $cursor = $start->max($monthStart)->copy();
+                $last = $end->min($monthEnd)->copy();
                 $occurrences = [];
 
                 while ($cursor->lte($last)) {
