@@ -1581,6 +1581,28 @@
                     @error('eventDayForm')
                         <p class="wm-event-day-error">{{ $message }}</p>
                     @enderror
+                    @if (! $isCustomer && $eventDayTotalChange)
+                        <div class="wm-event-day-total-confirmation" style="margin-top: .75rem; padding: .75rem; border: 1px solid #e4c99b; border-radius: .65rem; background: #fff8eb;">
+                            <p style="margin: 0 0 .5rem; font-size: .8rem; font-weight: 700; color: #704d1b;">
+                                @if ($eventDayTotalChange['current_total'] === null)
+                                    Supplier cost to set: EUR {{ number_format($eventDayTotalChange['new_total'], 2, '.', ',') }}.
+                                @else
+                                    Current total: EUR {{ number_format($eventDayTotalChange['current_total'], 2, '.', ',') }}.
+                                    New total: EUR {{ number_format($eventDayTotalChange['new_total'], 2, '.', ',') }}.
+                                @endif
+                            </p>
+                            <label style="display: flex; align-items: start; gap: .5rem; font-size: .8rem; color: #704d1b;">
+                                <input type="checkbox" wire:model="confirmEventDayTotalChange">
+                                <span>
+                                    @if ($eventDayTotalChange['current_total'] === null)
+                                        To set this amount as the supplier cost, tick this checkbox and click Save again.
+                                    @else
+                                        To confirm the total change as well, tick this checkbox and click Save again.
+                                    @endif
+                                </span>
+                            </label>
+                        </div>
+                    @endif
                 </div>
                 <div class="wm-quote-badge">
                     <p class="wm-quote-badge-label">Confirmed quote</p>

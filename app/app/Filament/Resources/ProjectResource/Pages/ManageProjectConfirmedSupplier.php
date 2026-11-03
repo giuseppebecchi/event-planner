@@ -29,8 +29,11 @@ use Filament\Support\Enums\Width;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Locked;
 use Livewire\WithFileUploads;
 
 class ManageProjectConfirmedSupplier extends Page
@@ -53,6 +56,11 @@ class ManageProjectConfirmedSupplier extends Page
     public CategoryBudgetSupplier $proposalRecord;
 
     public array $eventDayForm = [];
+
+    public bool $confirmEventDayTotalChange = false;
+
+    #[Locked]
+    public ?array $eventDayTotalChange = null;
 
     public array $documentForm = [
         'type' => ProjectDocument::TYPE_CONTRACT,
@@ -265,22 +273,72 @@ class ManageProjectConfirmedSupplier extends Page
             'days.*.amount' => ['nullable', 'numeric', 'min:0'],
         ])->validate();
 
-        $allocations = $this->validatedEventDayAllocations(
-            $this->eventDayForm,
-            $this->proposalRecord->proposed_amount,
-            'eventDayForm',
-        );
+        $totalChanged = DB::transaction(function (): bool {
+            $proposal = $this->categoryBudgetRecord->supplierProposals()
+                ->whereKey($this->proposalRecord->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $selected = collect($this->eventDayForm)->where('selected', true);
+            $total = round($selected->sum(fn (array $row): float => (float) ($row['amount'] ?? 0)), 2);
+            $allocations = $this->validatedEventDayAllocations($this->eventDayForm, $total, 'eventDayForm');
+            $hasAmounts = collect($allocations)->contains(fn (array $row): bool => $row['amount'] !== null);
+            $currentTotal = $proposal->proposed_amount !== null ? round((float) $proposal->proposed_amount, 2) : null;
+            $totalChanged = $hasAmounts && ($currentTotal === null || abs($total - $currentTotal) > 0.009);
 
-        $this->proposalRecord->update([
-            'event_day_allocations' => $allocations ?: null,
-        ]);
+            if ($totalChanged) {
+                $change = [
+                    'proposal_id' => $proposal->id,
+                    'current_total' => $currentTotal !== null ? number_format($currentTotal, 2, '.', '') : null,
+                    'new_total' => number_format($total, 2, '.', ''),
+                    'allocations_hash' => hash('sha256', json_encode($allocations)),
+                ];
+
+                if (! $this->confirmEventDayTotalChange || $this->eventDayTotalChange !== $change) {
+                    $this->eventDayTotalChange = $change;
+                    $this->confirmEventDayTotalChange = false;
+
+                    throw ValidationException::withMessages([
+                        'eventDayForm' => $currentTotal === null
+                            ? 'The quote total is empty. Confirm to use the daily allocation total as the supplier cost.'
+                            : 'The daily allocation must equal the quote total (EUR '.number_format($currentTotal, 2, '.', ',').').',
+                    ]);
+                }
+            }
+
+            $changes = ['event_day_allocations' => $allocations ?: null];
+            if ($totalChanged) {
+                $changes['proposed_amount'] = $total;
+            }
+            $proposal->update($changes);
+
+            return $totalChanged;
+        });
+
         $this->proposalRecord->refresh();
+        $this->categoryBudgetRecord->refresh();
         $this->eventDayForm = $this->eventDayFormData($this->proposalRecord->event_day_allocations);
+        $this->resetEventDayTotalConfirmation();
+        $this->resetValidation('eventDayForm');
+        if ($totalChanged) {
+            $this->loadCommissionForm();
+        }
 
         Notification::make()
-            ->title('Supplier event days saved')
+            ->title($totalChanged ? 'Supplier cost and event days saved' : 'Supplier event days saved')
             ->success()
             ->send();
+    }
+
+    public function updatedEventDayForm(): void
+    {
+        $this->resetEventDayTotalConfirmation();
+        $this->resetValidation('eventDayForm');
+    }
+
+    protected function resetEventDayTotalConfirmation(): void
+    {
+        $this->eventDayTotalChange = null;
+        $this->confirmEventDayTotalChange = false;
     }
 
     public function canManageStrategicInfos(): bool
