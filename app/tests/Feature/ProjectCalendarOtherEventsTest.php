@@ -109,7 +109,7 @@ class ProjectCalendarOtherEventsTest extends TestCase
         $this->assertSame('other_event', $component->instance()->getSelectedCalendarItem()['kind']);
     }
 
-    public function test_external_events_respect_customer_access_and_exclude_deleted_projects(): void
+    public function test_customers_never_see_external_events_even_for_assigned_projects(): void
     {
         $customer = $this->signIn(Role::CUSTOMER);
         $project = $this->project('Assigned current wedding');
@@ -119,18 +119,25 @@ class ProjectCalendarOtherEventsTest extends TestCase
         foreach ([$project, $allowed, $deleted] as $assigned) {
             $assigned->users()->attach($customer);
         }
-        $this->event($allowed, 'Allowed appointment', '2026-12-02 09:00:00');
+        $assignedEvent = $this->event($allowed, 'Allowed appointment', '2026-12-02 09:00:00');
         $secret = $this->event($hidden, 'Secret appointment', '2026-12-02 09:00:00');
         $this->event($deleted, 'Deleted appointment', '2026-12-02 09:00:00');
         $deleted->delete();
 
         $component = Livewire::test(ViewProjectCalendar::class, ['record' => $project->id])
             ->set('visibleMonth', '2026-12')
-            ->assertSee('Allowed appointment')
+            ->assertDontSee('Allowed appointment')
             ->assertDontSee('Secret appointment')
             ->assertDontSee('Deleted appointment')
+            ->assertDontSee('Other projects')
             ->call('openCalendarItem', 'other_event', $secret->id);
         $this->assertNull($component->instance()->getSelectedCalendarItem());
+        $this->assertTrue($component->instance()->getListItems()->where('kind', 'other_event')->isEmpty());
+        $component->call('openCalendarItem', 'other_event', $assignedEvent->id);
+        $this->assertNull($component->instance()->getSelectedCalendarItem());
+        $component->call('setCalendarView', 'list')
+            ->assertDontSee('Allowed appointment')
+            ->assertDontSee('Secret appointment');
     }
 
     public function test_multi_day_external_events_cover_each_visible_day_without_entering_project_pdf_groups(): void
@@ -156,11 +163,9 @@ class ProjectCalendarOtherEventsTest extends TestCase
 
     public function test_busy_days_keep_an_external_event_indicator_visible_even_when_items_are_collapsed(): void
     {
-        $customer = $this->signIn(Role::CUSTOMER);
+        $this->signIn();
         $project = $this->project('Busy current wedding');
         $other = $this->project('Other wedding');
-        $project->users()->attach($customer);
-        $other->users()->attach($customer);
         for ($index = 0; $index < 5; $index++) {
             $this->event($project, 'Current appointment ' . $index, '2026-12-02 09:00:00');
         }
@@ -168,7 +173,7 @@ class ProjectCalendarOtherEventsTest extends TestCase
 
         Livewire::test(ViewProjectCalendar::class, ['record' => $project->id])
             ->set('visibleMonth', '2026-12')
-            ->assertSee('Other projects: 1 event')
+            ->assertSee('Other projects:')
             ->assertSeeHtml('wm-calendar-other-projects-recap');
     }
 }

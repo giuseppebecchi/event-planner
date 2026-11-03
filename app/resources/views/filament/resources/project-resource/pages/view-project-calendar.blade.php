@@ -1059,7 +1059,9 @@
                         <span class="wm-calendar-legend-chip"><span class="wm-calendar-legend-dot wm-dot-olive"></span>Checklist</span>
                         <span class="wm-calendar-legend-chip"><span class="wm-calendar-legend-dot wm-dot-rose"></span>Payments</span>
                         <span class="wm-calendar-legend-chip"><span class="wm-calendar-legend-dot wm-dot-sky"></span>Events</span>
-                        <span class="wm-calendar-legend-chip"><span class="wm-calendar-legend-dot wm-dot-gray"></span>Other projects</span>
+                        @if (! auth()->user()?->isCustomer())
+                            <span class="wm-calendar-legend-chip"><span class="wm-calendar-legend-dot wm-dot-gray"></span>Other projects</span>
+                        @endif
                     </div>
 
                     <div class="wm-calendar-nav">

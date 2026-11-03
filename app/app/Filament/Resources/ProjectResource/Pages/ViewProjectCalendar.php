@@ -587,6 +587,10 @@ class ViewProjectCalendar extends Page implements HasForms
 
     protected function getOtherProjectEventItems(): Collection
     {
+        if (auth()->user()?->isCustomer()) {
+            return collect();
+        }
+
         $gridStart = $this->visibleMonthDate()->startOfMonth()->startOfWeek(Carbon::MONDAY);
         $gridEnd = $this->visibleMonthDate()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
 
