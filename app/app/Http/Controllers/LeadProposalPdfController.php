@@ -39,8 +39,9 @@ class LeadProposalPdfController extends Controller
         $venueName = $this->venueName($lead);
         $guestText = $this->guestText($lead);
         $plannerRows = $this->normalizedRows($lead->budget_wedding_planner);
+        $extraServices = $this->normalizedRows($lead->budget_wedding_planner_extra_services, onlyPositive: true);
         $extraRows = [
-            ...$this->normalizedRows($lead->budget_wedding_planner_extra_services, onlyPositive: true),
+            ...($extraServices ?: $this->defaultExtraRows()),
             ...$this->normalizedRows($lead->budget_wedding_planner_special_packages, onlyPositive: true),
         ];
         $mainOffer = $plannerRows[0] ?? null;
@@ -55,7 +56,7 @@ class LeadProposalPdfController extends Controller
             'main_fee' => $mainFee ?: $this->money($project?->budget_amount ?? $lead->budget_amount) ?: $this->defaultMainFee($lead),
             'planning_rows_left' => $planningRows->get(0, []),
             'planning_rows_right' => $planningRows->get(1, []),
-            'extra_rows' => $extraRows ?: $this->defaultExtraRows(),
+            'extra_rows' => $extraRows,
             'confirmation_rows' => $proposalConditions['confirmation'] ?: $this->defaultConfirmationRows(),
             'offer_validity_rows' => $proposalConditions['offer_validity'] ?: $this->defaultOfferValidityRows(),
         ];

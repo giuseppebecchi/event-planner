@@ -8,6 +8,7 @@ use App\Models\Lead;
 use App\Models\Supplier;
 use App\Support\LeadContractPdfRenderer;
 use ReflectionMethod;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class LeadBudgetAddToBudgetTest extends TestCase
@@ -87,6 +88,49 @@ class LeadBudgetAddToBudgetTest extends TestCase
             'Selected package',
             'Proposal-only package',
         ], collect($data['extra_rows'])->pluck('label')->all());
+    }
+
+    public static function zeroOrMissingExtraServices(): array
+    {
+        return [
+            'zero amounts' => [[['label' => 'Zero extra', 'amount' => 0]]],
+            'legacy null extras' => [null],
+            'empty extras' => [[]],
+        ];
+    }
+
+    #[DataProvider('zeroOrMissingExtraServices')]
+    public function test_proposal_includes_base_price_list_and_positive_packages_when_extras_are_zero_or_missing(?array $extras): void
+    {
+        $lead = new Lead([
+            'proposal_wedding_planning_service' => '<p>Planning support</p>',
+            'budget_wedding_planner_extra_services' => $extras,
+            'budget_wedding_planner_special_packages' => [
+                ['label' => 'Special welcome dinner', 'amount' => 700, 'add_to_budget' => false],
+                ['label' => 'Zero package', 'amount' => 0, 'add_to_budget' => true],
+            ],
+        ]);
+        $before = $lead->getAttributes();
+        $data = $this->callProtected(new LeadProposalPdfController(), 'buildData', $lead);
+
+        $this->assertSame([300, 100, 300, 300, 500, 800, 50, 700.0], array_column($data['extra_rows'], 'amount'));
+        $this->assertSame('Management of guests accommodation out of the venue', $data['extra_rows'][0]['label']);
+        $this->assertSame('Special welcome dinner', $data['extra_rows'][7]['label']);
+        $this->assertNotContains('Zero extra', array_column($data['extra_rows'], 'label'));
+        $this->assertNotContains('Zero package', array_column($data['extra_rows'], 'label'));
+        $this->assertSame($before, $lead->getAttributes());
+    }
+
+    public function test_proposal_keeps_base_price_list_when_extras_and_packages_have_no_positive_amounts(): void
+    {
+        $lead = new Lead([
+            'proposal_wedding_planning_service' => '<p>Planning support</p>',
+            'budget_wedding_planner_extra_services' => [['label' => 'Zero extra', 'amount' => 0]],
+            'budget_wedding_planner_special_packages' => [['label' => 'Zero package', 'amount' => 0]],
+        ]);
+        $data = $this->callProtected(new LeadProposalPdfController(), 'buildData', $lead);
+
+        $this->assertSame([300, 100, 300, 300, 500, 800, 50], array_column($data['extra_rows'], 'amount'));
     }
 
     public function test_proposal_title_includes_selected_venue_before_period(): void
