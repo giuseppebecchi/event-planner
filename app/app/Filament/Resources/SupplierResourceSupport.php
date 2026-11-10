@@ -26,45 +26,7 @@ class SupplierResourceSupport
         return [
             ...static::mainAndAddressSections($excludeLocationCategory),
 
-            Section::make('Billing')
-                ->columns(3)
-                ->schema([
-                    Components\TextInput::make('company_name')
-                        ->label('Company name (billing)')
-                        ->helperText('Legal company name, if different from the supplier denomination.')
-                        ->maxLength(255)
-                        ->columnSpanFull(),
-                    Components\TextInput::make('vat_number')
-                        ->label('VAT number')
-                        ->maxLength(50),
-                    Components\TextInput::make('tax_code')
-                        ->label('Tax code')
-                        ->maxLength(50),
-                    Components\TextInput::make('sdi_code')
-                        ->label('SDI')
-                        ->maxLength(50),
-                    Components\Select::make('accepted_payment_mode_ids')
-                        ->label('Accepted payment modes')
-                        ->options(fn (): array => PaymentMode::query()
-                            ->where('is_active', true)
-                            ->orderBy('sort_order')
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->all())
-                        ->multiple()
-                        ->preload()
-                        ->helperText('Leave empty if every payment mode is accepted.')
-                        ->formatStateUsing(fn ($state): array => collect(is_array($state) ? $state : explode(',', (string) $state))
-                            ->map(fn (string $id): int => (int) trim($id))
-                            ->filter()
-                            ->values()
-                            ->all())
-                        ->dehydrateStateUsing(fn ($state): ?string => collect($state ?? [])
-                            ->filter()
-                            ->map(fn ($id): int => (int) $id)
-                            ->implode(',') ?: null)
-                        ->columnSpanFull(),
-                ]),
+            static::billingSection(),
 
             Section::make('Default commissions')
                 ->columns(3)
@@ -89,6 +51,49 @@ class SupplierResourceSupport
                         ->rows(6),
                 ]),
         ];
+    }
+
+    public static function billingSection(): Section
+    {
+        return Section::make('Billing')
+            ->columns(3)
+            ->schema([
+                Components\TextInput::make('company_name')
+                    ->label('Company name (billing)')
+                    ->helperText('Legal company name, if different from the supplier denomination.')
+                    ->maxLength(255)
+                    ->columnSpanFull(),
+                Components\TextInput::make('vat_number')
+                    ->label('VAT number')
+                    ->maxLength(50),
+                Components\TextInput::make('tax_code')
+                    ->label('Tax code')
+                    ->maxLength(50),
+                Components\TextInput::make('sdi_code')
+                    ->label('SDI')
+                    ->maxLength(50),
+                Components\Select::make('accepted_payment_mode_ids')
+                    ->label('Accepted payment modes')
+                    ->options(fn (): array => PaymentMode::query()
+                        ->where('is_active', true)
+                        ->orderBy('sort_order')
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->all())
+                    ->multiple()
+                    ->preload()
+                    ->helperText('Leave empty if every payment mode is accepted.')
+                    ->formatStateUsing(fn ($state): array => collect(is_array($state) ? $state : explode(',', (string) $state))
+                        ->map(fn (string $id): int => (int) trim($id))
+                        ->filter()
+                        ->values()
+                        ->all())
+                    ->dehydrateStateUsing(fn ($state): ?string => collect($state ?? [])
+                        ->filter()
+                        ->map(fn ($id): int => (int) $id)
+                        ->implode(',') ?: null)
+                    ->columnSpanFull(),
+            ]);
     }
 
     public static function mainAndAddressSections(bool $excludeLocationCategory = true, bool $includeCategoryField = true): array

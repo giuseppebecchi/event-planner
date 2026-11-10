@@ -838,6 +838,7 @@ class ManageProjectBudgetCategory extends Page
                     ->label('Service category')
                     ->content(fn (): string => $this->categoryBudgetRecord->displayLabel()),
                 ...SupplierResourceSupport::mainAndAddressSections(includeCategoryField: false),
+                SupplierResourceSupport::billingSection(),
             ])
             ->action(function (array $data): void {
                 $this->ensureCanManageScouting();

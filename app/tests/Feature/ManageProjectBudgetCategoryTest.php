@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\LocationResource;
+use App\Filament\Resources\SupplierResource\Pages\EditSupplier;
 use App\Filament\Resources\ProjectResource\Pages\ManageProjectBudgetCategory;
 use App\Models\Category;
 use App\Models\CategoryBudget;
 use App\Models\CategoryBudgetSupplier;
+use App\Models\PaymentMode;
 use App\Models\Project;
 use App\Models\ProjectSupplierCommunication;
 use App\Models\Role;
@@ -23,6 +25,61 @@ use Tests\TestCase;
 class ManageProjectBudgetCategoryTest extends TestCase
 {
     use DatabaseTransactions;
+
+    public function test_supplier_created_from_budget_saves_billing_information_in_shared_supplier_record(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => Role::ADMIN]);
+        $this->actingAs(User::factory()->create(['role_id' => $role->id]));
+        $category = Category::query()->create(['label' => 'Billing creation category', 'label_it' => 'Categoria fatturazione']);
+        $project = Project::query()->create(['name' => 'Billing creation event', 'last_name' => 'Client', 'event_date' => '2027-06-10']);
+        $budget = CategoryBudget::query()->create(['project_id' => $project->id, 'category_id' => $category->id]);
+        $paymentMode = PaymentMode::query()->create(['name' => 'Billing test bank transfer', 'is_active' => true, 'sort_order' => 0]);
+        $billing = [
+            'company_name' => 'Supplier Legal Company S.r.l.',
+            'vat_number' => 'IT12345678901',
+            'tax_code' => '12345678901',
+            'sdi_code' => 'ABC1234',
+        ];
+
+        Livewire::test(ManageProjectBudgetCategory::class, ['record' => $project->id, 'categoryBudget' => $budget->id])
+            ->callAction('createSupplier', [
+                'name' => 'Supplier created from budget with billing',
+                'lang_comunication' => 'en',
+                ...$billing,
+                'accepted_payment_mode_ids' => [$paymentMode->id],
+            ])
+            ->assertHasNoActionErrors();
+
+        $supplier = Supplier::query()->where('name', 'Supplier created from budget with billing')->firstOrFail();
+        foreach ($billing as $field => $value) {
+            $this->assertSame($value, $supplier->{$field});
+        }
+        $this->assertSame((string) $paymentMode->id, $supplier->accepted_payment_mode_ids);
+        $this->assertSame($category->id, $supplier->category_id);
+        $this->assertSame([$category->id], $supplier->categories()->pluck('categories.id')->all());
+
+        Livewire::test(EditSupplier::class, ['record' => $supplier->id])
+            ->assertFormSet([...$billing, 'accepted_payment_mode_ids' => [$paymentMode->id]]);
+    }
+
+    public function test_supplier_created_from_budget_can_leave_billing_information_empty(): void
+    {
+        $role = Role::query()->firstOrCreate(['name' => Role::ADMIN]);
+        $this->actingAs(User::factory()->create(['role_id' => $role->id]));
+        $category = Category::query()->create(['label' => 'Optional billing category', 'label_it' => 'Fatturazione facoltativa']);
+        $project = Project::query()->create(['name' => 'Optional billing event', 'last_name' => 'Client', 'event_date' => '2027-06-10']);
+        $budget = CategoryBudget::query()->create(['project_id' => $project->id, 'category_id' => $category->id]);
+
+        Livewire::test(ManageProjectBudgetCategory::class, ['record' => $project->id, 'categoryBudget' => $budget->id])
+            ->callAction('createSupplier', ['name' => 'Supplier without billing information', 'lang_comunication' => 'en'])
+            ->assertHasNoActionErrors();
+
+        $supplier = Supplier::query()->where('name', 'Supplier without billing information')->firstOrFail();
+        foreach (['company_name', 'vat_number', 'tax_code', 'sdi_code', 'accepted_payment_mode_ids'] as $field) {
+            $this->assertNull($supplier->{$field});
+        }
+        $this->assertSame($category->id, $supplier->category_id);
+    }
 
     public function test_quote_can_be_assigned_and_allocated_to_event_days(): void
     {
