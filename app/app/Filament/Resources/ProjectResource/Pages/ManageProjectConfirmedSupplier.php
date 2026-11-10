@@ -15,6 +15,7 @@ use App\Models\ProjectChecklistOption;
 use App\Models\ProjectDocument;
 use App\Models\ProjectImage;
 use App\Models\ProjectStrategicInfo;
+use App\Models\ProjectStrategicInfoDetail;
 use App\Models\ProjectSupplierCommunication;
 use App\Support\RichEditorHtmlNormalizer;
 use Filament\Actions\Action;
@@ -22,6 +23,13 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
@@ -61,6 +69,9 @@ class ManageProjectConfirmedSupplier extends Page
 
     #[Locked]
     public ?array $eventDayTotalChange = null;
+
+    #[Locked]
+    public ?string $strategicInfoVersion = null;
 
     public array $documentForm = [
         'type' => ProjectDocument::TYPE_CONTRACT,
@@ -352,8 +363,9 @@ class ManageProjectConfirmedSupplier extends Page
     {
         return $this->getRecord()
             ->strategicInfos()
-            ->with('strategicInfo')
+            ->with(['strategicInfo', 'details'])
             ->where('category_id', $this->proposalRecord->category_id)
+            ->where('supplier_id', $this->proposalRecord->supplier_id)
             ->get()
             ->sortBy(fn (ProjectStrategicInfo $info): string => sprintf(
                 '%08d-%s',
@@ -375,28 +387,54 @@ class ManageProjectConfirmedSupplier extends Page
             ->fillForm(fn (array $arguments): array => $this->strategicInfoFormData(
                 $this->findStrategicInfo((int) ($arguments['info'] ?? 0))
             ))
-            ->form($this->strategicInfoFormSchema())
+            ->form(fn (array $arguments): array => isset($arguments['info']) ? $this->strategicInfoFormSchema(
+                $this->findStrategicInfo((int) ($arguments['info'] ?? 0))
+            ) : [])
             ->action(function (array $data, array $arguments): void {
                 abort_unless($this->canManageStrategicInfos(), 403);
 
-                $info = $this->findStrategicInfo((int) ($arguments['info'] ?? 0));
-                $oldImagePaths = collect($info->image_paths ?? [])->filter()->values();
-                $newImagePaths = collect($data['image_paths'] ?? [])->filter()->values();
-                $status = $data['status'] ?? ProjectStrategicInfo::STATUS_DRAFT;
+                $removedImagePaths = DB::transaction(function () use ($data, $arguments): array {
+                    $info = $this->findStrategicInfo((int) ($arguments['info'] ?? 0));
+                    $info = ProjectStrategicInfo::query()->whereKey($info->id)->lockForUpdate()->firstOrFail();
+                    if ($info->contentVersion() !== $this->strategicInfoVersion) {
+                        Notification::make()->title('Information has changed')
+                            ->body('Close and reopen this window to load the latest details and supplier dates.')
+                            ->danger()->send();
+                        throw ValidationException::withMessages([$this->getMountedActionSchema()->getStatePath().'.content' => 'These details or supplier dates have changed. Close and reopen this window before saving.']);
+                    }
+                    $separate = (bool) ($data['separate_by_day'] ?? $info->separate_by_day);
+                    $oldPaths = $info->details->flatMap(fn ($detail): array => $detail->image_paths ?? [])->filter()->unique();
+                    if ($separate) {
+                        $dates = array_values(array_unique([...$info->dayKeys(), ...$info->details->pluck('day_key')->reject(fn ($key): bool => $key === 'common')->all()]));
+                        if (! $info->separate_by_day && ! $this->canSplitStrategicInfo($info)) {
+                            abort(422, 'Daily information is not available for this supplier.');
+                        }
+                        foreach ($dates as $date) {
+                            $this->saveStrategicInfoDetail($info, $date, $data['days'][$date] ?? []);
+                        }
+                        $info->details()->where('day_key', 'common')->delete();
+                    } else {
+                        $commonData = $data;
+                        if ($info->separate_by_day) {
+                            $source = $info->details->firstWhere('day_key', $data['common_source_day'] ?? '');
+                            if (! $source || ! ($data['confirm_merge'] ?? false)) {
+                                throw ValidationException::withMessages([$this->getMountedActionSchema()->getStatePath().'.confirm_merge' => 'Choose the day to keep and confirm replacing the separate daily information.']);
+                            }
+                            $commonData = $data['days'][$source->day_key] ?? $source->only(['content', 'image_paths', 'status']);
+                        }
+                        $this->saveStrategicInfoDetail($info, 'common', $commonData);
+                        $info->details()->where('day_key', '!=', 'common')->delete();
+                    }
+                    $info->update(['separate_by_day' => $separate]);
+                    $newPaths = $info->details()->get()->flatMap(fn ($detail): array => $detail->image_paths ?? [])->filter()->unique();
 
-                $info->fill([
-                    'content' => $this->normalizeStrategicInfoHtml($data['content'] ?? null),
-                    'image_paths' => $newImagePaths->all(),
-                    'status' => $status,
-                    'completed_at' => $status === ProjectStrategicInfo::STATUS_COMPLETED
-                        ? ($info->completed_at ?? now())
-                        : null,
-                ])->save();
-
-                $removedImagePaths = $oldImagePaths->diff($newImagePaths)->all();
-
-                if ($removedImagePaths !== []) {
-                    Storage::disk('public')->delete($removedImagePaths);
+                    return $oldPaths->diff($newPaths)->values()->all();
+                });
+                // A migrated image can be referenced by both catering suppliers (project 12).
+                foreach ($removedImagePaths as $path) {
+                    if (! ProjectStrategicInfoDetail::query()->whereJsonContains('image_paths', $path)->exists()) {
+                        Storage::disk('public')->delete($path);
+                    }
                 }
 
                 $this->getRecord()->unsetRelation('strategicInfos');
@@ -423,7 +461,50 @@ class ManageProjectConfirmedSupplier extends Page
             ));
     }
 
-    protected function strategicInfoFormSchema(bool $disabled = false): array
+    protected function canSplitStrategicInfo(ProjectStrategicInfo $info): bool
+    {
+        return $info->category?->label === 'Catering' && count($info->dayKeys()) >= 2;
+    }
+
+    protected function strategicInfoFormSchema(ProjectStrategicInfo $info): array
+    {
+        $dates = collect([...$info->dayKeys(), ...$info->details->pluck('day_key')->reject(fn ($key): bool => $key === 'common')->all()])->unique()->sort()->values();
+        return [
+            Toggle::make('separate_by_day')
+                ->label('Use separate information for each day')
+                ->helperText('Leave off to use the same information for all supplier event days.')
+                ->visible($info->separate_by_day || $this->canSplitStrategicInfo($info))
+                ->live()
+                ->afterStateUpdated(function ($state, Get $get, Set $set) use ($info): void {
+                    if ($state && ! $info->separate_by_day) {
+                        $first = $info->dayKeys()[0] ?? null;
+                        if ($first && trim(strip_tags($this->normalizeStrategicInfoHtml($get("days.{$first}.content")) ?? '')) === '' && empty($get("days.{$first}.image_paths"))) {
+                            $set("days.{$first}.content", $get('content'));
+                            $set("days.{$first}.image_paths", $get('image_paths') ?? []);
+                            $set("days.{$first}.status", $get('status') ?? ProjectStrategicInfo::STATUS_DRAFT);
+                        }
+                    }
+                }),
+            Group::make()
+                ->visible(fn (Get $get): bool => ! $get('separate_by_day') && ! $info->separate_by_day)
+                ->schema($this->strategicInfoFields()),
+            Tabs::make('Event days')
+                ->dehydratedWhenHidden()
+                ->visible(fn (Get $get): bool => (bool) $get('separate_by_day'))
+                ->tabs($dates->map(fn (string $date): Tab => Tab::make(Carbon::parse($date)->format('D j M Y').(in_array($date, $info->dayKeys(), true) ? '' : ' (outside current days)'))
+                    ->statePath('days.'.$date)->schema($this->strategicInfoFields()))->all()),
+            Select::make('common_source_day')->label('Day to keep as common information')
+                ->options($dates->mapWithKeys(fn (string $date): array => [$date => Carbon::parse($date)->format('D j M Y')])->all())
+                ->visible(fn (Get $get): bool => $info->separate_by_day && ! $get('separate_by_day'))
+                ->required(fn (Get $get): bool => $info->separate_by_day && ! $get('separate_by_day')),
+            Checkbox::make('confirm_merge')
+                ->label('Keep the selected day for all days and remove the other daily information.')
+                ->visible(fn (Get $get): bool => $info->separate_by_day && ! $get('separate_by_day'))
+                ->accepted(fn (Get $get): bool => $info->separate_by_day && ! $get('separate_by_day')),
+        ];
+    }
+
+    protected function strategicInfoFields(): array
     {
         return [
             RichEditor::make('content')
@@ -442,7 +523,6 @@ class ManageProjectConfirmedSupplier extends Page
                     'undo',
                     'redo',
                 ])
-                ->disabled($disabled)
                 ->columnSpanFull(),
             FileUpload::make('image_paths')
                 ->label('Images')
@@ -454,23 +534,48 @@ class ManageProjectConfirmedSupplier extends Page
                 ->openable()
                 ->downloadable()
                 ->maxSize(20480)
-                ->disabled($disabled)
                 ->columnSpanFull(),
             Select::make('status')
                 ->label('Status')
                 ->options(ProjectStrategicInfo::STATUS_OPTIONS)
-                ->required()
-                ->disabled($disabled),
+                ->required(),
         ];
     }
 
     protected function strategicInfoFormData(ProjectStrategicInfo $info): array
     {
+        $this->strategicInfoVersion = $info->contentVersion();
+        $common = $info->commonDetail();
         return [
-            'content' => $info->content ?? '',
-            'image_paths' => $info->image_paths ?? [],
-            'status' => $info->status,
+            'separate_by_day' => $info->separate_by_day,
+            'content' => $common?->content ?? '',
+            'image_paths' => $common?->image_paths ?? [],
+            'status' => $common?->status ?? ProjectStrategicInfo::STATUS_DRAFT,
+            'days' => collect([...$info->dayKeys(), ...$info->details->pluck('day_key')->reject(fn ($key): bool => $key === 'common')->all()])->unique()
+                ->mapWithKeys(function (string $date) use ($info): array {
+                    $detail = $info->details->firstWhere('day_key', $date);
+                    return [$date => ['content' => $detail?->content ?? '', 'image_paths' => $detail?->image_paths ?? [], 'status' => $detail?->status ?? ProjectStrategicInfo::STATUS_DRAFT]];
+                })->all(),
+            'confirm_merge' => false,
+            'common_source_day' => null,
         ];
+    }
+
+    protected function saveStrategicInfoDetail(ProjectStrategicInfo $info, string $key, array $data): void
+    {
+        $detail = $info->details()->firstOrNew(['day_key' => $key]);
+        $status = $data['status'] ?? ProjectStrategicInfo::STATUS_DRAFT;
+        if (! array_key_exists($status, ProjectStrategicInfo::STATUS_OPTIONS)) {
+            abort(422);
+        }
+        $detail->fill([
+            'content' => $this->normalizeStrategicInfoHtml($data['content'] ?? null),
+            'image_paths' => array_values(array_filter($data['image_paths'] ?? [])),
+            'status' => $status,
+            'completed_at' => $status === ProjectStrategicInfo::STATUS_COMPLETED
+                ? ($detail->completed_at ?? (! $info->separate_by_day && $key === ($info->dayKeys()[0] ?? null) ? $info->commonDetail()?->completed_at : null) ?? now())
+                : null,
+        ])->save();
     }
 
     protected function findStrategicInfo(int $infoId): ProjectStrategicInfo
@@ -478,6 +583,7 @@ class ManageProjectConfirmedSupplier extends Page
         return $this->getRecord()
             ->strategicInfos()
             ->where('category_id', $this->proposalRecord->category_id)
+            ->where('supplier_id', $this->proposalRecord->supplier_id)
             ->findOrFail($infoId);
     }
 

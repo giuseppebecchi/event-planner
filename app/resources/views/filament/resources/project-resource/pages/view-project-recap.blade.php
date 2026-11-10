@@ -535,6 +535,9 @@
                             @empty
                                 <div class="wm-recap-empty">No timeline items for this day.</div>
                             @endforelse
+                            @foreach ($recapStrategicInfos->where('day_key', $day['key']) as $info)
+                                @include('filament.resources.project-resource.pages.partials.recap-strategic-info', ['info' => $info])
+                            @endforeach
                         </section>
                     </div>
                     </article>
@@ -570,27 +573,14 @@
                     </article>
                 @endif
 
-                @if ($recapStrategicInfos->isNotEmpty())
+                @if ($recapStrategicInfos->where('day_key', 'common')->isNotEmpty())
                     <article class="wm-recap-pdf-page">
                     <div class="wm-recap-rail"><span>Strategic information</span></div>
                     <div class="wm-recap-paper">
                         <div class="wm-recap-section-band">Strategic information</div>
                         <div class="wm-recap-checklist-list">
-                            @foreach ($recapStrategicInfos as $info)
-                                <article class="wm-recap-checklist-item">
-                                    <p class="wm-recap-item-title">{{ $info->title }}</p>
-                                    <p class="wm-recap-meta">{{ $info->category?->label ?: 'Event information' }}</p>
-                                    @if ($info->content)
-                                        <div class="wm-recap-html">{!! $info->content !!}</div>
-                                    @endif
-                                    @if (collect($info->image_paths)->filter()->isNotEmpty())
-                                        <div class="wm-recap-strategic-images">
-                                            @foreach ($info->image_paths as $imagePath)
-                                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($imagePath) }}" alt="">
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                </article>
+                            @foreach ($recapStrategicInfos->where('day_key', 'common') as $info)
+                                @include('filament.resources.project-resource.pages.partials.recap-strategic-info', ['info' => $info])
                             @endforeach
                         </div>
                     </div>

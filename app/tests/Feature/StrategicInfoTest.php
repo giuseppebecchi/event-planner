@@ -10,6 +10,7 @@ use App\Models\CategoryBudget;
 use App\Models\CategoryBudgetSupplier;
 use App\Models\Project;
 use App\Models\ProjectStrategicInfo;
+use App\Models\ProjectStrategicInfoDetail;
 use App\Models\Role;
 use App\Models\StrategicInfo;
 use App\Models\Supplier;
@@ -35,7 +36,7 @@ class StrategicInfoTest extends TestCase
         $project = $this->createProject('Strategic sync wedding');
         $instance = $project->strategicInfos()->where('strategic_info_id', $definition->id)->firstOrFail();
 
-        $this->assertSame('<p><strong>Original field:</strong></p>', $instance->content);
+        $this->assertSame('<p><strong>Original field:</strong></p>', $instance->commonDetail()->content);
 
         $definition->update([
             'category_id' => $secondCategory->id,
@@ -46,9 +47,9 @@ class StrategicInfoTest extends TestCase
         $instance->refresh();
         $this->assertSame('Updated title', $instance->title);
         $this->assertSame($secondCategory->id, $instance->category_id);
-        $this->assertSame('<p><strong>Updated field:</strong></p>', $instance->content);
+        $this->assertSame('<p><strong>Updated field:</strong></p>', $instance->commonDetail()->content);
 
-        $instance->update(['content' => '<p>Chosen details</p>']);
+        $instance->commonDetail()->update(['content' => '<p>Chosen details</p>']);
         $definition->update([
             'category_id' => $firstCategory->id,
             'title' => 'Later setup title',
@@ -57,7 +58,7 @@ class StrategicInfoTest extends TestCase
         $instance->refresh();
         $this->assertSame('Updated title', $instance->title);
         $this->assertSame($secondCategory->id, $instance->category_id);
-        $this->assertSame('<p>Chosen details</p>', $instance->content);
+        $this->assertSame('<p>Chosen details</p>', $instance->commonDetail()->content);
     }
 
     public function test_seeded_strategic_infos_have_english_default_values(): void
@@ -69,7 +70,7 @@ class StrategicInfoTest extends TestCase
 
     public function test_strategic_info_display_state_uses_content_and_explicit_status(): void
     {
-        $info = new ProjectStrategicInfo(['status' => ProjectStrategicInfo::STATUS_DRAFT]);
+        $info = new ProjectStrategicInfoDetail(['status' => ProjectStrategicInfo::STATUS_DRAFT]);
         $this->assertSame('empty', $info->displayState());
 
         $info->content = '<p>Work in progress</p>';
@@ -130,9 +131,9 @@ class StrategicInfoTest extends TestCase
             ->assertHasNoActionErrors();
 
         $instance->refresh();
-        $this->assertSame(ProjectStrategicInfo::STATUS_COMPLETED, $instance->status);
-        $this->assertSame('<p>Vegetarian menu</p>', $instance->content);
-        $this->assertNotNull($instance->completed_at);
+        $this->assertSame(ProjectStrategicInfo::STATUS_COMPLETED, $instance->commonDetail()->status);
+        $this->assertSame('<p>Vegetarian menu</p>', $instance->commonDetail()->content);
+        $this->assertNotNull($instance->commonDetail()->completed_at);
 
         $customer = $this->createUser(Role::CUSTOMER);
         $project->users()->attach($customer);
@@ -168,12 +169,12 @@ class StrategicInfoTest extends TestCase
         ]);
         $project = $this->createProject('Strategic recap wedding');
 
-        $project->strategicInfos()->where('strategic_info_id', $completedDefinition->id)->update([
+        $project->strategicInfos()->where('strategic_info_id', $completedDefinition->id)->firstOrFail()->commonDetail()->update([
             'content' => '<p>First dance song</p>',
             'status' => ProjectStrategicInfo::STATUS_COMPLETED,
             'completed_at' => now(),
         ]);
-        $project->strategicInfos()->where('strategic_info_id', $draftDefinition->id)->update([
+        $project->strategicInfos()->where('strategic_info_id', $draftDefinition->id)->firstOrFail()->commonDetail()->update([
             'content' => '<p>Still choosing</p>',
             'status' => ProjectStrategicInfo::STATUS_DRAFT,
         ]);

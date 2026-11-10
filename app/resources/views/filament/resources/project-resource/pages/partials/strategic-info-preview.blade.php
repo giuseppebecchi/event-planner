@@ -61,15 +61,22 @@
         }
     </style>
 
-    @if (filled($info->content))
+    @foreach ($info->activeDetails() as $detail)
+    @if ($info->separate_by_day)
+        <h3>{{ $detail->dateLabel() }} · {{ \App\Models\ProjectStrategicInfo::STATUS_OPTIONS[$detail->status] ?? 'In progress' }}</h3>
+        @if (! in_array($detail->day_key, $info->dayKeys(), true))
+            <p>This day is outside the current supplier dates. Its information has been retained.</p>
+        @endif
+    @endif
+    @if (filled($detail->content))
         <div class="wm-strategic-preview-content">
-            {!! $info->content !!}
+            {!! $detail->content !!}
         </div>
     @endif
 
-    @if (collect($info->image_paths ?? [])->filter()->isNotEmpty())
+    @if (collect($detail->image_paths ?? [])->filter()->isNotEmpty())
         <div class="wm-strategic-preview-images">
-            @foreach ($info->image_paths as $imagePath)
+            @foreach ($detail->image_paths as $imagePath)
                 <a
                     class="wm-strategic-preview-image"
                     href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($imagePath) }}"
@@ -82,7 +89,8 @@
         </div>
     @endif
 
-    @if (blank($info->content) && collect($info->image_paths ?? [])->filter()->isEmpty())
+    @if (blank($detail->content) && collect($detail->image_paths ?? [])->filter()->isEmpty())
         <p class="wm-strategic-preview-empty">No information has been added yet.</p>
     @endif
+    @endforeach
 </div>

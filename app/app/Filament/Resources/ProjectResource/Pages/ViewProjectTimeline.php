@@ -8,6 +8,7 @@ use App\Models\CategoryBudgetSupplier;
 use App\Models\Project;
 use App\Models\ProjectChecklistOption;
 use App\Models\ProjectStrategicInfo;
+use App\Models\ProjectStrategicInfoDetail;
 use App\Models\ProjectTimeline;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Notifications\Notification;
@@ -250,8 +251,7 @@ class ViewProjectTimeline extends Page
     {
         return $this->getRecord()
             ->strategicInfos()
-            ->with(['category', 'strategicInfo'])
-            ->where('status', ProjectStrategicInfo::STATUS_COMPLETED)
+            ->with(['category', 'strategicInfo', 'supplier', 'details', 'project'])
             ->get()
             ->sortBy(fn (ProjectStrategicInfo $info): string => sprintf(
                 '%s-%08d-%s',
@@ -259,15 +259,25 @@ class ViewProjectTimeline extends Page
                 $info->strategicInfo?->order ?? PHP_INT_MAX,
                 mb_strtolower($info->title),
             ))
+            ->flatMap(function (ProjectStrategicInfo $info): Collection {
+                $dates = $info->separate_by_day ? $info->dayKeys() : [];
+                return $info->activeDetails()
+                    ->filter(fn (ProjectStrategicInfoDetail $detail): bool => $detail->status === ProjectStrategicInfo::STATUS_COMPLETED
+                        && ($detail->day_key === 'common' || in_array($detail->day_key, $dates, true)))
+                    ->map(fn (ProjectStrategicInfoDetail $detail) => $detail->setRelation('info', $info));
+            })
             ->values();
     }
 
     protected function getRecapStrategicInfoPdfItems(): Collection
     {
         return $this->getRecapStrategicInfos()
-            ->map(fn (ProjectStrategicInfo $info): array => [
+            ->map(fn (ProjectStrategicInfoDetail $info): array => [
                 'title' => $info->title,
                 'category' => $info->category?->label,
+                'supplier' => $info->info->supplier?->name,
+                'day_key' => $info->day_key,
+                'date_label' => $info->dateLabel(),
                 'content' => $info->content,
                 'images' => collect($info->image_paths ?? [])
                     ->map(fn (string $path): ?string => $this->imagePathToDataUri($path))

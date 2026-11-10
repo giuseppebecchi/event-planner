@@ -720,25 +720,7 @@ class Project extends Model
             ->orderBy('order')
             ->orderBy('title')
             ->each(function (StrategicInfo $definition): void {
-                $instance = $this->strategicInfos()->firstOrNew([
-                    'strategic_info_id' => $definition->id,
-                ]);
-
-                if (! $instance->exists || $instance->isPristine()) {
-                    $instance->fill([
-                        'category_id' => $definition->category_id,
-                        'title' => $definition->title,
-                        'content' => $definition->default_value,
-                    ]);
-                }
-
-                if (! $instance->exists) {
-                    $instance->status = ProjectStrategicInfo::STATUS_DRAFT;
-                }
-
-                if ($instance->isDirty()) {
-                    $instance->save();
-                }
+                $definition->syncForProject($this);
             });
 
         $this->unsetRelation('strategicInfos');

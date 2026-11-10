@@ -234,6 +234,9 @@
                         @empty
                             <p class="empty" style="margin-top: 12px;">No timeline items for this day yet.</p>
                         @endforelse
+                        @foreach (($recapStrategicInfos ?? collect())->where('day_key', $day['key']) as $info)
+                            @include('filament.resources.project-resource.exports.partials.strategic-info', ['info' => $info])
+                        @endforeach
                     </section>
 
                     @if (! empty($day['extended_items']))
@@ -312,7 +315,7 @@
         </section>
     @endif
 
-    @if (($recapStrategicInfos ?? collect())->isNotEmpty())
+    @if (($recapStrategicInfos ?? collect())->where('day_key', 'common')->isNotEmpty())
         <section class="page">
             <div class="page-shell">
                 <aside class="left-rail {{ $leftRailImage ? 'has-image' : '' }}" @if ($leftRailImage) style="background-image: url('{{ $leftRailImage }}')" @endif>
@@ -325,21 +328,8 @@
                     <div class="section-band">Strategic information</div>
                     <p class="section-copy">Completed operational choices for confirmed suppliers.</p>
 
-                    @foreach ($recapStrategicInfos as $info)
-                        <div class="recap-card">
-                            <h3 class="recap-title">{{ $info['title'] }}</h3>
-                            <p class="recap-meta">{{ $info['category'] ?: 'Event information' }}</p>
-                            @if ($info['content'])
-                                <div class="recap-html">{!! $info['content'] !!}</div>
-                            @endif
-                            @if (! empty($info['images']))
-                                <div class="item-images">
-                                    @foreach ($info['images'] as $image)
-                                        <span class="item-image"><img src="{{ $image }}" alt=""></span>
-                                    @endforeach
-                                </div>
-                            @endif
-                        </div>
+                    @foreach ($recapStrategicInfos->where('day_key', 'common') as $info)
+                        @include('filament.resources.project-resource.exports.partials.strategic-info', ['info' => $info])
                     @endforeach
                 </div>
             </div>
