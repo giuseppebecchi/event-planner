@@ -104,7 +104,10 @@ class ConsecutiveProjectEventsTest extends TestCase
     {
         $this->signInAdmin();
         $project = Project::query()->create(['name' => 'Tasting program', 'last_name' => 'Client']);
-        $first = $this->event($project, '2026-11-12', null, ['title' => 'Antipasti', 'program_html' => '<p>Bruschette e bollicine</p>']);
+        $first = $this->event($project, '2026-11-12', null, [
+            'title' => 'Antipasti', 'program_html' => '<p>Bruschette e bollicine</p>',
+            'description' => "Bring jackets & comfortable shoes.\nMeet at <courtyard>.",
+        ]);
         $anchor = $this->event($project, '2026-11-13', null, ['title' => 'Primi', 'program_html' => null, 'description' => 'Risotto e pasta fresca']);
         $this->event($project, '2026-11-14', null, ['title' => 'Dessert', 'is_all_day' => true, 'program_html' => '<p>Torta nuziale</p>']);
 
@@ -121,9 +124,15 @@ class ConsecutiveProjectEventsTest extends TestCase
             'endsAt' => $first->starts_at->copy()->addDays(2),
             'generatedAt' => now(),
         ])->render();
-        foreach (['Bruschette e bollicine', 'Risotto e pasta fresca', 'Torta nuziale', 'Tutto il giorno'] as $text) {
+        foreach (['Bruschette e bollicine', 'Risotto e pasta fresca', 'Torta nuziale', 'All day',
+            'Event program from November 12, 2026 to November 14, 2026', 'Thursday, November 12, 2026',
+            'Notes', "Bring jackets &amp; comfortable shoes.<br />\nMeet at &lt;courtyard&gt;.",
+        ] as $text) {
             $this->assertStringContainsString($text, $html);
         }
+        $this->assertStringNotContainsString('Programma eventi dal', $html);
+        $this->assertStringNotContainsString('Tutto il giorno', $html);
+        $this->assertStringNotContainsString('Meet at <courtyard>', $html);
         $this->assertTrue(strpos($html, 'Antipasti') < strpos($html, 'Primi'));
         $this->assertTrue(strpos($html, 'Primi') < strpos($html, 'Dessert'));
 

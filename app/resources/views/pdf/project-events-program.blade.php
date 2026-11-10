@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>{{ $project->name }} - Programma eventi</title>
+    <title>{{ $project->name }} - Event program</title>
     <style>
         @page { margin: 36px 40px; }
         body { font-family: DejaVu Sans, sans-serif; color: #2d2a26; font-size: 11px; line-height: 1.55; }
@@ -18,13 +18,14 @@
         .program { padding: 14px 16px; border: 1px solid #e4ddd5; background: #fffdfa; }
         .program ul, .program ol { margin-top: 6px; padding-left: 20px; }
         .program li { margin-bottom: 4px; }
+        .notes { margin-bottom: 12px; }
         .generated { margin-top: 20px; color: #91877d; font-size: 9px; }
     </style>
 </head>
 <body>
     <header class="header">
         <h1>{{ $project->name }}</h1>
-        <div class="meta">Programma eventi dal {{ $startsAt->format('d/m/Y') }} al {{ $endsAt->format('d/m/Y') }}</div>
+        <div class="meta">Event program from {{ $startsAt->format('F j, Y') }} to {{ $endsAt->format('F j, Y') }}</div>
         @if ($project->coupleNames())
             <div class="meta">{{ $project->coupleNames() }}</div>
         @endif
@@ -35,15 +36,16 @@
             <div class="event-heading">
                 <h2>{{ $event->title }}</h2>
                 <div class="timing">
-                    {{ $event->starts_at->format('d/m/Y') }}
+                    {{ $event->starts_at->format('l, F j, Y') }}
                     @if (! $event->starts_at->isSameDay($event->ends_at ?: $event->starts_at))
-                        - {{ ($event->ends_at ?: $event->starts_at)->format('d/m/Y') }}
+                        - {{ ($event->ends_at ?: $event->starts_at)->format('l, F j, Y') }}
                     @endif
-                    · {{ $event->is_all_day ? 'Tutto il giorno' : $project->formatTimeForDisplay($event->starts_at) . ' - ' . $project->formatTimeForDisplay($event->ends_at ?: $event->starts_at) }}
+                    · {{ $event->is_all_day ? 'All day' : $project->formatTimeForDisplay($event->starts_at) . ' - ' . $project->formatTimeForDisplay($event->ends_at ?: $event->starts_at) }}
                 </div>
             </div>
             @if (filled($event->description))
-                <p>{{ $event->description }}</p>
+                <h3>Notes</h3>
+                <div class="notes">{!! nl2br(e($event->description)) !!}</div>
             @endif
             @if (filled($event->program_html))
                 <div class="program">{!! $event->program_html !!}</div>
@@ -51,6 +53,6 @@
         </section>
     @endforeach
 
-    <div class="generated">Generato il {{ $generatedAt->format('d/m/Y H:i') }}</div>
+    <div class="generated">Generated on {{ $generatedAt->format('F j, Y \a\t H:i') }}</div>
 </body>
 </html>
