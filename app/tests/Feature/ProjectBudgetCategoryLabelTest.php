@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\ProjectResource\Pages\ManageProjectConfirmedSupplier;
 use App\Filament\Resources\ProjectResource\Pages\ViewProjectBudget;
+use App\Filament\Resources\ProjectResource\Pages\ManageProjectBudgetCategory;
 use App\Filament\Resources\ProjectResource\Pages\ViewProjectSuppliers;
 use App\Models\Category;
 use App\Models\CategoryBudget;
@@ -59,6 +60,28 @@ class ProjectBudgetCategoryLabelTest extends TestCase
             'id' => $budget->id,
             'label' => null,
         ]);
+    }
+
+    public function test_budget_category_details_use_english_label_and_preserve_custom_names(): void
+    {
+        [$project, $budget] = $this->createBudgetContext();
+        $budget->category->update(['label' => 'Flowers', 'label_it' => 'Fiori']);
+        $this->actingAsAdmin();
+
+        $component = Livewire::test(ManageProjectBudgetCategory::class, [
+            'record' => $project->id,
+            'categoryBudget' => $budget->id,
+        ])->assertSee('Flowers')->assertDontSee('Fiori');
+        $this->assertSame('Flowers', $component->instance()->getTitle());
+        $this->assertSame('Flowers', $component->instance()->getBudgetSummary()['label']);
+
+        $budget->update(['label' => 'Flowers and decor']);
+        $component = Livewire::test(ManageProjectBudgetCategory::class, [
+            'record' => $project->id,
+            'categoryBudget' => $budget->id,
+        ])->assertSee('Flowers and decor');
+        $this->assertSame('Flowers and decor', $component->instance()->getTitle());
+        $this->assertSame('Flowers and decor', $component->instance()->getBudgetSummary()['label']);
     }
 
     public function test_custom_label_is_used_in_supplier_sections(): void
