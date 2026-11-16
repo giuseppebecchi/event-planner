@@ -52,3 +52,7 @@ RUN { \
 
 # Native PHP upload progress is independent of Laravel sessions and Livewire.
 COPY security.ini /usr/local/etc/php/conf.d/zz-security.ini
+
+# Spatie Laravel Backup dumps MySQL from the app container.
+RUN apt-get update && apt-get install -y --no-install-recommends default-mysql-client \
+    && rm -rf /var/lib/apt/lists/*

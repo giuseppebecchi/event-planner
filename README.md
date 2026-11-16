@@ -351,6 +351,60 @@ make restore-db file=backup-YYYYMMDD-HHMMSS.sql
 
 ## Note Operative
 
+### Backup automatici (Spatie Laravel Backup 9)
+
+Il backup comprende MySQL e gli allegati in `storage/app/public`. Codice, dipendenze,
+cache e file `.env` sono esclusi. Conservare separatamente le configurazioni e
+l'`APP_KEY`: il solo archivio non sostituisce queste informazioni per un ripristino completo.
+
+In `.env` alla radice impostare `BACKUP_VOLUME_PATH` a una directory privata esterna
+al checkout (in produzione `/home/crm/backups/automatic`). Ricostruire e ricreare
+il servizio `app` dopo questa configurazione:
+
+```sh
+docker compose build app
+docker compose up -d --no-deps app
+docker compose exec -T app sh -c 'chown www-data:www-data /var/backups/aurily && chmod 700 /var/backups/aurily'
+```
+
+In `app/.env` impostare `BACKUP_ENABLED=true` e `BACKUP_NOTIFICATION_EMAIL` all'indirizzo
+tecnico. Dopo ogni modifica della configurazione rigenerare la cache come utente
+`www-data`. In sviluppo i backup programmati restano disabilitati per default.
+
+Lo scheduler Laravel, da eseguire ogni minuto come `www-data`
+(`docker compose exec -T --user www-data app php artisan schedule:run`), avvia backup alle 02:15, pulizia alle
+03:15 e controllo alle 08:30 (Europe/Rome). Vengono inviate email solo in caso di
+errore o backup non sano, inclusa un'età superiore a due giorni. Il controllo usa
+lo stesso server: un guasto totale del server richiede un monitor esterno.
+
+Conservazione: tutti gli archivi per 7 giorni, poi giornalieri per altri 7 giorni,
+settimanali per 4 settimane e mensili per 3 mesi. La pulizia limita inoltre lo
+spazio a circa 8 GB, mantenendo sempre l'ultimo archivio. Non modifica i vecchi
+dump manuali esterni alla directory dedicata.
+
+```sh
+docker compose exec -T --user www-data app php artisan backup:run
+docker compose exec -T --user www-data app php artisan backup:list
+docker compose exec -T --user www-data app php artisan backup:monitor
+```
+
+Per il ripristino, verificare prima l'integrità ZIP, estrarre il dump `.sql.gz` e
+provarlo in un database separato. Solo dopo la verifica, mettere l'applicazione in
+manutenzione, conservare un backup dello stato corrente, importare il dump nel
+database scelto e ripristinare gli allegati sotto `storage/app/public`, rispettando
+i permessi di `www-data`. Il ripristino sovrascrive dati: non importare direttamente
+in produzione per una prova.
+
+`BACKUP_DISKS` accetta nomi di dischi Laravel separati da virgole. Per una copia
+esterna configurare prima disco, credenziali e relativo adapter Flysystem, quindi
+aggiungerlo anche alla lista. Il solo disco locale non protegge dalla perdita del
+server. `BACKUP_ARCHIVE_PASSWORD` abilita la cifratura ZIP: custodire la password
+separatamente e verificarla con un ripristino di prova.
+
+Il client MariaDB incluso nell'immagine usa TLS con il certificato autofirmato del
+MySQL Docker. Per un database esterno con CA verificata adeguare
+`BACKUP_MYSQL_OPTIONS`, rimuovendo `--skip-ssl-verify-server-cert` e configurando la CA.
+
 - Il volume `db-store` contiene i dati MySQL. `make down` non lo cancella.
 - `make destroy-volumes` cancella anche il database: usalo solo se vuoi perdere i dati locali.
 - Il servizio `node` serve per sviluppo. In produzione è preferibile usare `make npm-build` e avviare con `make up-prod`.

@@ -50,6 +50,14 @@ return [
 
         'mysql' => [
             'driver' => 'mysql',
+            'dump' => [
+                'useSingleTransaction' => true,
+                'skipLockTables' => true,
+                // Keep TLS with Docker MySQL's auto-generated certificate, as with the
+                // existing MySQL client. Configure a verified CA for external databases.
+                'addExtraOption' => env('BACKUP_MYSQL_OPTIONS', '--no-tablespaces --skip-ssl-verify-server-cert'),
+                'timeout' => 300,
+            ],
             'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),

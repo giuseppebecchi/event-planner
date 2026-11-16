@@ -8,6 +8,7 @@ services:
     working_dir: /var/www/html
     volumes:
       - ./app:/var/www/html
+      - ${BACKUP_VOLUME_PATH:-./.backups}:/var/backups/aurily
     networks:
       - laravel
     environment:

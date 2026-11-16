@@ -23,3 +23,9 @@ Schedule::command('leads:send-follow-ups')
 Schedule::command('rsvp:send-scheduled-invitations')
     ->everyMinute()
     ->withoutOverlapping();
+
+if (config('backup.schedule_enabled')) {
+    Schedule::command('backup:run')->dailyAt('02:15')->timezone('Europe/Rome')->withoutOverlapping(180);
+    Schedule::command('backup:clean')->dailyAt('03:15')->timezone('Europe/Rome')->withoutOverlapping(180);
+    Schedule::command('backup:monitor')->dailyAt('08:30')->timezone('Europe/Rome')->withoutOverlapping();
+}
