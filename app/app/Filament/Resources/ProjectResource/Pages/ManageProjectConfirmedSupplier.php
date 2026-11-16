@@ -18,6 +18,7 @@ use App\Models\ProjectStrategicInfo;
 use App\Models\ProjectStrategicInfoDetail;
 use App\Models\ProjectSupplierCommunication;
 use App\Support\RichEditorHtmlNormalizer;
+use App\Support\PaymentConfirmationEmails;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
@@ -112,6 +113,10 @@ class ManageProjectConfirmedSupplier extends Page
     ];
 
     public string $paymentEntryMode = 'register';
+
+    public bool $notifyCoupleOnPayment = true;
+
+    public bool $notifyCoupleOnPaymentEdit = true;
 
     public $paymentReceiptUpload = null;
 
@@ -1491,7 +1496,7 @@ class ManageProjectConfirmedSupplier extends Page
             $receiptDocumentId = $receiptDocument->id;
         }
 
-        $this->proposalRecord->payments()->create([
+        $payment = $this->proposalRecord->payments()->create([
             'project_id' => $this->getRecord()->getKey(),
             'supplier_id' => $this->proposalRecord->supplier_id,
             'payment_mode_id' => $paymentModeId,
@@ -1504,6 +1509,10 @@ class ManageProjectConfirmedSupplier extends Page
             'payment_receipt_document_id' => $receiptDocumentId,
             'notes' => $data['form']['notes'] ?: null,
         ]);
+
+        if ($paymentStatus === Payment::STATUS_PAID && $this->notifyCoupleOnPayment) {
+            $this->queuePaymentConfirmation($payment);
+        }
 
         $this->resetPaymentEntryForm();
 
@@ -1525,6 +1534,7 @@ class ManageProjectConfirmedSupplier extends Page
 
         $this->paymentCompletionForms[$paymentId] = [
             'paid_at' => $payment->paid_at?->toDateString() ?? now()->toDateString(),
+            'notify_couple' => true,
         ];
         $this->openPaymentRegistrations[$paymentId] = true;
     }
@@ -1545,6 +1555,10 @@ class ManageProjectConfirmedSupplier extends Page
         }
 
         $payment = $this->proposalRecord->payments()->with('paymentReceiptDocument')->whereKey($paymentId)->firstOrFail();
+
+        if ($payment->payment_status === Payment::STATUS_PAID) {
+            return;
+        }
 
         $data = validator(
             [
@@ -1586,6 +1600,10 @@ class ManageProjectConfirmedSupplier extends Page
             'payment_receipt_document_id' => $receiptDocumentId,
         ]);
 
+        if ($this->paymentCompletionForms[$paymentId]['notify_couple'] ?? true) {
+            $this->queuePaymentConfirmation($payment);
+        }
+
         $this->cancelPaymentRegistration($paymentId);
         $this->refreshContext();
 
@@ -1612,6 +1630,7 @@ class ManageProjectConfirmedSupplier extends Page
         $payment = $this->proposalRecord->payments()->whereKey($paymentId)->firstOrFail();
 
         $this->editingPaymentId = $payment->id;
+        $this->notifyCoupleOnPaymentEdit = true;
         $this->paymentEditForm = [
             'payment_mode_id' => (string) ($payment->payment_mode_id ?? ''),
             'reason' => $payment->reason ?? '',
@@ -1677,6 +1696,7 @@ class ManageProjectConfirmedSupplier extends Page
             : null;
 
         $payment = $this->proposalRecord->payments()->with('paymentReceiptDocument')->whereKey($this->editingPaymentId)->firstOrFail();
+        $wasPaid = $payment->payment_status === Payment::STATUS_PAID;
         $receiptDocumentId = $payment->payment_receipt_document_id;
 
         if ($this->paymentEditReceiptUpload) {
@@ -1716,6 +1736,10 @@ class ManageProjectConfirmedSupplier extends Page
             'payment_receipt_document_id' => $receiptDocumentId,
             'notes' => $data['form']['notes'] ?: null,
         ]);
+
+        if (! $wasPaid && $status === Payment::STATUS_PAID && $this->notifyCoupleOnPaymentEdit) {
+            $this->queuePaymentConfirmation($payment);
+        }
 
         $this->cancelPaymentEdit();
         $this->refreshContext();
@@ -2141,6 +2165,7 @@ class ManageProjectConfirmedSupplier extends Page
 
     protected function resetPaymentEntryForm(): void
     {
+        $this->notifyCoupleOnPayment = true;
         $this->paymentForm = [
             'payment_mode_id' => '',
             'reason' => 'INITIAL DEPOSIT',
@@ -2153,6 +2178,42 @@ class ManageProjectConfirmedSupplier extends Page
         ];
         $this->paymentReceiptUpload = null;
         $this->paymentEntryMode = 'register';
+    }
+
+    public function getPaymentConfirmationStatuses(): array
+    {
+        if (auth()->user()?->isCustomer()) {
+            return [];
+        }
+        return DB::table('payment_confirmation_emails')->whereIn('payment_id', $this->proposalRecord->payments()->select('id'))
+            ->get()->groupBy('payment_id')->map(function ($rows): array {
+                $sent = $rows->whereNotNull('sent_at')->count();
+                $failed = $rows->contains(fn ($row): bool => ! $row->sent_at && $row->attempts >= 5);
+                return ['label' => $failed ? 'Needs attention' : ($sent === $rows->count() ? 'Sent' : 'Pending'), 'failed' => $failed, 'sent' => $sent, 'total' => $rows->count()];
+            })->all();
+    }
+
+    public function retryPaymentConfirmation(int $paymentId): void
+    {
+        abort_if(auth()->user()?->isCustomer(), 403);
+        $this->proposalRecord->payments()->whereKey($paymentId)->where('payment_status', Payment::STATUS_PAID)->firstOrFail();
+        DB::table('payment_confirmation_emails')->where('payment_id', $paymentId)->whereNull('sent_at')->where('attempts', '>=', 5)->update(['attempts' => 0, 'updated_at' => now()]);
+        Notification::make()->title('Unsent confirmations scheduled for retry')->success()->send();
+    }
+
+    protected function queuePaymentConfirmation(Payment $payment): void
+    {
+        try {
+            if (app(PaymentConfirmationEmails::class)->enqueue($payment) > 0) {
+                return;
+            }
+            Notification::make()->title('Payment saved; email not queued')
+                ->body('The project has no valid couple email address.')->warning()->send();
+        } catch (\Throwable $exception) {
+            report($exception);
+            Notification::make()->title('Payment saved; email could not be queued')
+                ->body('Please contact the couple directly or retry the notification.')->warning()->send();
+        }
     }
 
     protected function emptyPaymentEditForm(): array

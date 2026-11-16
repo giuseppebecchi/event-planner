@@ -12,6 +12,10 @@ Schedule::command('payments:send-reminders')
     ->dailyAt('09:00')
     ->withoutOverlapping();
 
+Schedule::command('payments:send-confirmations')
+    ->everyMinute()
+    ->withoutOverlapping();
+
 Schedule::command('leads:send-follow-ups')
     ->dailyAt('09:15')
     ->withoutOverlapping();

@@ -11,6 +11,7 @@
         $paymentReceiptDocuments = $this->getDocumentsByType(\App\Models\ProjectDocument::TYPE_PAYMENT_RECEIPT);
         $otherDocuments = $this->getOtherDocuments();
         $payments = $this->getPayments();
+        $paymentConfirmationStatuses = $this->getPaymentConfirmationStatuses();
         $images = $this->getImages();
         $checklistSummary = $this->getChecklistSummary();
         $checklistSections = $this->getChecklistSections();
@@ -2142,6 +2143,15 @@
                             <div class="wm-item-head">
                                 <div>
                                     <p class="wm-item-title">{{ $payment->reason }}</p>
+                                    @if (! $isCustomer && isset($paymentConfirmationStatuses[$payment->id]))
+                                        @php
+                                            $confirmation = $paymentConfirmationStatuses[$payment->id];
+                                        @endphp
+                                        <p class="wm-item-meta">Confirmation email: {{ $confirmation['label'] }} · {{ $confirmation['sent'] }}/{{ $confirmation['total'] }} sent</p>
+                                        @if ($confirmation['failed'] && $payment->payment_status === 'paid')
+                                            <button type="button" class="wm-link" wire:click="retryPaymentConfirmation({{ $payment->id }})">Retry unsent emails</button>
+                                        @endif
+                                    @endif
                                     <p class="wm-item-meta">
                                         EUR {{ number_format((float) $payment->amount, 2, ',', '.') }}
                                         · due {{ $payment->due_date?->format('d/m/Y') ?? '—' }}
@@ -2204,6 +2214,7 @@
                                     </div>
 
                                     <div class="wm-actions">
+                                        <label><input type="checkbox" wire:model="paymentCompletionForms.{{ $payment->id }}.notify_couple"> Notify the couple by email</label>
                                         <x-filament::button color="primary" wire:click="registerScheduledPayment({{ $payment->id }})">Confirm payment</x-filament::button>
                                         <button type="button" class="wm-link" wire:click="cancelPaymentRegistration({{ $payment->id }})">Cancel</button>
                                     </div>
@@ -2297,6 +2308,7 @@
                             <label class="wm-label" for="payment-receipt">Payment receipt</label>
                             <input id="payment-receipt" type="file" class="wm-field" wire:model="paymentReceiptUpload">
                         </div>
+                        <label><input type="checkbox" wire:model="notifyCoupleOnPayment"> Notify the couple by email</label>
                     @endif
 
                     <div>
@@ -2389,6 +2401,9 @@
                     </div>
 
                     <div>
+                        @if (($this->paymentEditForm['payment_status'] ?? '') === 'paid' && $editingPayment?->payment_status !== 'paid')
+                            <label><input type="checkbox" wire:model="notifyCoupleOnPaymentEdit"> Notify the couple by email</label>
+                        @endif
                         <label class="wm-label" for="edit-payment-notes">Notes</label>
                         <textarea id="edit-payment-notes" class="wm-textarea" wire:model="paymentEditForm.notes"></textarea>
                     </div>
