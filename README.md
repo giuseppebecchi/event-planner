@@ -401,6 +401,20 @@ aggiungerlo anche alla lista. Il solo disco locale non protegge dalla perdita de
 server. `BACKUP_ARCHIVE_PASSWORD` abilita la cifratura ZIP: custodire la password
 separatamente e verificarla con un ripristino di prova.
 
+Il disco dedicato `backups_s3` usa `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
+`AWS_DEFAULT_REGION` e `AWS_BUCKET`. Per conservare entrambe le copie impostare
+`BACKUP_DISKS=backups,backups_s3`, quindi rigenerare la cache come `www-data`.
+Con `BACKUP_NAME=aurily` gli oggetti sono salvati direttamente sotto `aurily/`,
+senza un secondo prefisso. Le credenziali IAM devono consentire lista del prefisso,
+lettura, scrittura, cancellazione e annullamento degli upload multipart solo su
+`aurily/*`. L'ACL `bucket-owner-full-control` è compatibile con i bucket che hanno
+le ACL disabilitate e non concede accesso pubblico. Per bucket con cifratura SSE-KMS
+servono anche le autorizzazioni sulla chiave KMS. Verificare prima il ciclo di
+scrittura/lettura/cancellazione di un oggetto di prova, poi eseguire un backup
+completo e confrontare l'hash dell'archivio scaricato con quello locale.
+Monitoraggio e conservazione si applicano a entrambe le destinazioni; il disco S3
+del backup non usa le impostazioni del disco generico `s3` dell'applicazione.
+
 Il client MariaDB incluso nell'immagine usa TLS con il certificato autofirmato del
 MySQL Docker. Per un database esterno con CA verificata adeguare
 `BACKUP_MYSQL_OPTIONS`, rimuovendo `--skip-ssl-verify-server-cert` e configurando la CA.

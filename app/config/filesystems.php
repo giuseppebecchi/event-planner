@@ -42,6 +42,20 @@ return [
             ],
         ],
 
+        'backups_s3' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('AWS_BUCKET'),
+            // Spatie adds BACKUP_NAME (aurily/) to every backup path.
+            'root' => '',
+            'visibility' => 'private',
+            'stream_reads' => true,
+            'throw' => true,
+            'options' => ['ACL' => 'bucket-owner-full-control'],
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
