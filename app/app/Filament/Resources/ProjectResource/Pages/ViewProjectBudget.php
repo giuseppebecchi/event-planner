@@ -274,15 +274,18 @@ class ViewProjectBudget extends Page
                     return;
                 }
 
-                CategoryBudget::query()->create([
-                    'project_id' => $project->getKey(),
-                    'category_id' => $categoryId,
-                    'initial_estimated_amount' => filled($data['initial_estimated_amount'] ?? null)
-                        ? (float) $data['initial_estimated_amount']
-                        : null,
-                    'budget_status' => CategoryBudget::STATUS_HYPOTHETICAL,
-                    'notes' => $data['notes'] ?? null,
-                ]);
+                DB::transaction(function () use ($project, $categoryId, $data): void {
+                    $budget = CategoryBudget::query()->create([
+                        'project_id' => $project->getKey(),
+                        'category_id' => $categoryId,
+                        'initial_estimated_amount' => filled($data['initial_estimated_amount'] ?? null)
+                            ? (float) $data['initial_estimated_amount']
+                            : null,
+                        'budget_status' => CategoryBudget::STATUS_HYPOTHETICAL,
+                        'notes' => $data['notes'] ?? null,
+                    ]);
+                    $budget->applyDefaultSupplier();
+                });
 
                 $this->record = $project->fresh();
 

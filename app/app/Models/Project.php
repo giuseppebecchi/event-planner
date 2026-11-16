@@ -391,6 +391,7 @@ class Project extends Model
                 return [
                     'category_id' => $categoryId,
                     'amount' => blank($row['amount'] ?? null) ? 0 : (float) str_replace(',', '.', (string) $row['amount']),
+                    'supplier_amount' => blank($row['amount'] ?? null) ? null : (float) str_replace(',', '.', (string) $row['amount']),
                     'notes' => filled($row['notes'] ?? null) ? trim((string) $row['notes']) : null,
                 ];
             })
@@ -400,6 +401,7 @@ class Project extends Model
                 fn (Collection $rows): Collection => $rows->push([
                     'category_id' => $weddingPlannerCategoryId,
                     'amount' => $weddingPlannerAmount,
+                    'supplier_amount' => $weddingPlannerAmount,
                     'notes' => 'Wedding planner fee',
                 ])
             )
@@ -431,11 +433,17 @@ class Project extends Model
                 $stats['skipped']++;
             }
 
+            if ($isNew && $budget->applyDefaultSupplier($row['supplier_amount'] ?? null)) {
+                $stats['supplier_proposals_created']++;
+                continue;
+            }
+
             if (
                 $defaultWeddingSupplier
                 && $weddingPlannerCategoryId
                 && (int) $row['category_id'] === (int) $weddingPlannerCategoryId
                 && (float) $row['amount'] > 0
+                && ! $categories->get($row['category_id'])?->default_supplier_id
             ) {
                 $proposal = $budget->supplierProposals()->firstOrNew([
                     'supplier_id' => $defaultWeddingSupplier->id,

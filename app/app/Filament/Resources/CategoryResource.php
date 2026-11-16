@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CategoryResource\Pages;
 use App\Models\Category;
+use Filament\Schemas\Components\Utilities\Get;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -75,6 +76,23 @@ class CategoryResource extends Resource
                     Components\Toggle::make('main')
                         ->label('Main')
                         ->default(true),
+                ]),
+            Section::make('Default supplier')
+                ->description('Applies only when this category is added to a new project budget item. Existing budgets are not changed. No messages are sent automatically.')
+                ->schema([
+                    Components\Select::make('default_supplier_id')
+                        ->label('Default supplier')
+                        ->relationship('defaultSupplier', 'name')
+                        ->searchable()
+                        ->preload(),
+                    Components\Toggle::make('auto_confirm_default_supplier')
+                        ->label('Automatically confirm the default supplier')
+                        ->helperText('Lead imports confirm the amount entered in the lead budget. Items added directly to a project keep the amount to be defined.')
+                        ->rules([fn (Get $get): \Closure => function (string $attribute, mixed $value, \Closure $fail) use ($get): void {
+                            if ($value && ! $get('default_supplier_id')) {
+                                $fail('Select a default supplier before enabling automatic confirmation.');
+                            }
+                        }]),
                 ]),
         ]);
     }

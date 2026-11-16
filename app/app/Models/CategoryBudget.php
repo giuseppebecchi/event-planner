@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class CategoryBudget extends Model
 {
@@ -103,10 +104,11 @@ class CategoryBudget extends Model
 
         if ($confirmedProposals->isNotEmpty()) {
             $confirmedTotal = (float) $confirmedProposals->sum(fn (CategoryBudgetSupplier $proposal): float => (float) ($proposal->proposed_amount ?? 0));
+            $hasConfirmedAmount = $confirmedProposals->contains(fn (CategoryBudgetSupplier $proposal): bool => $proposal->proposed_amount !== null);
 
             $this->forceFill([
-                'comparison_amount' => $confirmedTotal > 0 ? $confirmedTotal : $this->comparison_amount,
-                'final_amount' => $confirmedTotal > 0 ? $confirmedTotal : null,
+                'comparison_amount' => $hasConfirmedAmount ? $confirmedTotal : $this->comparison_amount,
+                'final_amount' => $hasConfirmedAmount ? $confirmedTotal : null,
                 'budget_status' => self::STATUS_CONFIRMED,
             ])->saveQuietly();
 
@@ -126,5 +128,29 @@ class CategoryBudget extends Model
             'final_amount' => null,
             'budget_status' => $hasSupplierProposals ? self::STATUS_IN_EVALUATION : self::STATUS_HYPOTHETICAL,
         ])->saveQuietly();
+    }
+
+    public function applyDefaultSupplier(?float $leadAmount = null): bool
+    {
+        return DB::transaction(function () use ($leadAmount): bool {
+            $budget = static::query()->whereKey($this->id)->lockForUpdate()->firstOrFail();
+            $category = $budget->category;
+            $supplier = $category?->defaultSupplier;
+            if (! $supplier || $budget->supplierProposals()->exists()) {
+                return false;
+            }
+            $confirmed = (bool) $category->auto_confirm_default_supplier;
+            $budget->supplierProposals()->create([
+                'supplier_id' => $supplier->id,
+                'proposal_status' => $confirmed ? CategoryBudgetSupplier::STATUS_CONFIRMED : CategoryBudgetSupplier::STATUS_REQUESTED,
+                'scouting_status' => $confirmed ? 'chosen' : 'contacted',
+                'availability_status' => $confirmed ? 'available' : 'pending',
+                'proposed_amount' => $confirmed ? $leadAmount : null,
+                'confirmed_at' => $confirmed ? now() : null,
+                'proposal_summary' => 'Automatically linked from the category default supplier settings.',
+            ]);
+
+            return true;
+        });
     }
 }
