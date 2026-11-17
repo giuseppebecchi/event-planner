@@ -2,8 +2,11 @@
 
 namespace App\Filament\Resources\LeadResource\Pages;
 
+use App\Filament\Concerns\EditsProposalElements;
 use App\Models\Lead;
+use App\Models\ProposalTemplate;
 use App\Models\Template;
+use App\Support\ProposalConfiguration;
 use App\Support\RichEditorHtmlNormalizer;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
@@ -14,12 +17,18 @@ use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
 class ViewLeadProposal extends BaseLeadPhasePage
 {
+    use EditsProposalElements;
+
+    protected string $view = 'filament.proposals.lead';
+
     protected const PROPOSAL_TEMPLATE_TUSCANY = 'tuscany';
+
     protected const PROPOSAL_TEMPLATE_LAKE_COMO = 'lake_como';
 
     protected static ?string $breadcrumb = 'Proposal';
@@ -47,6 +56,19 @@ class ViewLeadProposal extends BaseLeadPhasePage
     protected function getPhaseHeaderActions(): array
     {
         return [
+            Action::make('createVisualProposal')
+                ->label('Switch to visual proposal editor')
+                ->icon('heroicon-o-document-duplicate')
+                ->visible(fn (): bool => ! $this->getRecord()->proposal_sent_at && ! $this->getRecord()->proposal_layout)
+                ->modalHeading('Create a visual proposal')
+                ->modalDescription('Your existing service text, conditions and custom photos will be kept. The selected template supplies the cover, titles and remaining images. Sent legacy proposals keep their original download.')
+                ->form([
+                    Select::make('template_id')->label('Proposal template')->required()
+                        ->options(fn () => ProposalTemplate::where('is_active', true)->orderBy('name')->pluck('name', 'id')),
+                ])
+                ->action(function (array $data): void {
+                    $this->applyVisualProposalTemplate((int) $data['template_id'], true);
+                }),
             Action::make('markProposalSent')
                 ->label('Mark proposal as sent')
                 ->icon('heroicon-o-paper-airplane')
@@ -128,6 +150,12 @@ class ViewLeadProposal extends BaseLeadPhasePage
         ];
     }
 
+    public function getCachedHeaderActions(): array
+    {
+        // Keep the actions registered for the sidebar, but omit their header buttons.
+        return [];
+    }
+
     public function configureProposalAction(): Action
     {
         return Action::make('configureProposal')
@@ -183,6 +211,19 @@ class ViewLeadProposal extends BaseLeadPhasePage
 
     public function generatePhaseAction(): Action
     {
+        if ($this->usesVisualProposalFlow()) {
+            $hasProposal = (bool) $this->getRecord()->proposal_layout;
+
+            return Action::make('generatePhase')->label($hasProposal ? 'Use another template' : 'Create visual proposal')
+                ->modalHeading($hasProposal ? 'Replace this proposal with another template?' : 'Create your visual proposal')
+                ->modalDescription($hasProposal ? 'This replaces the proposal texts and images. Budget composition amounts will not change.' : 'Choose a template. Amounts and extra services will use this lead’s Budget composition.')
+                ->form([
+                    Select::make('template_id')->label('Proposal template')->required()
+                        ->options(fn () => ProposalTemplate::where('is_active', true)->orderBy('name')->pluck('name', 'id')),
+                ])
+                ->action(fn (array $data) => $this->applyVisualProposalTemplate((int) $data['template_id'], false));
+        }
+
         return Action::make('generatePhase')
             ->label($this->getGenerateActionLabel())
             ->icon('heroicon-o-sparkles')
@@ -206,6 +247,22 @@ class ViewLeadProposal extends BaseLeadPhasePage
                 $this->saveProposalTemplate((string) ($data['proposal_template'] ?? self::PROPOSAL_TEMPLATE_TUSCANY));
                 $this->generatePhaseContentFromTemplate();
             });
+    }
+
+    public function usesVisualProposalFlow(): bool
+    {
+        $lead = $this->getRecord();
+        if ($lead->proposal_layout) {
+            return true;
+        }
+        foreach (['proposal_content', 'proposal_wedding_planning_service', 'proposal_images_json_config',
+            'proposal_sent_at', 'proposal_response_at', 'proposal_response_status', 'proposal_notes_log', 'proposal_template_id'] as $field) {
+            if (filled($lead->{$field})) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function configureProposalImagesAction(): Action
@@ -443,6 +500,7 @@ class ViewLeadProposal extends BaseLeadPhasePage
         $lead = $this->getRecord();
 
         return [
+            'template_name' => ProposalTemplate::find($lead->proposal_template_id)?->name ?: 'Custom proposal',
             'status_badges' => [
                 ['label' => 'Proposal', 'value' => $lead->proposal_sent_at ? 'Sent' : 'Draft', 'tone' => 'olive'],
                 ['label' => 'Client response', 'value' => Lead::PROPOSAL_RESPONSE_OPTIONS[$lead->proposal_response_status] ?? 'Not set', 'tone' => 'gold'],
@@ -458,5 +516,37 @@ class ViewLeadProposal extends BaseLeadPhasePage
     protected function getExportPdfUrl(): ?string
     {
         return route('admin.leads.proposal.pdf', ['lead' => $this->getRecord()]);
+    }
+
+    protected function applyVisualProposalTemplate(int $templateId, bool $preserveDraft): void
+    {
+        abort_unless(auth()->check() && ! auth()->user()->isCustomer(), 403);
+        $lead = $this->getRecord();
+        $lead->refresh();
+        ProposalConfiguration::apply($lead, ProposalTemplate::findOrFail($templateId), $preserveDraft,
+            fn (string $html): string => $this->replaceTemplatePlaceholders($html, $lead));
+        $this->proposalPreviewRevision++;
+        Notification::make()->title('Visual proposal created')->success()->send();
+    }
+
+    protected function editableProposalConfiguration(): array
+    {
+        abort_unless($this->getRecord()->proposal_layout, 403);
+
+        return ProposalConfiguration::forLead($this->getRecord());
+    }
+
+    protected function saveProposalElement(string $key, string $value): void
+    {
+        $lead = $this->getRecord();
+        $lead->refresh();
+        abort_unless($lead->proposal_layout, 403);
+        if ($key === 'planning_service' || $key === 'conditions') {
+            $lead->forceFill([$key === 'conditions' ? 'proposal_content' : 'proposal_wedding_planning_service' => $value])->save();
+        } else {
+            $config = $lead->proposal_layout;
+            Arr::set($config, $key, $value);
+            $lead->forceFill(['proposal_layout' => $config])->save();
+        }
     }
 }

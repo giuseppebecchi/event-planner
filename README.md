@@ -351,6 +351,59 @@ make restore-db file=backup-YYYYMMDD-HHMMSS.sql
 
 ## Note Operative
 
+### Proposal Templates e proposte visuali
+
+La nuova sezione **Setup → Proposal Templates** permette di creare, duplicare e
+disattivare i modelli. Aprendo un modello si visualizzano le quattro pagine in
+sequenza: i testi e le foto si modificano dai pulsanti a matita. Lo stesso
+contenuto alimenta il PDF scaricabile. L'anteprima del modello usa dati di esempio;
+gli importi delle proposte effettive continuano a provenire dal Budget composition.
+
+Dopo le migrazioni, importare i due modelli iniziali con:
+
+```sh
+docker compose exec -T app php artisan proposal-templates:import-defaults
+```
+
+Il comando non modifica i lead e non sovrascrive modelli già importati. I testi di
+partenza sono letti dai template correnti `proposal` e
+`proposal-wedding-planning-service`. Questi ultimi rimangono utilizzati dal percorso
+legacy; i nuovi modelli hanno invece contenuti indipendenti.
+
+I lead senza alcun dato di proposta mostrano direttamente la creazione visuale:
+la scelta del template deve essere confermata prima di salvare qualsiasi contenuto.
+Testi, configurazioni immagini, invii, risposte e note già presenti mantengono
+invece il percorso legacy e il download originale. Per una bozza non inviata,
+**Switch to visual proposal editor** copia un modello conservando testi e foto già
+personalizzati. La conversione è bloccata anche lato server per le proposte legacy
+già inviate. **Use another template** sostituisce esplicitamente i contenuti della
+proposta visuale; non cambia il budget. I servizi e le condizioni rimangono nei
+campi del lead già esistenti, senza una seconda copia attiva degli stessi testi.
+
+Condizioni e validità sono un unico blocco HTML, mostrato integralmente sia
+nell'editor sia in anteprima/PDF. Per aggiornare modelli e proposte visuali creati
+prima di questa gestione, eseguire `proposal-templates:normalize-conditions`
+(anteporre `docker compose exec -T app php artisan`). Senza opzioni mostra soltanto
+i conteggi; `--apply` salva prima i valori originali in
+`storage/app/private/proposal-conditions-backups/`, poi mantiene solo il testo
+stampato dal vecchio layout. Esclude sempre i lead legacy e non elabora nuovamente
+i record già aggiornati. I nuovi testi personalizzati non vengono ripuliti.
+
+Le due colonne Wedding planning service sono campi indipendenti. La sinistra usa
+il campo servizio esistente del lead, la destra il layout visuale; non esiste una
+copia completa aggiuntiva. Per i record visuali precedenti eseguire
+`docker compose exec -T app php artisan proposal-templates:split-service --apply`:
+salva gli originali in `storage/app/private/proposal-service-backups/` e mantiene
+il punto di separazione precedentemente stampato. Esclude i lead legacy e non
+ridivide i record già convertiti. Senza `--apply` mostra soltanto i conteggi.
+
+Le variabili `[MONTH]` e `[YYYY]` usano la data dell'evento (prima quella del lead,
+poi quella del progetto), con mese in inglese. In assenza di data, un periodo come
+`September 2027` viene riconosciuto; altrimenti le variabili mancanti rimangono
+visibili da completare. Sono disponibili anche `[REGION]`, `[VENUE]` e `[COUPLE]`.
+I file sostituiti non vengono eliminati automaticamente, perché potrebbero essere
+ancora utilizzati da altre proposte o modelli.
+
 ### Backup automatici (Spatie Laravel Backup 9)
 
 Il backup comprende MySQL e gli allegati in `storage/app/public`. Codice, dipendenze,

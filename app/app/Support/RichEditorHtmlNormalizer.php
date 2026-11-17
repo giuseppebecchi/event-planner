@@ -9,6 +9,12 @@ use Illuminate\Support\Str;
 
 class RichEditorHtmlNormalizer
 {
+    /** Empty editor paragraphs need a line box in both browsers and Dompdf. */
+    public static function preserveEmptyParagraphs(string $html): string
+    {
+        return preg_replace('/<p(\s[^>]*)?>\s*(?:<br\s*\/?\s*>\s*)?<\/p>/iu', '<p$1>&nbsp;</p>', $html) ?? $html;
+    }
+
     public static function normalizeListItems(string $html): string
     {
         if (trim($html) === '' || ! Str::contains($html, '<li')) {

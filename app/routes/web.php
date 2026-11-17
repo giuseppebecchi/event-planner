@@ -45,6 +45,13 @@ Route::get('/admin/leads/{lead}/proposal.pdf', LeadProposalPdfController::class)
     ->middleware('auth')
     ->name('admin.leads.proposal.pdf');
 
+Route::get('/admin/leads/{lead}/proposal-preview', [\App\Http\Controllers\VisualProposalPdfController::class, 'leadPreview'])
+    ->middleware('auth')->name('admin.leads.proposal.preview');
+Route::get('/admin/proposal-templates/{proposalTemplate}/preview', [\App\Http\Controllers\VisualProposalPdfController::class, 'templatePreview'])
+    ->middleware('auth')->name('admin.proposal-templates.preview');
+Route::get('/admin/proposal-templates/{proposalTemplate}/preview.pdf', [\App\Http\Controllers\VisualProposalPdfController::class, 'templatePdf'])
+    ->middleware('auth')->name('admin.proposal-templates.pdf');
+
 Route::get('/admin/leads/{lead}/contract.pdf', LeadContractPdfController::class)
     ->middleware('auth')
     ->name('admin.leads.contract.pdf');

@@ -115,6 +115,8 @@ class Lead extends Model
         'proposal_content',
         'proposal_wedding_planning_service',
         'proposal_images_json_config',
+        'proposal_template_id',
+        'proposal_layout',
         'contract_sent_at',
         'contract_received_at',
         'contract_content',
@@ -142,6 +144,7 @@ class Lead extends Model
         'proposal_response_at' => 'datetime',
         'proposal_notes_log' => 'array',
         'proposal_images_json_config' => 'array',
+        'proposal_layout' => 'array',
         'contract_sent_at' => 'datetime',
         'contract_received_at' => 'datetime',
     ];

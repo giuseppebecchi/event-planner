@@ -16,6 +16,10 @@ class LeadProposalPdfController extends Controller
 
     public function __invoke(Lead $lead)
     {
+        if ($lead->proposal_layout) {
+            return app(VisualProposalPdfController::class)->download($lead);
+        }
+
         $lead->loadMissing('project.venueRecord', 'venueRecord');
 
         $pdf = Pdf::loadView('pdf.lead-proposal', [
